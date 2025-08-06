@@ -1,0 +1,331 @@
+/**
+ * Estilos para as páginas administrativas do Oráculo Tainacan
+ */
+
+/* Estilos Gerais */
+.oraculo-admin-page {
+    margin: 20px 0;
+}
+
+.oraculo-admin-card {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+    margin-bottom: 20px;
+    padding: 15px;
+    border-radius: 4px;
+}
+
+.oraculo-admin-card h2 {
+    margin-top: 0;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #eee;
+}
+
+/* Layout Grid */
+.oraculo-settings-container {
+    display: flex;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.oraculo-settings-main {
+    flex: 7;
+}
+
+.oraculo-settings-sidebar {
+    flex: 3;
+}
+
+/* Estatísticas */
+.oraculo-stat {
+    font-weight: bold;
+    color: #0073aa;
+}
+
+.indexing-percentage {
+    color: #555;
+    font-size: 0.9em;
+}
+
+/* Modal */
+.oraculo-modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.oraculo-modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 60%;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.oraculo-modal-large {
+    width: 80%;
+    max-width: 900px;
+}
+
+.oraculo-modal-close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* Progresso */
+.indexing-progress {
+    height: 20px;
+    background-color: #f1f1f1;
+    border-radius: 10px;
+    margin: 20px 0;
+    overflow: hidden;
+}
+
+.indexing-progress-bar {
+    height: 100%;
+    background-color: #4CAF50;
+    width: 0%;
+    transition: width 0.3s;
+}
+
+#indexing-status {
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+#indexing-results {
+    margin-top: 15px;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border-left: 4px solid #0073aa;
+}
+
+#indexing-results .error {
+    border-left: 4px solid #dc3232;
+}
+
+/* Dashboard */
+.oraculo-stats-grid {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.oraculo-stat-box {
+    flex: 1;
+    padding: 15px;
+    border-radius: 4px;
+    background: #f9f9f9;
+    text-align: center;
+}
+
+.oraculo-stat-value {
+    display: block;
+    font-size: 24px;
+    font-weight: bold;
+    color: #0073aa;
+    margin-bottom: 5px;
+}
+
+.oraculo-stat-label {
+    display: block;
+    font-size: 14px;
+    color: #555;
+}
+
+.oraculo-chart-container {
+    height: 300px;
+    margin-top: 20px;
+}
+
+.oraculo-filters {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f9f9f9;
+    border-radius: 4px;
+}
+
+.oraculo-filters-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.oraculo-filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.oraculo-filter-buttons {
+    justify-content: flex-end;
+    align-items: flex-end;
+}
+
+.oraculo-export-options {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+/* Histórico */
+.oraculo-history-table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.oraculo-history-table th, 
+.oraculo-history-table td {
+    padding: 10px;
+}
+
+.oraculo-query-text {
+    max-width: 300px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.oraculo-feedback-positive {
+    color: #46b450;
+    font-weight: bold;
+}
+
+.oraculo-feedback-negative {
+    color: #dc3232;
+    font-weight: bold;
+}
+
+/* Detalhes */
+.oraculo-details-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.oraculo-details-section {
+    margin-bottom: 20px;
+}
+
+.oraculo-details-section h3,
+.oraculo-details-feedback h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #eee;
+}
+
+.oraculo-details-box {
+    background: #f9f9f9;
+    padding: 15px;
+    border-radius: 4px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.oraculo-items-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.oraculo-items-list li {
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+/* Treinamento */
+.oraculo-training-edit-form {
+    margin-top: 20px;
+}
+
+.oraculo-form-row {
+    margin-bottom: 15px;
+}
+
+.oraculo-form-row label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.oraculo-form-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+/* Debug */
+.oraculo-log-container {
+    background: #23282d;
+    color: #eee;
+    font-family: monospace;
+    padding: 15px;
+    border-radius: 4px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.log-line {
+    padding: 3px 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.log-error {
+    color: #f55;
+}
+
+.log-debug {
+    color: #5af;
+}
+
+.status-ok {
+    color: #46b450;
+    font-weight: bold;
+}
+
+.status-warning {
+    color: #ffb900;
+    font-weight: bold;
+}
+
+.status-error {
+    color: #dc3232;
+    font-weight: bold;
+}
+
+.status-info {
+    color: #0073aa;
+    font-style: italic;
+}
+
+/* Responsividade */
+@media (max-width: 1024px) {
+    .oraculo-settings-container,
+    .oraculo-details-content {
+        flex-direction: column;
+        grid-template-columns: 1fr;
+    }
+    
+    .oraculo-dashboard-stats {
+        flex-direction: column;
+    }
+}
+
+.hidden {
+    display: none;
+}

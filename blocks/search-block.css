@@ -1,0 +1,399 @@
+/**
+ * Styles for Oráculo Search Block
+ */
+
+/* Container */
+.oraculo-search-block-container {
+    max-width: 100%;
+    margin: 2rem 0;
+}
+
+/* Search Form */
+.oraculo-search-form {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.oraculo-search-input-wrapper {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.oraculo-search-input {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 4px;
+    transition: border-color 0.2s;
+}
+
+.oraculo-search-input:focus {
+    outline: none;
+    border-color: #0073aa;
+}
+
+.oraculo-search-submit {
+    padding: 0.75rem 1.5rem;
+    background: #0073aa;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: background-color 0.2s;
+}
+
+.oraculo-search-submit:hover {
+    background: #005a87;
+}
+
+.oraculo-search-submit .dashicons {
+    font-size: 1.2rem;
+    width: auto;
+    height: auto;
+}
+
+/* Collection Filters */
+.oraculo-collection-filters {
+    border-top: 1px solid #e0e0e0;
+    padding-top: 1rem;
+}
+
+.oraculo-filter-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.oraculo-filter-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.oraculo-collection-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    cursor: pointer;
+}
+
+.oraculo-collection-checkbox input {
+    cursor: pointer;
+}
+
+/* Results Container */
+.oraculo-results-container {
+    margin-top: 2rem;
+}
+
+/* Tabs */
+.oraculo-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid #e0e0e0;
+    margin-bottom: 1.5rem;
+}
+
+.oraculo-tab {
+    padding: 0.75rem 1.5rem;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.oraculo-tab:hover {
+    background: #f0f0f0;
+}
+
+.oraculo-tab.active {
+    border-bottom-color: #0073aa;
+    font-weight: 600;
+}
+
+/* Tab Content */
+.oraculo-tab-pane {
+    display: none;
+}
+
+.oraculo-tab-pane.active {
+    display: block;
+}
+
+/* Loading State */
+.oraculo-loading {
+    text-align: center;
+    padding: 2rem;
+}
+
+.oraculo-loading .spinner {
+    float: none;
+    margin: 0 auto 1rem;
+}
+
+/* Results */
+.oraculo-results-list {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.oraculo-result-item {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 1.5rem;
+    transition: box-shadow 0.2s;
+}
+
+.oraculo-result-item:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.oraculo-result-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.oraculo-result-number {
+    background: #0073aa;
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.oraculo-result-title {
+    flex: 1;
+    margin: 0;
+    font-size: 1.125rem;
+    line-height: 1.3;
+}
+
+.oraculo-result-score {
+    background: #f0f0f0;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #0073aa;
+}
+
+.oraculo-item-snippet,
+.oraculo-item-description {
+    margin: 0.75rem 0;
+    line-height: 1.6;
+}
+
+.oraculo-item-snippet mark {
+    background: #ffeb3b;
+    padding: 0.1rem 0.2rem;
+    border-radius: 2px;
+}
+
+.oraculo-result-meta {
+    display: flex;
+    gap: 1rem;
+    margin: 0.75rem 0;
+    font-size: 0.875rem;
+}
+
+.oraculo-result-collection {
+    background: #e3f2fd;
+    color: #1976d2;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+.oraculo-result-year,
+.oraculo-result-type {
+    color: #666;
+}
+
+.oraculo-result-link {
+    display: inline-block;
+    margin-top: 0.5rem;
+    color: #0073aa;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.oraculo-result-link:hover {
+    color: #005a87;
+    text-decoration: underline;
+}
+
+/* Facets */
+.oraculo-facets {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 4px;
+    margin-bottom: 1.5rem;
+}
+
+.oraculo-facet-group {
+    margin-bottom: 1rem;
+}
+
+.oraculo-facet-group:last-child {
+    margin-bottom: 0;
+}
+
+.oraculo-facet-group h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #666;
+}
+
+.oraculo-facet-group label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+    cursor: pointer;
+}
+
+.oraculo-facet-group input[type="checkbox"] {
+    cursor: pointer;
+}
+
+.oraculo-filter-status {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    margin: 1rem 0;
+}
+
+/* Summary Content */
+.oraculo-summary-content {
+    line-height: 1.8;
+    font-size: 1.0625rem;
+}
+
+.oraculo-summary-content p {
+    margin-bottom: 1rem;
+}
+
+.oraculo-summary-content p:last-child {
+    margin-bottom: 0;
+}
+
+/* Feedback Section */
+.oraculo-feedback-section {
+    text-align: center;
+    padding: 2rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-top: 2rem;
+}
+
+.oraculo-feedback-section p {
+    margin-bottom: 1rem;
+    font-size: 1.125rem;
+}
+
+.oraculo-feedback-btn {
+    padding: 0.5rem 1.5rem;
+    margin: 0 0.5rem;
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.oraculo-feedback-btn:hover {
+    border-color: #0073aa;
+    background: #f0f8ff;
+}
+
+.oraculo-feedback-btn.active {
+    background: #0073aa;
+    color: white;
+    border-color: #0073aa;
+}
+
+.oraculo-feedback-btn .dashicons {
+    font-size: 1.25rem;
+    width: auto;
+    height: auto;
+}
+
+/* Error States */
+.oraculo-no-results,
+.oraculo-error {
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+}
+
+.oraculo-error {
+    color: #d32f2f;
+    background: #ffebee;
+    border-radius: 4px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .oraculo-search-input-wrapper {
+        flex-direction: column;
+    }
+    
+    .oraculo-search-submit {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .oraculo-filter-options {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .oraculo-result-header {
+        flex-wrap: wrap;
+    }
+    
+    .oraculo-result-score {
+        order: 3;
+        width: 100%;
+        text-align: center;
+        margin-top: 0.5rem;
+    }
+    
+    .oraculo-result-meta {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .oraculo-tabs {
+        flex-wrap: wrap;
+    }
+    
+    .oraculo-tab {
+        flex: 1;
+        text-align: center;
+    }
+}

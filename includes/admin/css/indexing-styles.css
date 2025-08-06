@@ -1,0 +1,334 @@
+/**
+ * Estilos para o Sistema de Indexação
+ * 
+ * @package Oraculo_Tainacan
+ */
+
+/* Progress Container */
+.oraculo-indexing-progress {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 12px;
+    min-width: 300px;
+}
+
+.oraculo-indexing-progress.status-processing {
+    border-color: #2196F3;
+    background: #f0f8ff;
+}
+
+.oraculo-indexing-progress.status-completed {
+    border-color: #4CAF50;
+    background: #f0fff4;
+}
+
+.oraculo-indexing-progress.status-error {
+    border-color: #f44336;
+    background: #fff3f3;
+}
+
+/* Progress Header */
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.status-text {
+    font-weight: 600;
+    color: #333;
+    font-size: 13px;
+}
+
+.status-text.error {
+    color: #d32f2f;
+}
+
+.cancel-indexing {
+    font-size: 11px !important;
+    padding: 2px 8px !important;
+    height: auto !important;
+    line-height: 1.5 !important;
+}
+
+/* Progress Bar */
+.progress-bar-container {
+    width: 100%;
+    height: 20px;
+    background: #e0e0e0;
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 10px 0;
+    position: relative;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #2196F3 0%, #21CBF3 100%);
+    transition: width 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent
+    );
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+.status-completed .progress-bar {
+    background: linear-gradient(90deg, #4CAF50 0%, #8BC34A 100%);
+}
+
+.status-error .progress-bar {
+    background: linear-gradient(90deg, #f44336 0%, #ff6659 100%);
+}
+
+/* Progress Details */
+.progress-details {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #666;
+    margin: 5px 0;
+}
+
+.items-count {
+    font-weight: 500;
+}
+
+.percentage {
+    font-weight: bold;
+    color: #2196F3;
+}
+
+/* Progress Stats */
+.progress-stats {
+    display: flex;
+    gap: 15px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #e0e0e0;
+    font-size: 12px;
+}
+
+.progress-stats span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.progress-stats .indexed {
+    color: #4CAF50;
+    font-weight: 600;
+}
+
+.progress-stats .skipped {
+    color: #FF9800;
+    font-weight: 600;
+}
+
+.progress-stats .failed {
+    color: #f44336;
+    font-weight: 600;
+}
+
+/* Table Adjustments */
+.oraculo-collections-table tr[data-collection-id] {
+    transition: background 0.2s;
+}
+
+.oraculo-collections-table tr.indexing {
+    background: #f0f8ff;
+}
+
+.oraculo-collections-table .actions-cell {
+    min-width: 320px;
+}
+
+.oraculo-collections-table .indexed-count {
+    font-weight: 600;
+}
+
+/* Notifications */
+.oraculo-notification {
+    animation: slideDown 0.3s ease;
+    margin: 15px 0;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Batch Processing Indicator */
+.batch-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: #4CAF50;
+    border-radius: 50%;
+    margin-left: 5px;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(1.2);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Responsive */
+@media (max-width: 782px) {
+    .oraculo-indexing-progress {
+        min-width: 100%;
+    }
+    
+    .progress-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .cancel-indexing {
+        width: 100%;
+    }
+    
+    .progress-stats {
+        flex-wrap: wrap;
+    }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    .oraculo-indexing-progress {
+        background: #1e1e1e;
+        border-color: #444;
+        color: #e0e0e0;
+    }
+    
+    .progress-bar-container {
+        background: #333;
+    }
+    
+    .status-text {
+        color: #e0e0e0;
+    }
+    
+    .progress-details {
+        color: #aaa;
+    }
+}
+
+/* Loading Animation for Collection Rows */
+.collection-loading {
+    position: relative;
+    overflow: hidden;
+}
+
+.collection-loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(33, 150, 243, 0.1),
+        transparent
+    );
+    animation: loadingSlide 1.5s infinite;
+}
+
+@keyframes loadingSlide {
+    0% {
+        left: -100%;
+    }
+    100% {
+        left: 100%;
+    }
+}
+
+/* Status Icons */
+.status-icon {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    margin-right: 5px;
+    vertical-align: middle;
+}
+
+.status-icon.success {
+    color: #4CAF50;
+}
+
+.status-icon.warning {
+    color: #FF9800;
+}
+
+.status-icon.error {
+    color: #f44336;
+}
+
+/* Collection Stats Badge */
+.collection-stats-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 10px;
+}
+
+.collection-stats-badge.indexed {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.collection-stats-badge.partial {
+    background: #fff3e0;
+    color: #e65100;
+}
+
+.collection-stats-badge.not-indexed {
+    background: #fce4ec;
+    color: #c2185b;
+}

@@ -1,0 +1,112 @@
+/**
+ * Editor styles for Oráculo Search Block
+ */
+
+/* Preview Container */
+.oraculo-search-block-preview {
+    padding: 1rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    background: #f8f9fa;
+}
+
+.oraculo-search-block-preview .oraculo-search-form {
+    margin-bottom: 1rem;
+}
+
+.oraculo-search-block-preview .oraculo-search-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+}
+
+.oraculo-search-block-preview .oraculo-search-button {
+    padding: 0.75rem 1.5rem;
+    background: #0073aa;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: not-allowed;
+    opacity: 0.8;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.oraculo-search-block-preview .dashicons {
+    font-size: 1rem;
+    width: auto;
+    height: auto;
+}
+
+/* Filters Preview */
+.oraculo-filters-preview {
+    padding: 1rem;
+    background: white;
+    border: 1px dashed #ccc;
+    border-radius: 4px;
+    text-align: center;
+    color: #666;
+    margin-bottom: 1rem;
+}
+
+/* Tabs Preview */
+.oraculo-tabs-preview {
+    display: flex;
+    gap: 1rem;
+    padding: 0.5rem 0;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.oraculo-tab {
+    padding: 0.5rem 1rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #666;
+}
+
+.oraculo-tab.active {
+    color: #0073aa;
+    font-weight: 600;
+    border-bottom: 3px solid #0073aa;
+}
+
+/* Block Settings Panel */
+.oraculo-block-collections {
+    margin-top: 1rem;
+}
+
+.oraculo-block-collections label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.components-checkbox-control {
+    margin-bottom: 0.5rem;
+}
+
+/* Alignment Support */
+.wp-block[data-align="wide"] .oraculo-search-block-preview,
+.wp-block[data-align="full"] .oraculo-search-block-preview {
+    max-width: none;
+}
+
+/* Selected State */
+.wp-block.is-selected .oraculo-search-block-preview {
+    outline: 2px solid #0073aa;
+    outline-offset: 2px;
+}
+
+/* Placeholder State */
+.oraculo-search-block-preview.is-placeholder {
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f0f0f0;
+    color: #666;
+}

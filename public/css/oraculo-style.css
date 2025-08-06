@@ -1,0 +1,422 @@
+/**
+ * Estilos para a página de busca do Oráculo Tainacan
+ */
+
+/* Estrutura Geral */
+.oraculo-search-page {
+    background-color: #f8f9fa;
+    padding: 40px 0;
+    min-height: 80vh;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+}
+
+.oraculo-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Cabeçalho */
+.oraculo-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.oraculo-title {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.oraculo-subtitle {
+    font-size: 1.2rem;
+    color: #666;
+}
+
+/* Formulário de Busca */
+.oraculo-search-form {
+    background-color: #fff;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 3px 15px rgba(0, 0, 0, 0.1);
+    margin-bottom: 30px;
+}
+
+.oraculo-search-input-container {
+    display: flex;
+    margin-bottom: 15px;
+}
+
+.oraculo-search-input {
+    flex-grow: 1;
+    padding: 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 5px;
+    font-size: 1.1rem;
+    transition: border-color 0.3s;
+}
+
+.oraculo-search-input:focus {
+    border-color: #0073aa;
+    outline: none;
+}
+
+.oraculo-search-button {
+    margin-left: 10px;
+    padding: 0 20px;
+    background-color: #0073aa;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    display: flex;
+    align-items: center;
+}
+
+.oraculo-search-button:hover {
+    background-color: #005f8b;
+}
+
+.oraculo-search-icon {
+    margin-right: 8px;
+    font-size: 1.1rem;
+}
+
+.oraculo-search-button.loading {
+    background-color: #666;
+    cursor: wait;
+}
+
+/* Filtro de Coleções */
+.oraculo-collections-filter {
+    margin-top: 15px;
+    border-top: 1px solid #eee;
+    padding-top: 15px;
+}
+
+.oraculo-collections-label {
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #555;
+}
+
+.oraculo-collections-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.oraculo-collection-option {
+    display: flex;
+    align-items: center;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+.oraculo-collection-option input {
+    margin-right: 5px;
+}
+
+/* Resultados */
+.oraculo-results {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 3px 15px rgba(0, 0, 0, 0.1);
+}
+
+.oraculo-query {
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.oraculo-query-label {
+    font-weight: bold;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.oraculo-query-text {
+    font-size: 1.3rem;
+    color: #333;
+}
+
+.oraculo-response {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 30px;
+    color: #333;
+}
+
+/* Itens */
+.oraculo-items {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.oraculo-items-heading {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.oraculo-items-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.oraculo-item {
+    border: 1px solid #eee;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: box-shadow 0.3s, transform 0.2s;
+}
+
+.oraculo-item:hover {
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    transform: translateY(-3px);
+}
+
+.oraculo-item-header {
+    padding: 15px;
+    background-color: #f9f9f9;
+    display: flex;
+    align-items: center;
+}
+
+.oraculo-item-number {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background-color: #0073aa;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+
+.oraculo-item-title {
+    font-weight: bold;
+    font-size: 1rem;
+    flex-grow: 1;
+}
+
+.oraculo-item-collection {
+    font-size: 0.85rem;
+    color: #666;
+    border-radius: 20px;
+    padding: 3px 8px;
+    background-color: #f1f1f1;
+    margin-left: 10px;
+}
+
+.oraculo-item-description {
+    padding: 15px;
+    color: #555;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    max-height: 100px;
+    overflow: hidden;
+    transition: max-height 0.3s;
+    cursor: pointer;
+    position: relative;
+}
+
+.oraculo-item-description::after {
+    content: "...";
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    font-weight: bold;
+    color: #0073aa;
+}
+
+.oraculo-item-description.expanded {
+    max-height: 500px;
+}
+
+.oraculo-item-description.expanded::after {
+    display: none;
+}
+
+.oraculo-item-footer {
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #eee;
+}
+
+.oraculo-item-link {
+    color: #0073aa;
+    text-decoration: none;
+    font-weight: bold;
+    transition: color 0.2s;
+}
+
+.oraculo-item-link:hover {
+    color: #005f8b;
+    text-decoration: underline;
+}
+
+.oraculo-item-relevance {
+    font-size: 0.85rem;
+    color: #666;
+}
+
+/* Feedback */
+.oraculo-feedback {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+    text-align: center;
+}
+
+.oraculo-feedback-question {
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.oraculo-feedback-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.oraculo-feedback-button {
+    padding: 8px 25px;
+    border-radius: 20px;
+    font-weight: bold;
+    border: 2px solid;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.oraculo-feedback-yes {
+    border-color: #46b450;
+    color: #46b450;
+    background-color: white;
+}
+
+.oraculo-feedback-no {
+    border-color: #dc3232;
+    color: #dc3232;
+    background-color: white;
+}
+
+.oraculo-feedback-yes:hover, .oraculo-feedback-yes.active {
+    background-color: #46b450;
+    color: white;
+}
+
+.oraculo-feedback-no:hover, .oraculo-feedback-no.active {
+    background-color: #dc3232;
+    color: white;
+}
+
+.oraculo-feedback-message {
+    margin-top: 15px;
+    font-weight: bold;
+    min-height: 24px;
+}
+
+.oraculo-feedback-success {
+    color: #46b450;
+}
+
+.oraculo-feedback-error {
+    color: #dc3232;
+}
+
+/* Exemplos */
+.oraculo-examples {
+    padding: 30px;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 3px 15px rgba(0, 0, 0, 0.1);
+}
+
+.oraculo-examples-heading {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.oraculo-examples-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 15px;
+}
+
+.oraculo-example {
+    padding: 15px;
+    background-color: #f9f9f9;
+    border-radius: 5px;
+    border-left: 3px solid #0073aa;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.oraculo-example:hover {
+    background-color: #f1f8fb;
+    transform: translateY(-2px);
+}
+
+/* Mensagens de Erro */
+.oraculo-error {
+    background-color: #fdf2f2;
+    border-left: 4px solid #dc3232;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+}
+
+.oraculo-error-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #b32d2e;
+}
+
+.oraculo-error-message {
+    color: #555;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .oraculo-title {
+        font-size: 2rem;
+    }
+    
+    .oraculo-subtitle {
+        font-size: 1rem;
+    }
+    
+    .oraculo-search-input-container {
+        flex-direction: column;
+    }
+    
+    .oraculo-search-button {
+        margin-left: 0;
+        margin-top: 10px;
+        width: 100%;
+        justify-content: center;
+        padding: 15px;
+    }
+    
+    .oraculo-items-list {
+        grid-template-columns: 1fr;
+    }
+}
