@@ -11,7 +11,7 @@
  * Requires PHP: 7.4
  */
 
-// Proteção contra acesso direto
+// Proteção contra acesso direto TESTE DE TEXTO
 if (!defined('WPINC')) {
     die;
 }
@@ -352,4 +352,5 @@ class Oraculo_Tainacan {
 }
 
 // Inicializa o plugin
+
 Oraculo_Tainacan::get_instance();
