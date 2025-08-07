@@ -1,6 +1,6 @@
 <?php
 /**
- * Classe para gerenciamento do banco de dados vetorial
+ * Classe para gerenciamento do banco de dados vetorial TESTE DE TEXTO
  *
  * @package Oraculo_Tainacan
  */
@@ -502,4 +502,5 @@ class Oraculo_Tainacan_Vector_DB {
             ARRAY_A
         );
     }
+
 }
