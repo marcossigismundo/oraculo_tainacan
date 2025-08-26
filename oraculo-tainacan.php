@@ -11,7 +11,7 @@
  * Requires PHP: 7.4
  */
 
-// Proteção contra acesso direto TESTE DE TEXTO
+// Proteção contra acesso direto
 if (!defined('WPINC')) {
     die;
 }
@@ -61,7 +61,7 @@ class Oraculo_Tainacan {
             'includes/class-rag-engine.php',
             'includes/class-indexing-manager.php',
             'includes/class-ajax-indexing-handler.php',
-            'includes/class-admin-menu.php' // Adiciona o admin menu aqui
+            'includes/class-admin-menu.php'
         );
         
         foreach ($required_files as $file) {
@@ -154,45 +154,25 @@ class Oraculo_Tainacan {
             ORACULO_TAINACAN_VERSION
         );
         
-        wp_enqueue_style(
-            'oraculo-indexing',
-            ORACULO_TAINACAN_PLUGIN_URL . 'assets/css/indexing-styles.css',
-            array(),
-            ORACULO_TAINACAN_VERSION
-        );
-        
         // JavaScript
         wp_enqueue_script(
             'oraculo-admin',
-            ORACULO_TAINACAN_PLUGIN_URL . 'assets/js/admin-script.js',
-            array('jquery'),
-            ORACULO_TAINACAN_VERSION,
-            true
-        );
-        
-        wp_enqueue_script(
-            'oraculo-indexing-manager',
-            ORACULO_TAINACAN_PLUGIN_URL . 'assets/js/indexing-manager.js',
+            ORACULO_TAINACAN_PLUGIN_URL . 'assets/js/admin.js',
             array('jquery'),
             ORACULO_TAINACAN_VERSION,
             true
         );
         
         // Localização
-        wp_localize_script('oraculo-admin', 'oraculo_admin', array(
-            'ajax_url' => admin_url('admin-ajax.php'),
+        wp_localize_script('oraculo-admin', 'oraculoAdmin', array(
+            'ajaxUrl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('oraculo_admin_nonce'),
-            'strings' => array(
-                'indexing' => __('Indexando...', 'oraculo-tainacan'),
-                'error' => __('Erro', 'oraculo-tainacan'),
-                'success' => __('Sucesso', 'oraculo-tainacan'),
-                'confirm_cancel' => __('Cancelar indexação em andamento?', 'oraculo-tainacan')
+            'i18n' => array(
+                'confirm' => __('Tem certeza?', 'oraculo-tainacan'),
+                'processing' => __('Processando...', 'oraculo-tainacan'),
+                'success' => __('Sucesso!', 'oraculo-tainacan'),
+                'error' => __('Erro!', 'oraculo-tainacan')
             )
-        ));
-        
-        wp_localize_script('oraculo-indexing-manager', 'oraculo_admin', array(
-            'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('oraculo_admin_nonce')
         ));
     }
     
@@ -200,10 +180,6 @@ class Oraculo_Tainacan {
      * Scripts e estilos frontend
      */
     public function enqueue_frontend_assets() {
-        if (!is_singular() && !is_archive()) {
-            return;
-        }
-        
         wp_enqueue_style(
             'oraculo-frontend',
             ORACULO_TAINACAN_PLUGIN_URL . 'assets/css/frontend.css',
@@ -219,8 +195,8 @@ class Oraculo_Tainacan {
             true
         );
         
-        wp_localize_script('oraculo-frontend', 'oraculo_frontend', array(
-            'ajax_url' => admin_url('admin-ajax.php'),
+        wp_localize_script('oraculo-frontend', 'oraculoFrontend', array(
+            'ajaxUrl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('oraculo_frontend_nonce')
         ));
     }
@@ -229,28 +205,30 @@ class Oraculo_Tainacan {
      * Registra rotas da API REST
      */
     public function register_rest_routes() {
-        register_rest_route('oraculo/v1', '/search', array(
+        register_rest_route('oraculo-tainacan/v1', '/search', array(
             'methods' => 'POST',
-            'callback' => array($this, 'rest_search'),
+            'callback' => array($this, 'handle_rest_search'),
             'permission_callback' => '__return_true'
         ));
         
-        register_rest_route('oraculo/v1', '/index/(?P<collection_id>\d+)', array(
+        register_rest_route('oraculo-tainacan/v1', '/index', array(
             'methods' => 'POST',
-            'callback' => array($this, 'rest_index_collection'),
-            'permission_callback' => array($this, 'rest_permission_check')
+            'callback' => array($this, 'handle_rest_index'),
+            'permission_callback' => function() {
+                return current_user_can('manage_options');
+            }
         ));
     }
     
     /**
-     * Endpoint REST de busca
+     * Handler REST para busca
      */
-    public function rest_search($request) {
-        $query = $request->get_param('query');
+    public function handle_rest_search($request) {
+        $query = sanitize_text_field($request->get_param('query'));
         $collections = $request->get_param('collections');
         
         if (empty($query)) {
-            return new WP_Error('missing_query', __('Query obrigatória', 'oraculo-tainacan'), array('status' => 400));
+            return new WP_Error('missing_query', 'Query é obrigatória', array('status' => 400));
         }
         
         require_once ORACULO_TAINACAN_PLUGIN_DIR . 'includes/class-rag-engine.php';
@@ -258,46 +236,51 @@ class Oraculo_Tainacan {
         
         $result = $rag_engine->search($query, $collections);
         
-        return rest_ensure_response($result);
-    }
-    
-    /**
-     * Endpoint REST para indexação
-     */
-    public function rest_index_collection($request) {
-        $collection_id = $request->get_param('collection_id');
-        
-        require_once ORACULO_TAINACAN_PLUGIN_DIR . 'includes/class-indexing-manager.php';
-        $indexing_manager = new Oraculo_Tainacan_Indexing_Manager();
-        
-        $result = $indexing_manager->start_indexing($collection_id);
+        if (is_wp_error($result)) {
+            return $result;
+        }
         
         return rest_ensure_response($result);
     }
     
     /**
-     * Verifica permissões REST
+     * Handler REST para indexação
      */
-    public function rest_permission_check() {
-        return current_user_can('manage_options');
+    public function handle_rest_index($request) {
+        $collection_id = (int) $request->get_param('collection_id');
+        
+        if (empty($collection_id)) {
+            return new WP_Error('missing_collection', 'Collection ID é obrigatório', array('status' => 400));
+        }
+        
+        require_once ORACULO_TAINACAN_PLUGIN_DIR . 'includes/class-rag-engine.php';
+        $rag_engine = new Oraculo_Tainacan_RAG_Engine();
+        
+        $result = $rag_engine->index_collection($collection_id);
+        
+        if (is_wp_error($result)) {
+            return $result;
+        }
+        
+        return rest_ensure_response($result);
     }
     
     /**
-     * Quando um item é criado
+     * Callback quando item é criado
      */
     public function on_item_created($item) {
         $this->index_single_item($item);
     }
     
     /**
-     * Quando um item é atualizado
+     * Callback quando item é atualizado
      */
     public function on_item_updated($item) {
         $this->index_single_item($item, true);
     }
     
     /**
-     * Quando um item é deletado
+     * Callback quando item é deletado
      */
     public function on_item_deleted($item) {
         require_once ORACULO_TAINACAN_PLUGIN_DIR . 'includes/class-vector-db.php';
@@ -352,5 +335,4 @@ class Oraculo_Tainacan {
 }
 
 // Inicializa o plugin
-
 Oraculo_Tainacan::get_instance();
