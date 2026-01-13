@@ -1,0 +1,485 @@
+<?php
+/**
+ * Armazenamento e busca de vetores (embeddings)
+ *
+ * @package Oraculo_Tainacan
+ */
+
+namespace Oraculo_Tainacan\Vector;
+
+use WP_Error;
+
+/**
+ * Gerencia armazenamento e busca de vetores no banco de dados
+ */
+class VectorStore {
+
+    /**
+     * Nome da tabela
+     * @var string
+     */
+    private string $table_name;
+
+    /**
+     * Construtor
+     */
+    public function __construct() {
+        global $wpdb;
+        $this->table_name = $wpdb->prefix . 'oraculo_vectors';
+    }
+
+    /**
+     * Insere ou atualiza vetor
+     *
+     * @param array $data
+     * @return int|WP_Error ID do registro ou erro
+     */
+    public function upsert(array $data) {
+        global $wpdb;
+
+        $required = ['item_id', 'collection_id', 'embedding_data', 'content_text'];
+        foreach ($required as $field) {
+            if (empty($data[$field])) {
+                return new WP_Error('missing_field', sprintf(__('Campo obrigatório ausente: %s', 'oraculo-tainacan'), $field));
+            }
+        }
+
+        // Verificar se já existe
+        $existing = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$this->table_name} WHERE item_id = %d AND collection_id = %d",
+            $data['item_id'],
+            $data['collection_id']
+        ));
+
+        $embedding_json = is_array($data['embedding_data'])
+            ? wp_json_encode($data['embedding_data'])
+            : $data['embedding_data'];
+
+        $content_hash = \Oraculo_Tainacan\generate_content_hash($data['content_text']);
+
+        $record = [
+            'item_id' => $data['item_id'],
+            'collection_id' => $data['collection_id'],
+            'collection_name' => $data['collection_name'] ?? '',
+            'embedding_data' => $embedding_json,
+            'content_text' => $data['content_text'],
+            'content_hash' => $content_hash,
+            'item_url' => $data['item_url'] ?? '',
+            'item_title' => $data['item_title'] ?? '',
+            'metadata_json' => isset($data['metadata']) ? wp_json_encode($data['metadata']) : null,
+            'embedding_model' => $data['embedding_model'] ?? 'text-embedding-ada-002',
+            'token_count' => $data['token_count'] ?? \Oraculo_Tainacan\estimate_tokens($data['content_text']),
+        ];
+
+        if ($existing) {
+            $record['updated_at'] = current_time('mysql');
+            $result = $wpdb->update(
+                $this->table_name,
+                $record,
+                ['id' => $existing],
+                ['%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s'],
+                ['%d']
+            );
+
+            return $result !== false ? (int)$existing : new WP_Error('update_failed', __('Falha ao atualizar vetor.', 'oraculo-tainacan'));
+        }
+
+        $record['created_at'] = current_time('mysql');
+        $result = $wpdb->insert(
+            $this->table_name,
+            $record,
+            ['%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s']
+        );
+
+        return $result !== false ? $wpdb->insert_id : new WP_Error('insert_failed', __('Falha ao inserir vetor.', 'oraculo-tainacan'));
+    }
+
+    /**
+     * Insere múltiplos vetores
+     *
+     * @param array $items Array de dados
+     * @return array ['success' => int, 'failed' => int, 'errors' => array]
+     */
+    public function bulk_upsert(array $items): array {
+        $success = 0;
+        $failed = 0;
+        $errors = [];
+
+        foreach ($items as $index => $item) {
+            $result = $this->upsert($item);
+
+            if (is_wp_error($result)) {
+                $failed++;
+                $errors[] = [
+                    'index' => $index,
+                    'item_id' => $item['item_id'] ?? null,
+                    'error' => $result->get_error_message(),
+                ];
+            } else {
+                $success++;
+            }
+        }
+
+        return [
+            'success' => $success,
+            'failed' => $failed,
+            'errors' => $errors,
+        ];
+    }
+
+    /**
+     * Busca por similaridade de cosseno
+     *
+     * @param array $query_embedding Vetor de busca
+     * @param array $collection_ids IDs das coleções (vazio = todas)
+     * @param int $limit Máximo de resultados
+     * @param float $threshold Limiar mínimo de similaridade
+     * @return array|WP_Error
+     */
+    public function search(array $query_embedding, array $collection_ids = [], int $limit = 10, float $threshold = 0.3) {
+        global $wpdb;
+
+        // Buscar todos os vetores das coleções especificadas
+        $where_clause = "";
+        if (!empty($collection_ids)) {
+            $placeholders = implode(',', array_fill(0, count($collection_ids), '%d'));
+            $where_clause = $wpdb->prepare("WHERE collection_id IN ($placeholders)", $collection_ids);
+        }
+
+        $vectors = $wpdb->get_results(
+            "SELECT id, item_id, collection_id, collection_name, embedding_data,
+                    content_text, item_url, item_title, metadata_json
+             FROM {$this->table_name}
+             {$where_clause}",
+            ARRAY_A
+        );
+
+        if (empty($vectors)) {
+            return [];
+        }
+
+        // Calcular similaridades
+        $results = [];
+        foreach ($vectors as $vector) {
+            $embedding = json_decode($vector['embedding_data'], true);
+
+            if (!is_array($embedding)) {
+                continue;
+            }
+
+            $similarity = \Oraculo_Tainacan\cosine_similarity($query_embedding, $embedding);
+
+            if ($similarity >= $threshold) {
+                $vector['similarity'] = $similarity;
+                unset($vector['embedding_data']); // Não retornar o embedding
+                $results[] = $vector;
+            }
+        }
+
+        // Ordenar por similaridade descendente
+        usort($results, fn($a, $b) => $b['similarity'] <=> $a['similarity']);
+
+        // Limitar resultados
+        return array_slice($results, 0, $limit);
+    }
+
+    /**
+     * Busca por keywords (fallback/híbrido)
+     *
+     * @param string $query
+     * @param array $collection_ids
+     * @param int $limit
+     * @return array|WP_Error
+     */
+    public function keyword_search(string $query, array $collection_ids = [], int $limit = 10) {
+        global $wpdb;
+
+        $search_terms = preg_split('/\s+/', $query);
+        $search_terms = array_filter($search_terms, fn($t) => strlen($t) > 2);
+
+        if (empty($search_terms)) {
+            return [];
+        }
+
+        // Construir condições LIKE
+        $like_conditions = [];
+        $like_values = [];
+        foreach ($search_terms as $term) {
+            $like_conditions[] = "(content_text LIKE %s OR item_title LIKE %s)";
+            $like_values[] = '%' . $wpdb->esc_like($term) . '%';
+            $like_values[] = '%' . $wpdb->esc_like($term) . '%';
+        }
+
+        $where_parts = ['(' . implode(' OR ', $like_conditions) . ')'];
+
+        if (!empty($collection_ids)) {
+            $placeholders = implode(',', array_fill(0, count($collection_ids), '%d'));
+            $where_parts[] = "collection_id IN ($placeholders)";
+            $like_values = array_merge($like_values, $collection_ids);
+        }
+
+        $where_clause = 'WHERE ' . implode(' AND ', $where_parts);
+
+        $sql = $wpdb->prepare(
+            "SELECT id, item_id, collection_id, collection_name,
+                    content_text, item_url, item_title, metadata_json
+             FROM {$this->table_name}
+             {$where_clause}
+             LIMIT %d",
+            array_merge($like_values, [$limit])
+        );
+
+        $results = $wpdb->get_results($sql, ARRAY_A);
+
+        // Adicionar score baseado em matches
+        foreach ($results as &$result) {
+            $score = 0;
+            $text = strtolower($result['content_text'] . ' ' . $result['item_title']);
+            foreach ($search_terms as $term) {
+                $score += substr_count($text, strtolower($term));
+            }
+            $result['keyword_score'] = $score;
+        }
+
+        // Ordenar por score
+        usort($results, fn($a, $b) => $b['keyword_score'] <=> $a['keyword_score']);
+
+        return $results;
+    }
+
+    /**
+     * Obtém vetor por item_id
+     *
+     * @param int $item_id
+     * @param int $collection_id
+     * @return array|null
+     */
+    public function get_by_item(int $item_id, int $collection_id): ?array {
+        global $wpdb;
+
+        return $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$this->table_name} WHERE item_id = %d AND collection_id = %d",
+            $item_id,
+            $collection_id
+        ), ARRAY_A);
+    }
+
+    /**
+     * Verifica se item precisa ser reindexado
+     *
+     * @param int $item_id
+     * @param int $collection_id
+     * @param string $content_hash Hash do conteúdo atual
+     * @return bool
+     */
+    public function needs_reindex(int $item_id, int $collection_id, string $content_hash): bool {
+        global $wpdb;
+
+        $existing_hash = $wpdb->get_var($wpdb->prepare(
+            "SELECT content_hash FROM {$this->table_name} WHERE item_id = %d AND collection_id = %d",
+            $item_id,
+            $collection_id
+        ));
+
+        return $existing_hash !== $content_hash;
+    }
+
+    /**
+     * Remove vetor
+     *
+     * @param int $item_id
+     * @param int $collection_id
+     * @return bool
+     */
+    public function delete(int $item_id, int $collection_id): bool {
+        global $wpdb;
+
+        $result = $wpdb->delete(
+            $this->table_name,
+            [
+                'item_id' => $item_id,
+                'collection_id' => $collection_id,
+            ],
+            ['%d', '%d']
+        );
+
+        return $result !== false;
+    }
+
+    /**
+     * Remove todos os vetores de uma coleção
+     *
+     * @param int $collection_id
+     * @return int Número de registros removidos
+     */
+    public function delete_collection(int $collection_id): int {
+        global $wpdb;
+
+        return $wpdb->delete(
+            $this->table_name,
+            ['collection_id' => $collection_id],
+            ['%d']
+        );
+    }
+
+    /**
+     * Verifica se a tabela existe
+     *
+     * @return bool
+     */
+    private function table_exists(): bool {
+        global $wpdb;
+        return $wpdb->get_var("SHOW TABLES LIKE '{$this->table_name}'") === $this->table_name;
+    }
+
+    /**
+     * Obtém estatísticas do store
+     *
+     * @return array
+     */
+    public function get_stats(): array {
+        global $wpdb;
+
+        // Verificar se a tabela existe
+        if (!$this->table_exists()) {
+            return [
+                'total_vectors' => 0,
+                'total_tokens' => 0,
+                'by_collection' => [],
+                'models_used' => [],
+                'oldest_entry' => null,
+                'newest_entry' => null,
+            ];
+        }
+
+        $total = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$this->table_name}");
+
+        $by_collection = $wpdb->get_results(
+            "SELECT collection_id, collection_name, COUNT(*) as count,
+                    SUM(token_count) as total_tokens
+             FROM {$this->table_name}
+             GROUP BY collection_id, collection_name
+             ORDER BY count DESC",
+            ARRAY_A
+        ) ?: [];
+
+        $total_tokens = (int) $wpdb->get_var("SELECT SUM(token_count) FROM {$this->table_name}");
+
+        $models_used = $wpdb->get_col(
+            "SELECT DISTINCT embedding_model FROM {$this->table_name}"
+        ) ?: [];
+
+        $oldest = $wpdb->get_var("SELECT MIN(created_at) FROM {$this->table_name}");
+        $newest = $wpdb->get_var("SELECT MAX(updated_at) FROM {$this->table_name}");
+
+        return [
+            'total_vectors' => $total,
+            'total_tokens' => $total_tokens,
+            'by_collection' => $by_collection,
+            'models_used' => $models_used,
+            'oldest_entry' => $oldest,
+            'newest_entry' => $newest,
+        ];
+    }
+
+    /**
+     * Obtém contagem por coleção
+     *
+     * @param int $collection_id
+     * @return int
+     */
+    public function count_by_collection(int $collection_id): int {
+        global $wpdb;
+
+        if (!$this->table_exists()) {
+            return 0;
+        }
+
+        return (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$this->table_name} WHERE collection_id = %d",
+            $collection_id
+        ));
+    }
+
+    /**
+     * Obtém IDs de itens indexados de uma coleção
+     *
+     * @param int $collection_id
+     * @return array
+     */
+    public function get_indexed_item_ids(int $collection_id): array {
+        global $wpdb;
+
+        if (!$this->table_exists()) {
+            return [];
+        }
+
+        return $wpdb->get_col($wpdb->prepare(
+            "SELECT item_id FROM {$this->table_name} WHERE collection_id = %d",
+            $collection_id
+        )) ?: [];
+    }
+
+    /**
+     * Limpa vetores antigos
+     *
+     * @param int $days_old
+     * @return int Número de registros removidos
+     */
+    public function cleanup_old(int $days_old = 90): int {
+        global $wpdb;
+
+        return $wpdb->query($wpdb->prepare(
+            "DELETE FROM {$this->table_name} WHERE updated_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
+            $days_old
+        ));
+    }
+
+    /**
+     * Otimiza tabela
+     *
+     * @return bool
+     */
+    public function optimize(): bool {
+        global $wpdb;
+
+        $result = $wpdb->query("OPTIMIZE TABLE {$this->table_name}");
+        return $result !== false;
+    }
+
+    /**
+     * Exporta vetores de uma coleção
+     *
+     * @param int $collection_id
+     * @param string $format 'json' ou 'csv'
+     * @return string
+     */
+    public function export(int $collection_id, string $format = 'json'): string {
+        global $wpdb;
+
+        $data = $wpdb->get_results($wpdb->prepare(
+            "SELECT item_id, item_title, item_url, content_text, content_hash,
+                    embedding_model, token_count, created_at, updated_at
+             FROM {$this->table_name}
+             WHERE collection_id = %d
+             ORDER BY item_id",
+            $collection_id
+        ), ARRAY_A);
+
+        if ($format === 'csv') {
+            $output = fopen('php://temp', 'r+');
+            if (!empty($data)) {
+                fputcsv($output, array_keys($data[0]));
+                foreach ($data as $row) {
+                    fputcsv($output, $row);
+                }
+            }
+            rewind($output);
+            $csv = stream_get_contents($output);
+            fclose($output);
+            return $csv;
+        }
+
+        return wp_json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    }
+}
