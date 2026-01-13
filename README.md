@@ -1,1 +1,0 @@
-# oraculo_tainacan
