@@ -1,0 +1,528 @@
+/**
+ * Oráculo Tainacan - Chat Widget Styles
+ */
+
+/* Chat Button */
+.oraculo-chat-button {
+    position: fixed;
+    z-index: 99999;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--oraculo-primary, #1f2f56);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+}
+
+.oraculo-chat-button.bottom-right {
+    bottom: 20px;
+    right: 20px;
+}
+
+.oraculo-chat-button.bottom-left {
+    bottom: 20px;
+    left: 20px;
+}
+
+.oraculo-chat-button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.oraculo-chat-button svg {
+    width: 28px;
+    height: 28px;
+}
+
+.oraculo-chat-button.open svg.chat-icon {
+    display: none;
+}
+
+.oraculo-chat-button svg.close-icon {
+    display: none;
+}
+
+.oraculo-chat-button.open svg.close-icon {
+    display: block;
+}
+
+/* Chat Window */
+.oraculo-chat-window {
+    position: fixed;
+    z-index: 99998;
+    width: 380px;
+    height: 550px;
+    max-height: calc(100vh - 100px);
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(20px) scale(0.95);
+    transition: all 0.3s;
+    overflow: hidden;
+}
+
+.oraculo-chat-window.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+}
+
+.oraculo-chat-window.bottom-right {
+    bottom: 90px;
+    right: 20px;
+}
+
+.oraculo-chat-window.bottom-left {
+    bottom: 90px;
+    left: 20px;
+}
+
+/* Chat Header */
+.oraculo-chat-header {
+    background: var(--oraculo-primary, #1f2f56);
+    color: #fff;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.oraculo-chat-avatar {
+    width: 40px;
+    height: 40px;
+    background: var(--oraculo-accent, #b5e0e3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+.oraculo-chat-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.oraculo-chat-subtitle {
+    font-size: 12px;
+    opacity: 0.8;
+    margin: 0;
+    color: #1d2327;
+}
+
+.oraculo-chat-close {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    opacity: 0.7;
+    padding: 5px;
+}
+
+.oraculo-chat-close:hover {
+    opacity: 1;
+}
+
+/* Chat Messages */
+.oraculo-chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.oraculo-chat-message {
+    max-width: 85%;
+    padding: 12px 16px;
+    border-radius: 16px;
+    line-height: 1.5;
+    font-size: 14px;
+    animation: messageSlide 0.3s ease;
+}
+
+@keyframes messageSlide {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.oraculo-chat-message.user {
+    background: var(--oraculo-primary, #1f2f56);
+    color: #16213e !important;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+}
+
+.oraculo-chat-message.assistant {
+    background: #f5f5f5;
+    color: #1d2327;
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+}
+
+.oraculo-chat-message.assistant p,
+.oraculo-chat-message.assistant span,
+.oraculo-chat-message.assistant li {
+    color: #1d2327;
+}
+
+.oraculo-chat-message.assistant strong {
+    color: #187181;
+    font-weight: 600;
+}
+
+/* Typing Indicator */
+.oraculo-chat-typing {
+    display: flex;
+    gap: 4px;
+    padding: 12px 16px;
+    background: #f0f0f1;
+    border-radius: 16px;
+    align-self: flex-start;
+    max-width: 80px;
+}
+
+.oraculo-chat-typing span {
+    width: 8px;
+    height: 8px;
+    background: var(--oraculo-text-muted, #646970);
+    border-radius: 50%;
+    animation: typing 1.4s infinite;
+}
+
+.oraculo-chat-typing span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.oraculo-chat-typing span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typing {
+    0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.5;
+    }
+    30% {
+        transform: translateY(-8px);
+        opacity: 1;
+    }
+}
+
+/* Message Sources */
+.oraculo-message-sources {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.oraculo-message-sources-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #444444;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+}
+
+.oraculo-message-source {
+    display: block;
+    font-size: 13px;
+    color: #156075;
+    text-decoration: none;
+    padding: 6px 0;
+    font-weight: 500;
+}
+
+.oraculo-message-source:hover {
+    text-decoration: underline;
+    color: #187181;
+}
+
+/* Message Feedback */
+.oraculo-message-feedback {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.oraculo-message-feedback button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+}
+
+.oraculo-message-feedback button:hover {
+    opacity: 1;
+}
+
+.oraculo-message-feedback button.selected {
+    opacity: 1;
+}
+
+/* Welcome Message */
+.oraculo-chat-welcome {
+    text-align: center;
+    padding: 20px;
+}
+
+.oraculo-chat-welcome-icon {
+    font-size: 48px;
+    margin-bottom: 10px;
+}
+
+.oraculo-chat-welcome-text {
+    color: #1d2327;
+    margin-bottom: 15px;
+    line-height: 1.6;
+    font-size: 15px;
+}
+
+/* Suggestions */
+.oraculo-chat-suggestions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.oraculo-chat-suggestion {
+    padding: 12px 16px;
+    background: #ffffff;
+    border: 2px solid #d9eced;
+    border-radius: 20px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    color: #1d2327;
+    font-weight: 500;
+}
+
+.oraculo-chat-suggestion:hover {
+    background: #e9f5f6;
+    border-color: #187181;
+    color: #156075;
+}
+
+/* Chat Input */
+.oraculo-chat-input-container {
+    padding: 15px;
+    border-top: 1px solid #d9eced;
+    background: #f8fafb;
+}
+
+.oraculo-chat-input-form {
+    display: flex;
+    gap: 10px;
+}
+
+.oraculo-chat-input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 2px solid #d9eced;
+    border-radius: 24px;
+    font-size: 14px;
+    resize: none;
+    height: 44px;
+    max-height: 120px;
+    overflow-y: auto;
+    transition: border-color 0.2s;
+    color: #fff !important;
+    background: #ffffff;
+}
+
+.oraculo-chat-input::placeholder {
+    color: #8c8f94;
+}
+
+.oraculo-chat-input:focus {
+    outline: none;
+    border-color: #187181;
+    box-shadow: 0 0 0 3px rgba(24, 113, 129, 0.1);
+}
+
+.oraculo-chat-send {
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, #187181 0%, #156075 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.oraculo-chat-send:hover {
+    background: linear-gradient(135deg, #156075 0%, #134a5c 100%);
+    transform: scale(1.05);
+}
+
+.oraculo-chat-send:disabled {
+    background: #a0a0a0;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.oraculo-chat-send svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* New Conversation */
+.oraculo-new-conversation {
+    text-align: center;
+    padding: 10px;
+}
+
+.oraculo-new-conversation button {
+    background: none;
+    border: none;
+    color: var(--oraculo-primary, #1f2f56);
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+/* Embedded Chat */
+.oraculo-chat-embedded {
+    position: relative;
+    width: 100%;
+    border: 1px solid var(--oraculo-border, #dcdcde);
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.oraculo-chat-embedded .oraculo-chat-window {
+    position: relative;
+    width: 100%;
+    height: auto;
+    min-height: 500px;
+    bottom: auto;
+    right: auto;
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    box-shadow: none;
+    border-radius: 0;
+}
+
+/* Mobile Responsive */
+@media (max-width: 480px) {
+    .oraculo-chat-window {
+        width: 100%;
+        height: 100%;
+        max-height: 100%;
+        bottom: 0;
+        right: 0;
+        left: 0;
+        border-radius: 0;
+    }
+
+    .oraculo-chat-window.bottom-right,
+    .oraculo-chat-window.bottom-left {
+        bottom: 0;
+        right: 0;
+        left: 0;
+    }
+
+    .oraculo-chat-button {
+        width: 56px;
+        height: 56px;
+    }
+
+    .oraculo-chat-button svg {
+        width: 24px;
+        height: 24px;
+    }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    .oraculo-chat-window {
+        background: #1a1a2e;
+    }
+
+    .oraculo-chat-message.assistant {
+        background: #252540;
+        color: #e8e8e8;
+    }
+
+    .oraculo-chat-message.assistant p,
+    .oraculo-chat-message.assistant span,
+    .oraculo-chat-message.assistant li {
+        color: #e8e8e8;
+    }
+
+    .oraculo-chat-message.assistant strong {
+        color: #76c6cc;
+    }
+
+    .oraculo-message-sources-title {
+        color: #a0a0a0;
+    }
+
+    .oraculo-message-source {
+        color: #76c6cc;
+    }
+
+    .oraculo-chat-input-container {
+        background: #252540;
+        border-color: #3a3a5e;
+    }
+
+    .oraculo-chat-input {
+        background: #1a1a2e;
+        border-color: #3a3a5e;
+        color: #e8e8e8;
+    }
+
+    .oraculo-chat-input::placeholder {
+        color: #7a7a9a;
+    }
+
+    .oraculo-chat-typing {
+        background: #252540;
+    }
+
+    .oraculo-chat-suggestion {
+        background: #252540;
+        border-color: #3a3a5e;
+        color: #e8e8e8;
+    }
+
+    .oraculo-chat-suggestion:hover {
+        background: #2f3052;
+        border-color: #76c6cc;
+        color: #ffffff;
+    }
+
+    .oraculo-chat-welcome-text {
+        color: #e8e8e8;
+    }
+}

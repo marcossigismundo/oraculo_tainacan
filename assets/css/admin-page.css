@@ -1,0 +1,1850 @@
+/**
+ * Oráculo Tainacan - Estilos do Painel Administrativo
+ * Design Moderno seguindo padrão visual Tainacan
+ */
+
+:root {
+    /* Paleta Tainacan Turquoise */
+    --tainacan-turquoise1: #e9f5f6;
+    --tainacan-turquoise2: #d9eced;
+    --tainacan-turquoise3: #76c6cc;
+    --tainacan-turquoise4: #31818c;
+    --tainacan-turquoise5: #187181;
+    --tainacan-turquoise6: #156075;
+
+    /* Cores Principais baseadas no Tainacan */
+    --oraculo-primary: #187181;
+    --oraculo-primary-light: #31818c;
+    --oraculo-primary-dark: #156075;
+    --oraculo-secondary: #76c6cc;
+    --oraculo-secondary-light: #d9eced;
+    --oraculo-accent: #76c6cc;
+    --oraculo-accent-light: #e9f5f6;
+
+    /* Gradientes Tainacan */
+    --oraculo-gradient-primary: linear-gradient(135deg, #187181 0%, #156075 100%);
+    --oraculo-gradient-accent: linear-gradient(135deg, #76c6cc 0%, #31818c 100%);
+    --oraculo-gradient-dark: linear-gradient(135deg, #156075 0%, #187181 100%);
+    --oraculo-gradient-light: linear-gradient(135deg, #e9f5f6 0%, #d9eced 100%);
+    --oraculo-gradient-glass: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%);
+
+    /* Cores de Fundo */
+    --oraculo-bg: #f8fafb;
+    --oraculo-bg-light: #ffffff;
+    --oraculo-bg-card: #ffffff;
+    --oraculo-bg-hover: #e9f5f6;
+
+    /* Texto */
+    --oraculo-text: #1e293b;
+    --oraculo-text-light: #64748b;
+    --oraculo-text-muted: #94a3b8;
+
+    /* Bordas */
+    --oraculo-border: #d9eced;
+    --oraculo-border-light: #e9f5f6;
+
+    /* Status */
+    --oraculo-success: #10b981;
+    --oraculo-success-light: #d1fae5;
+    --oraculo-warning: #f59e0b;
+    --oraculo-warning-light: #fef3c7;
+    --oraculo-error: #ef4444;
+    --oraculo-error-light: #fee2e2;
+    --oraculo-info: #187181;
+    --oraculo-info-light: #e9f5f6;
+
+    /* Sombras */
+    --oraculo-shadow-sm: 0 1px 2px 0 rgba(21, 96, 117, 0.05);
+    --oraculo-shadow: 0 4px 6px -1px rgba(21, 96, 117, 0.1), 0 2px 4px -2px rgba(21, 96, 117, 0.1);
+    --oraculo-shadow-md: 0 10px 15px -3px rgba(21, 96, 117, 0.1), 0 4px 6px -4px rgba(21, 96, 117, 0.1);
+    --oraculo-shadow-lg: 0 20px 25px -5px rgba(21, 96, 117, 0.1), 0 8px 10px -6px rgba(21, 96, 117, 0.1);
+    --oraculo-shadow-glow: 0 0 20px rgba(118, 198, 204, 0.4);
+
+    /* Transições */
+    --oraculo-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --oraculo-transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Raios de borda */
+    --oraculo-radius-sm: 6px;
+    --oraculo-radius: 12px;
+    --oraculo-radius-lg: 16px;
+    --oraculo-radius-xl: 24px;
+}
+
+/* ========================================
+   RESET E BASE
+   ======================================== */
+.oraculo-admin {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    width: 100%;
+}
+
+.oraculo-admin * {
+    box-sizing: border-box;
+}
+
+/* ========================================
+   HEADER PRINCIPAL - ESTILO TAINACAN
+   ======================================== */
+.oraculo-admin .tainacan-fixed-subheader {
+    background: var(--oraculo-gradient-dark);
+    margin: 0 0 0 0;
+    padding: 32px 40px 20px;
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--oraculo-radius-lg) var(--oraculo-radius-lg) 0 0;
+}
+
+.oraculo-admin .tainacan-fixed-subheader::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    opacity: 0.5;
+}
+
+.oraculo-admin .tainacan-fixed-subheader::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(118, 198, 204, 0.2) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.oraculo-admin .tainacan-page-title {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    color: #ffffff;
+    font-size: 28px;
+    font-weight: 700;
+    padding: 0;
+    margin: 0;
+    position: relative;
+    z-index: 1;
+    letter-spacing: -0.5px;
+}
+
+.oraculo-title-icon {
+    width: 44px;
+    height: 44px;
+    padding: 10px;
+    background: var(--oraculo-gradient-accent);
+    border-radius: var(--oraculo-radius);
+    color: #ffffff;
+    box-shadow: var(--oraculo-shadow-glow);
+}
+
+.oraculo-version {
+    font-size: 11px;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    color: rgba(255, 255, 255, 0.9);
+    padding: 6px 14px;
+    border-radius: 20px;
+    margin-left: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ========================================
+   NAVEGAÇÃO POR ABAS - ESTILO TAINACAN
+   ======================================== */
+.oraculo-tabs-nav {
+    display: flex;
+    gap: 4px;
+    background: var(--oraculo-gradient-dark);
+    margin: 0 0 32px 0;
+    padding: 0 40px 0;
+    position: relative;
+    z-index: 1;
+}
+
+.oraculo-nav-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 24px;
+    color: rgba(255, 255, 255, 0.7) !important;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    border: none;
+    background: transparent;
+    transition: var(--oraculo-transition);
+    position: relative;
+    border-radius: var(--oraculo-radius) var(--oraculo-radius) 0 0;
+}
+
+.oraculo-nav-tab::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 3px;
+    background: var(--oraculo-gradient-accent);
+    border-radius: 3px 3px 0 0;
+    transition: var(--oraculo-transition);
+}
+
+.oraculo-nav-tab:hover {
+    color: rgba(255, 255, 255, 0.95);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.oraculo-nav-tab:hover::after {
+    width: 30px;
+}
+
+.oraculo-nav-tab.active {
+    color: var(--oraculo-primary) !important;
+    background: var(--oraculo-bg);
+    box-shadow: var(--oraculo-shadow);
+}
+
+.oraculo-nav-tab.active::after {
+    width: 100%;
+    background: var(--oraculo-gradient-accent);
+}
+
+.oraculo-nav-tab .dashicons {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    transition: var(--oraculo-transition);
+}
+
+.oraculo-nav-tab:hover .dashicons {
+    transform: scale(1.1);
+}
+
+.oraculo-nav-tab.active .dashicons {
+    color: var(--oraculo-primary);
+}
+
+.oraculo-nav-tab .tab-label {
+    display: inline-block;
+}
+
+/* ========================================
+   CARDS MODERNOS - ESTILO TAINACAN
+   ======================================== */
+.oraculo-card {
+    background: var(--oraculo-bg-card);
+    border-radius: var(--oraculo-radius-lg);
+    box-shadow: var(--oraculo-shadow);
+    margin-bottom: 24px;
+    overflow: hidden;
+    border: 1px solid var(--oraculo-border);
+    transition: var(--oraculo-transition);
+}
+
+.oraculo-card:hover {
+    box-shadow: var(--oraculo-shadow-md);
+    transform: translateY(-2px);
+}
+
+.oraculo-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    background: var(--oraculo-gradient-dark);
+    color: #ffffff;
+    position: relative;
+    overflow: hidden;
+}
+
+.oraculo-card-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 200px;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(118, 198, 204, 0.15));
+}
+
+.oraculo-card-header h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+    z-index: 1;
+}
+
+.oraculo-card-header h2 .dashicons {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 8px;
+    border-radius: var(--oraculo-radius-sm);
+}
+
+.oraculo-card-body {
+    padding: 24px;
+    background: var(--oraculo-bg-card);
+}
+
+/* Gráfico de buscas */
+#oraculo-searches-chart {
+    width: 100% !important;
+    min-height: 200px;
+    max-height: 300px;
+}
+
+.oraculo-card h2 {
+    margin: 0 0 2px 0;
+    padding: 10px;
+    border-bottom: 2px solid var(--oraculo-border);
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background-color: #3a8a94;
+    border-radius: 10px 10px 0 0;
+}
+
+.oraculo-card h2::before {
+    content: '';
+    width: 4px;
+    height: 24px;
+    background: var(--oraculo-gradient-accent);
+    border-radius: 2px;
+}
+
+.oraculo-card h3 {
+    margin: 24px 0 12px 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--oraculo-text);
+}
+
+/* ========================================
+   STATS GRID - DESIGN TAINACAN
+   ======================================== */
+.oraculo-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+    margin-bottom: 32px;
+}
+
+.oraculo-stat-card {
+    background: var(--oraculo-bg-card);
+    border-radius: var(--oraculo-radius-lg);
+    padding: 24px;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    box-shadow: var(--oraculo-shadow);
+    border: 1px solid var(--oraculo-border);
+    transition: var(--oraculo-transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.oraculo-stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: var(--oraculo-gradient-accent);
+    opacity: 0;
+    transition: var(--oraculo-transition);
+}
+
+.oraculo-stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--oraculo-shadow-lg);
+}
+
+.oraculo-stat-card:hover::before {
+    opacity: 1;
+}
+
+.oraculo-stat-card .stat-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--oraculo-radius);
+    background: var(--oraculo-gradient-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 24px;
+    color: #ffffff;
+    box-shadow: var(--oraculo-shadow);
+}
+
+.oraculo-stat-card .stat-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+}
+
+.oraculo-stat-card .stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--oraculo-text);
+    line-height: 1;
+    letter-spacing: -1px;
+}
+
+.oraculo-stat-card .stat-label {
+    font-size: 13px;
+    color: var(--oraculo-text-light);
+    font-weight: 500;
+}
+
+/* Variantes de cor para stat cards */
+.oraculo-stat-card.success .stat-icon {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.oraculo-stat-card.warning .stat-icon {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.oraculo-stat-card.error .stat-icon {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.oraculo-stat-card.info .stat-icon {
+    background: var(--oraculo-gradient-primary);
+}
+
+/* ========================================
+   TABELAS MODERNAS
+   ======================================== */
+.oraculo-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.oraculo-table th,
+.oraculo-table td {
+    padding: 14px 16px;
+    text-align: left;
+    font-size: 14px;
+}
+
+.oraculo-table th {
+    font-weight: 600;
+    color: var(--oraculo-text-light);
+    background: var(--oraculo-bg);
+    border-bottom: 2px solid var(--oraculo-border);
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+}
+
+.oraculo-table td {
+    border-bottom: 1px solid var(--oraculo-border-light);
+    color: var(--oraculo-text);
+}
+
+.oraculo-table tbody tr {
+    transition: var(--oraculo-transition-fast);
+}
+
+.oraculo-table tbody tr:hover {
+    background: var(--oraculo-bg-hover);
+}
+
+.oraculo-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* ========================================
+   FORMULÁRIOS ELEGANTES
+   ======================================== */
+.oraculo-form-group {
+    margin-bottom: 24px;
+}
+
+.oraculo-form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--oraculo-text);
+    font-size: 14px;
+}
+
+.oraculo-form-group input[type="text"],
+.oraculo-form-group input[type="password"],
+.oraculo-form-group input[type="number"],
+.oraculo-form-group input[type="url"],
+.oraculo-form-group select,
+.oraculo-form-group textarea {
+    width: 100%;
+    max-width: 500px;
+    padding: 12px 16px;
+    border: 2px solid var(--oraculo-border);
+    border-radius: var(--oraculo-radius);
+    font-size: 14px;
+    transition: var(--oraculo-transition);
+    background: var(--oraculo-bg-card);
+    color: var(--oraculo-text);
+}
+
+.oraculo-form-group input:focus,
+.oraculo-form-group select:focus,
+.oraculo-form-group textarea:focus {
+    border-color: var(--oraculo-primary);
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(24, 113, 129, 0.12);
+}
+
+.oraculo-form-group .description {
+    margin-top: 8px;
+    font-size: 13px;
+    color: var(--oraculo-text-light);
+}
+
+.oraculo-form-group .description a {
+    color: var(--oraculo-primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.oraculo-form-group .description a:hover {
+    text-decoration: underline;
+}
+
+/* ========================================
+   BOTÕES MODERNOS - ESTILO TAINACAN
+   ======================================== */
+.oraculo-btn,
+.oraculo-admin .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border: none;
+    border-radius: var(--oraculo-radius);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--oraculo-transition);
+    text-decoration: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.oraculo-btn-primary,
+.oraculo-admin .button-primary {
+    background: var(--oraculo-gradient-primary);
+    color: #ffffff;
+    box-shadow: var(--oraculo-shadow);
+}
+
+.oraculo-btn-primary:hover,
+.oraculo-admin .button-primary:hover,
+.oraculo-admin .button-primary:focus {
+    transform: translateY(-2px);
+    box-shadow: var(--oraculo-shadow-md), var(--oraculo-shadow-glow);
+    color: #ffffff;
+}
+
+.oraculo-btn-secondary,
+.oraculo-admin .button-secondary {
+    background: var(--oraculo-bg);
+    border: 2px solid var(--oraculo-border);
+    color: var(--oraculo-text);
+}
+
+.oraculo-btn-secondary:hover,
+.oraculo-admin .button-secondary:hover,
+.oraculo-admin .button-secondary:focus {
+    background: var(--oraculo-bg-hover);
+    border-color: var(--oraculo-primary);
+    color: var(--oraculo-primary);
+}
+
+.oraculo-btn-danger {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: #ffffff;
+}
+
+.oraculo-btn-danger:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--oraculo-shadow-md);
+}
+
+.oraculo-btn:disabled,
+.oraculo-admin .button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+/* ========================================
+   ALERTAS ELEGANTES
+   ======================================== */
+.oraculo-alert {
+    padding: 16px 20px;
+    border-radius: var(--oraculo-radius);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    border: 1px solid;
+}
+
+.oraculo-alert-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.oraculo-alert-content {
+    flex: 1;
+}
+
+.oraculo-alert-content p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.oraculo-alert-success {
+    background: var(--oraculo-success-light);
+    border-color: var(--oraculo-success);
+    color: #065f46;
+}
+
+.oraculo-alert-success .oraculo-alert-icon {
+    color: var(--oraculo-success);
+}
+
+.oraculo-alert-warning {
+    background: var(--oraculo-warning-light);
+    border-color: var(--oraculo-warning);
+    color: #92400e;
+}
+
+.oraculo-alert-warning .oraculo-alert-icon {
+    color: var(--oraculo-warning);
+}
+
+.oraculo-alert-error {
+    background: var(--oraculo-error-light);
+    border-color: var(--oraculo-error);
+    color: #991b1b;
+}
+
+.oraculo-alert-error .oraculo-alert-icon {
+    color: var(--oraculo-error);
+}
+
+.oraculo-alert-info {
+    background: var(--oraculo-info-light);
+    border-color: var(--oraculo-info);
+    color: var(--oraculo-primary-dark);
+}
+
+.oraculo-alert-info .oraculo-alert-icon {
+    color: var(--oraculo-info);
+}
+
+/* ========================================
+   PROGRESS BAR ANIMADA
+   ======================================== */
+.oraculo-progress-bar {
+    background: var(--oraculo-border);
+    border-radius: 10px;
+    height: 12px;
+    position: relative;
+    overflow: hidden;
+}
+
+.oraculo-progress-fill {
+    background: var(--oraculo-gradient-accent);
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.oraculo-progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent
+    );
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.oraculo-progress-text {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--oraculo-text);
+}
+
+/* ========================================
+   STATUS BADGES
+   ======================================== */
+.oraculo-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.oraculo-status-idle,
+.oraculo-status-pending {
+    background: var(--oraculo-bg);
+    color: var(--oraculo-text-light);
+    border: 1px solid var(--oraculo-border);
+}
+
+.oraculo-status-none {
+    background: #f5f5f5;
+    color: #6b7280;
+    border: 1px solid #d1d5db;
+}
+
+.oraculo-status-processing,
+.oraculo-status-in_progress,
+.oraculo-status-running {
+    background: var(--oraculo-warning-light);
+    color: #92400e;
+    border: 1px solid var(--oraculo-warning);
+}
+
+.oraculo-status-partial {
+    background: #dbeafe;
+    color: #1e40af;
+    border: 1px solid #3b82f6;
+}
+
+.oraculo-status-completed,
+.oraculo-status-success {
+    background: var(--oraculo-success-light);
+    color: #065f46;
+    border: 1px solid var(--oraculo-success);
+}
+
+.oraculo-status-error,
+.oraculo-status-failed {
+    background: var(--oraculo-error-light);
+    color: #991b1b;
+    border: 1px solid var(--oraculo-error);
+}
+
+/* ========================================
+   PROVIDER CARDS
+   ======================================== */
+.oraculo-provider-card {
+    background: var(--oraculo-bg-card);
+    border: 2px solid var(--oraculo-border);
+    border-radius: var(--oraculo-radius-lg);
+    padding: 24px;
+    transition: var(--oraculo-transition);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.oraculo-provider-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--oraculo-gradient-accent);
+    opacity: 0;
+    transition: var(--oraculo-transition);
+}
+
+.oraculo-provider-card:hover {
+    border-color: var(--oraculo-primary);
+    transform: translateY(-4px);
+    box-shadow: var(--oraculo-shadow-lg);
+}
+
+.oraculo-provider-card:hover::before {
+    opacity: 0.03;
+}
+
+.oraculo-provider-card.active {
+    border-color: var(--oraculo-primary);
+    background: linear-gradient(135deg, rgba(24, 113, 129, 0.05) 0%, rgba(118, 198, 204, 0.05) 100%);
+}
+
+.oraculo-provider-card.active::after {
+    content: '✓';
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 24px;
+    height: 24px;
+    background: var(--oraculo-gradient-primary);
+    color: #ffffff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.oraculo-provider-card h4 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--oraculo-text);
+    position: relative;
+    z-index: 1;
+}
+
+.oraculo-provider-card .provider-id {
+    font-size: 12px;
+    color: var(--oraculo-text-light);
+    margin-bottom: 12px;
+    position: relative;
+    z-index: 1;
+}
+
+.oraculo-provider-card .provider-features {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 13px;
+    position: relative;
+    z-index: 1;
+}
+
+.oraculo-provider-card .provider-features li {
+    padding: 4px 0;
+    color: var(--oraculo-text-light);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.oraculo-provider-card .provider-features li::before {
+    content: '→';
+    color: var(--oraculo-primary);
+    font-weight: 700;
+}
+
+/* ========================================
+   MODAL MODERNO
+   ======================================== */
+.oraculo-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(21, 96, 117, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100000;
+    padding: 20px;
+}
+
+.oraculo-modal {
+    background: var(--oraculo-bg-card);
+    border-radius: var(--oraculo-radius-xl);
+    max-width: 600px;
+    width: 100%;
+    max-height: 85vh;
+    overflow: hidden;
+    box-shadow: var(--oraculo-shadow-lg);
+    animation: modalSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.oraculo-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px;
+    background: var(--oraculo-gradient-dark);
+    color: #ffffff;
+}
+
+.oraculo-modal-header h3 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #ffffff;
+}
+
+.oraculo-modal-close {
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    color: #ffffff;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: var(--oraculo-radius-sm);
+    transition: var(--oraculo-transition);
+    font-size: 18px;
+    line-height: 1;
+}
+
+.oraculo-modal-close:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.oraculo-modal-body {
+    padding: 24px;
+    overflow-y: auto;
+    max-height: calc(85vh - 160px);
+}
+
+.oraculo-modal-footer {
+    padding: 20px 24px;
+    background: var(--oraculo-bg);
+    border-top: 1px solid var(--oraculo-border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+/* ========================================
+   LOADING & SPINNER
+   ======================================== */
+.oraculo-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px;
+}
+
+.oraculo-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid var(--oraculo-border);
+    border-top-color: var(--oraculo-primary);
+    border-radius: 50%;
+    animation: oraculo-spin 0.8s linear infinite;
+}
+
+@keyframes oraculo-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ========================================
+   EMPTY STATE
+   ======================================== */
+.oraculo-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--oraculo-text-light);
+}
+
+.oraculo-empty-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+    opacity: 0.3;
+}
+
+.oraculo-empty-text {
+    font-size: 16px;
+    max-width: 400px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
+/* ========================================
+   LOG CONSOLE
+   ======================================== */
+.oraculo-log {
+    background: #156075;
+    color: #76c6cc;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', monospace;
+    padding: 20px;
+    border-radius: var(--oraculo-radius);
+    max-height: 400px;
+    overflow-y: auto;
+    font-size: 13px;
+    line-height: 1.8;
+    border: 1px solid #187181;
+}
+
+.oraculo-log-entry {
+    margin: 4px 0;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.oraculo-log-entry.error {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+}
+
+.oraculo-log-entry.success {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+}
+
+.oraculo-log-entry.info {
+    background: rgba(118, 198, 204, 0.15);
+    color: #d9eced;
+}
+
+.oraculo-log-entry.warning {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+}
+
+.oraculo-log-time {
+    color: #64748b;
+    margin-right: 12px;
+    font-size: 11px;
+}
+
+/* ========================================
+   GRIDS
+   ======================================== */
+.oraculo-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+}
+
+.oraculo-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+}
+
+.oraculo-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+}
+
+/* ========================================
+   ANALYTICS GRID
+   ======================================== */
+.oraculo-analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    margin-top: 24px;
+}
+
+.oraculo-analytics-grid .oraculo-card.full-width {
+    grid-column: 1 / -1;
+}
+
+/* ========================================
+   FILTROS
+   ======================================== */
+.oraculo-filters {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.oraculo-filters select {
+    padding: 10px 16px;
+    border: 2px solid var(--oraculo-border);
+    border-radius: var(--oraculo-radius);
+    font-size: 14px;
+    background: var(--oraculo-bg-card);
+    color: var(--oraculo-text);
+    cursor: pointer;
+    transition: var(--oraculo-transition);
+}
+
+.oraculo-filters select:hover,
+.oraculo-filters select:focus {
+    border-color: var(--oraculo-primary);
+    outline: none;
+}
+
+/* ========================================
+   FEEDBACK
+   ======================================== */
+.feedback-positive {
+    color: var(--oraculo-success);
+    font-weight: 600;
+}
+
+.feedback-negative {
+    color: var(--oraculo-error);
+    font-weight: 600;
+}
+
+/* ========================================
+   HINTS
+   ======================================== */
+.oraculo-hint {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(251, 191, 36, 0.05) 100%);
+    border-left: 4px solid var(--oraculo-warning);
+    padding: 14px 18px;
+    margin-top: 16px;
+    font-size: 13px;
+    border-radius: 0 var(--oraculo-radius) var(--oraculo-radius) 0;
+    color: #92400e;
+}
+
+/* ========================================
+   COST ESTIMATE
+   ======================================== */
+.cost-estimate {
+    text-align: center;
+    padding: 20px;
+}
+
+.cost-total {
+    margin-bottom: 24px;
+}
+
+.cost-total .cost-value {
+    display: block;
+    font-size: 25px !important;
+    font-weight: 800;
+    background: var(--oraculo-gradient-accent);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -2px;
+    height: 21px;
+}
+
+.cost-total .cost-label {
+    display: block;
+    color: var(--oraculo-text-light);
+    font-size: 14px;
+    margin-top: 8px;
+}
+
+.cost-breakdown {
+    text-align: left;
+    background: var(--oraculo-bg);
+    padding: 20px;
+    border-radius: var(--oraculo-radius);
+}
+
+.cost-breakdown h4 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--oraculo-text);
+}
+
+.cost-breakdown ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.cost-breakdown li {
+    padding: 10px 0;
+    font-size: 13px;
+    border-bottom: 1px solid var(--oraculo-border-light);
+    display: flex;
+    justify-content: space-between;
+}
+
+.cost-breakdown li:last-child {
+    border-bottom: none;
+}
+
+/* ========================================
+   RESPONSIVO
+   ======================================== */
+@media (max-width: 1200px) {
+    .oraculo-grid-4 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .oraculo-analytics-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 782px) {
+    .oraculo-admin .tainacan-fixed-subheader {
+        padding: 24px 20px 16px;
+    }
+
+    .oraculo-admin .tainacan-page-title {
+        font-size: 22px;
+    }
+
+    .oraculo-tabs-nav {
+        padding: 0 20px;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .oraculo-nav-tab {
+        padding: 12px 16px;
+        font-size: 13px;
+    }
+
+    .oraculo-nav-tab .tab-label {
+        display: none;
+    }
+
+    .oraculo-nav-tab .dashicons {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+    }
+
+    .oraculo-grid-2,
+    .oraculo-grid-3,
+    .oraculo-grid-4 {
+        grid-template-columns: 1fr;
+    }
+
+    .oraculo-stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .oraculo-stat-card .stat-value {
+        font-size: 28px;
+    }
+}
+
+/* ========================================
+   ANIMAÇÕES EXTRAS
+   ======================================== */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.oraculo-fade-in {
+    animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.oraculo-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ========================================
+   SCROLLBAR PERSONALIZADO
+   ======================================== */
+.oraculo-admin ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.oraculo-admin ::-webkit-scrollbar-track {
+    background: var(--oraculo-bg);
+    border-radius: 4px;
+}
+
+.oraculo-admin ::-webkit-scrollbar-thumb {
+    background: var(--oraculo-border);
+    border-radius: 4px;
+}
+
+.oraculo-admin ::-webkit-scrollbar-thumb:hover {
+    background: var(--oraculo-text-muted);
+}
+
+/* ========================================
+   TOOLTIP MODERNO
+   ======================================== */
+.oraculo-tooltip {
+    position: relative;
+    cursor: help;
+}
+
+.oraculo-tooltip::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--oraculo-gradient-dark);
+    color: #ffffff;
+    padding: 8px 14px;
+    border-radius: var(--oraculo-radius-sm);
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: var(--oraculo-transition);
+    box-shadow: var(--oraculo-shadow-md);
+    z-index: 1000;
+}
+
+.oraculo-tooltip::before {
+    content: '';
+    position: absolute;
+    bottom: calc(100% + 2px);
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: #156075;
+    opacity: 0;
+    visibility: hidden;
+    transition: var(--oraculo-transition);
+}
+
+.oraculo-tooltip:hover::after,
+.oraculo-tooltip:hover::before {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* ========================================
+   COLLECTION SELECTOR
+   ======================================== */
+.oraculo-collection-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.oraculo-collection-selector label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    background: var(--oraculo-bg-card);
+    border: 2px solid var(--oraculo-border);
+    border-radius: var(--oraculo-radius);
+    cursor: pointer;
+    transition: var(--oraculo-transition);
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.oraculo-collection-selector label:hover {
+    border-color: var(--oraculo-primary);
+    background: var(--oraculo-bg-hover);
+}
+
+.oraculo-collection-selector input:checked + span {
+    color: var(--oraculo-primary);
+    font-weight: 600;
+}
+
+.oraculo-collection-selector label:has(input:checked) {
+    border-color: var(--oraculo-primary);
+    background: linear-gradient(135deg, rgba(24, 113, 129, 0.05) 0%, rgba(118, 198, 204, 0.05) 100%);
+}
+
+.oraculo-collection-selector input {
+    display: none;
+}
+
+/* ========================================
+   QUICK ACTIONS
+   ======================================== */
+.oraculo-quick-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+}
+
+/* ========================================
+   SEPARATOR
+   ======================================== */
+.oraculo-separator {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--oraculo-border), transparent);
+    margin: 32px 0;
+}
+
+/* ========================================
+   CHART CONTAINER
+   ======================================== */
+.oraculo-chart-container {
+    position: relative;
+    height: 300px;
+    padding: 20px 0;
+}
+
+/* ========================================
+   HIGHLIGHT TEXT
+   ======================================== */
+.oraculo-highlight {
+    background: var(--oraculo-gradient-accent);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+}
+
+/* ========================================
+   DASHBOARD CONTENT
+   ======================================== */
+.oraculo-dashboard-content {
+    padding: 0;
+}
+
+.oraculo-dashboard-content .notice {
+    margin: 0 0 24px 0;
+    border-radius: var(--oraculo-radius);
+}
+
+/* Dashboard Grid */
+.oraculo-dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    margin-top: 24px;
+}
+
+.oraculo-card-small {
+    max-height: 400px;
+}
+
+/* Quick Actions para Dashboard */
+.oraculo-quick-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.oraculo-action-button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    background: var(--oraculo-bg);
+    border: 2px solid var(--oraculo-border);
+    border-radius: var(--oraculo-radius);
+    text-decoration: none;
+    color: var(--oraculo-text);
+    cursor: pointer;
+    transition: var(--oraculo-transition);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.oraculo-action-button:hover {
+    background: var(--oraculo-gradient-primary);
+    color: #ffffff;
+    border-color: var(--oraculo-primary);
+    transform: translateY(-2px);
+    box-shadow: var(--oraculo-shadow-md);
+}
+
+.oraculo-action-button:hover .dashicons {
+    color: #ffffff;
+}
+
+.oraculo-action-button .dashicons {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: var(--oraculo-primary);
+    transition: var(--oraculo-transition);
+}
+
+/* Config List */
+.oraculo-config-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.oraculo-config-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--oraculo-border-light);
+}
+
+.oraculo-config-list li:last-child {
+    border-bottom: none;
+}
+
+.oraculo-config-label {
+    color: var(--oraculo-text-light);
+    font-size: 14px;
+}
+
+.oraculo-config-value {
+    font-weight: 600;
+    color: var(--oraculo-text);
+    font-size: 14px;
+}
+
+/* Stat Icon (emoji style) */
+.oraculo-stat-icon {
+    font-size: 32px;
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--oraculo-gradient-light);
+    border-radius: var(--oraculo-radius);
+}
+
+/* Progress bar alternativo para dashboard */
+.oraculo-progress {
+    background: var(--oraculo-gradient-accent);
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Empty State */
+.oraculo-empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--oraculo-text-light);
+    font-size: 14px;
+}
+
+/* Test Results */
+.oraculo-test-results {
+    margin-top: 20px;
+    padding: 16px;
+    background: var(--oraculo-bg);
+    border-radius: var(--oraculo-radius);
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--oraculo-border);
+}
+
+/* Responsivo Dashboard */
+@media (max-width: 1024px) {
+    .oraculo-dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .oraculo-quick-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .oraculo-admin .tainacan-fixed-subheader {
+        padding: 24px 20px 16px;
+        border-radius: var(--oraculo-radius) var(--oraculo-radius) 0 0;
+    }
+
+    .oraculo-tabs-nav {
+        padding: 0 20px;
+    }
+}
+
+/* ========================================
+   SETTINGS PAGE TABS (Sub-tabs internos)
+   ======================================== */
+.oraculo-settings-content,
+.oraculo-indexing-content,
+.oraculo-analytics-content {
+    padding: 0;
+}
+
+.oraculo-settings-tabs {
+    margin-top: 0;
+}
+
+.oraculo-settings-tabs .oraculo-tabs-nav {
+    display: flex;
+    gap: 4px;
+    background: transparent;
+    margin: 0;
+    padding: 0;
+    border-bottom: 2px solid var(--oraculo-border);
+}
+
+.oraculo-tab-btn {
+    padding: 12px 20px;
+    background: var(--oraculo-bg);
+    border: 1px solid var(--oraculo-border);
+    border-bottom: none;
+    border-radius: var(--oraculo-radius-sm) var(--oraculo-radius-sm) 0 0;
+    cursor: pointer;
+    margin-bottom: -2px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--oraculo-text-light);
+    transition: var(--oraculo-transition);
+}
+
+.oraculo-tab-btn:hover {
+    background: var(--oraculo-bg-hover);
+    color: var(--oraculo-primary);
+}
+
+.oraculo-tab-btn.active {
+    background: var(--oraculo-bg-card);
+    border-bottom: 2px solid var(--oraculo-bg-card);
+    color: var(--oraculo-primary);
+    font-weight: 600;
+}
+
+.oraculo-tab-content {
+    display: none;
+    background: var(--oraculo-bg-card);
+    padding: 24px;
+    border: 1px solid var(--oraculo-border);
+    border-top: none;
+    border-radius: 0 0 var(--oraculo-radius) var(--oraculo-radius);
+}
+
+.oraculo-tab-content.active {
+    display: block;
+}
+
+.oraculo-tab-content h2 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--oraculo-text);
+}
+
+.oraculo-tab-content h2::before {
+    display: none;
+}
+
+.oraculo-tab-content > .description {
+    margin: 0 0 24px 0;
+    color: var(--oraculo-text-light);
+    font-size: 14px;
+}
+
+.oraculo-tab-content h3 {
+    margin: 32px 0 16px 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--oraculo-text);
+    padding-top: 24px;
+    border-top: 1px solid var(--oraculo-border-light);
+}
+
+/* Providers Grid */
+.oraculo-providers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin: 24px 0;
+}
+
+.oraculo-provider-card {
+    border: 2px solid var(--oraculo-border);
+    border-radius: var(--oraculo-radius);
+    padding: 20px;
+    cursor: pointer;
+    transition: var(--oraculo-transition);
+    background: var(--oraculo-bg-card);
+}
+
+.oraculo-provider-card.selected {
+    border-color: var(--oraculo-primary);
+    background: linear-gradient(135deg, rgba(24, 113, 129, 0.05) 0%, rgba(118, 198, 204, 0.05) 100%);
+}
+
+.oraculo-provider-card:hover {
+    border-color: var(--oraculo-primary);
+    box-shadow: var(--oraculo-shadow);
+}
+
+.oraculo-provider-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+}
+
+.oraculo-provider-name {
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--oraculo-text);
+}
+
+.oraculo-provider-badge {
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+.oraculo-provider-badge.configured {
+    background: var(--oraculo-success-light);
+    color: #065f46;
+}
+
+.oraculo-provider-description {
+    margin: 12px 0 8px;
+    color: var(--oraculo-text-light);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.oraculo-provider-features {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.oraculo-provider-features .feature {
+    font-size: 12px;
+    background: var(--oraculo-bg);
+    padding: 4px 10px;
+    border-radius: 20px;
+    color: var(--oraculo-text-light);
+}
+
+.oraculo-provider-settings {
+    margin-top: 24px;
+    padding: 24px;
+    background: var(--oraculo-bg);
+    border-radius: var(--oraculo-radius);
+    border: 1px solid var(--oraculo-border-light);
+}
+
+/* Suggested Questions */
+.suggested-question-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+    align-items: center;
+}
+
+.suggested-question-row input {
+    flex: 1;
+}
+
+.remove-question {
+    color: var(--oraculo-error);
+    background: var(--oraculo-error-light);
+    border: 1px solid var(--oraculo-error);
+    border-radius: var(--oraculo-radius-sm);
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: var(--oraculo-transition);
+}
+
+.remove-question:hover {
+    background: var(--oraculo-error);
+    color: #ffffff;
+}
+
+/* WordPress Form Table overrides */
+.oraculo-tab-content .form-table {
+    margin-top: 0;
+}
+
+.oraculo-tab-content .form-table th {
+    padding: 16px 12px 16px 0;
+    font-weight: 600;
+    color: var(--oraculo-text);
+}
+
+.oraculo-tab-content .form-table td {
+    padding: 16px 12px;
+}
+
+.oraculo-tab-content .form-table input[type="text"],
+.oraculo-tab-content .form-table input[type="url"],
+.oraculo-tab-content .form-table input[type="password"],
+.oraculo-tab-content .form-table input[type="number"],
+.oraculo-tab-content .form-table select,
+.oraculo-tab-content .form-table textarea {
+    border: 2px solid var(--oraculo-border);
+    border-radius: var(--oraculo-radius-sm);
+    padding: 10px 14px;
+    transition: var(--oraculo-transition);
+}
+
+.oraculo-tab-content .form-table input:focus,
+.oraculo-tab-content .form-table select:focus,
+.oraculo-tab-content .form-table textarea:focus {
+    border-color: var(--oraculo-primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(24, 113, 129, 0.1);
+}
+
+/* Submit Button override */
+.oraculo-admin .submit input[type="submit"] {
+    background: var(--oraculo-gradient-primary);
+    border: none;
+    color: #ffffff;
+    padding: 12px 28px;
+    border-radius: var(--oraculo-radius);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--oraculo-transition);
+    box-shadow: var(--oraculo-shadow);
+}
+
+.oraculo-admin .submit input[type="submit"]:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--oraculo-shadow-md), var(--oraculo-shadow-glow);
+}
