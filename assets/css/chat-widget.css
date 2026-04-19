@@ -116,9 +116,8 @@
 
 .oraculo-chat-subtitle {
     font-size: 12px;
-    opacity: 0.8;
     margin: 0;
-    color: #1d2327;
+    color: rgba(255, 255, 255, 0.85);
 }
 
 .oraculo-chat-close {
@@ -167,9 +166,16 @@
 
 .oraculo-chat-message.user {
     background: var(--oraculo-primary, #1f2f56);
-    color: #16213e !important;
+    color: #ffffff !important;
     align-self: flex-end;
     border-bottom-right-radius: 4px;
+}
+
+.oraculo-chat-message.user .oraculo-message-content,
+.oraculo-chat-message.user .oraculo-message-content p,
+.oraculo-chat-message.user .oraculo-message-content span,
+.oraculo-chat-message.user .oraculo-message-content a {
+    color: #ffffff;
 }
 
 .oraculo-chat-message.assistant {
@@ -349,12 +355,13 @@
     max-height: 120px;
     overflow-y: auto;
     transition: border-color 0.2s;
-    color: #fff !important;
+    color: #1d2327 !important;
     background: #ffffff;
 }
 
 .oraculo-chat-input::placeholder {
-    color: #8c8f94;
+    color: #5a6169;
+    opacity: 1;
 }
 
 .oraculo-chat-input:focus {
@@ -499,11 +506,12 @@
     .oraculo-chat-input {
         background: #1a1a2e;
         border-color: #3a3a5e;
-        color: #e8e8e8;
+        color: #e8e8e8 !important;
     }
 
     .oraculo-chat-input::placeholder {
-        color: #7a7a9a;
+        color: #a0a0c0;
+        opacity: 1;
     }
 
     .oraculo-chat-typing {

@@ -230,8 +230,8 @@
     border: 2px solid var(--oraculo-border);
     border-radius: var(--oraculo-radius);
     transition: var(--oraculo-transition);
-    background: var(--oraculo-bg);
-    color: var(--oraculo-text) !important;
+    background: #ffffff !important;
+    color: #1d2327 !important;
     font-family: inherit;
 }
 
@@ -239,11 +239,12 @@
     outline: none;
     border-color: var(--oraculo-primary);
     box-shadow: 0 0 0 4px rgba(24, 113, 129, 0.12);
-    background: #fff;
+    background: #ffffff !important;
 }
 
 .oraculo-search-input::placeholder {
-    color: var(--oraculo-text-light);
+    color: #5a6169;
+    opacity: 1;
 }
 
 .oraculo-search-button {
@@ -336,7 +337,7 @@
 .oraculo-features-subtitle {
     text-align: center;
     font-size: 16px;
-    color: var(--oraculo-text-muted);
+    color: #3c4248;
     margin: 0 0 48px;
 }
 
@@ -1119,16 +1120,17 @@
     }
 
     .oraculo-search-input {
-        background: #1a1a2e;
-        color: #e8e8e8;
+        background: #1a1a2e !important;
+        color: #e8e8e8 !important;
     }
 
     .oraculo-search-input::placeholder {
-        color: #7a7a7a;
+        color: #a0a0a0;
+        opacity: 1;
     }
 
     .oraculo-search-input:focus {
-        background: #16213e;
+        background: #16213e !important;
     }
 
     .oraculo-feature-card,
