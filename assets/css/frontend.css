@@ -31,10 +31,10 @@
     --oraculo-bg-card: #ffffff;
     --oraculo-bg-hover: #e9f5f6;
 
-    /* Texto */
+    /* Texto - ajustados para WCAG AA em fundos turquesa claros */
     --oraculo-text: #1d2327;
-    --oraculo-text-muted: #646970;
-    --oraculo-text-light: #8c8f94;
+    --oraculo-text-muted: #4a5158;
+    --oraculo-text-light: #5a6169;
 
     /* Bordas */
     --oraculo-border: #d9eced;
@@ -79,7 +79,7 @@
     text-align: center;
     position: relative;
     overflow: hidden;
-    width: 90%
+    width: 90%;
     margin: 0 auto;
 }
 
@@ -618,7 +618,7 @@
 
 .oraculo-response-time {
     font-size: 13px;
-    color: #646970;
+    color: #4a5158;
 }
 
 .oraculo-response-body {
@@ -676,7 +676,7 @@
     gap: 10px;
     font-size: 14px;
     font-weight: 700;
-    color: #444444;
+    color: #1d2327;
     margin: 0 0 20px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -742,7 +742,7 @@
 
 .oraculo-source-arrow {
     margin-left: auto;
-    color: #8c8f94;
+    color: #5a6169;
     transition: var(--oraculo-transition);
 }
 
@@ -767,7 +767,7 @@
 
 .oraculo-feedback-label {
     font-size: 14px;
-    color: #444444;
+    color: #1d2327;
     font-weight: 500;
 }
 
@@ -932,7 +932,7 @@
 .oraculo-tips-icon {
     width: 56px;
     height: 56px;
-    background: var(--oraculo-gradient-accent);
+    background: var(--oraculo-gradient-primary);
     border-radius: var(--oraculo-radius-sm);
     display: flex;
     align-items: center;
