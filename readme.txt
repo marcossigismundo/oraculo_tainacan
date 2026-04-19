@@ -4,7 +4,7 @@ Tags: tainacan, ia, busca semantica, rag, chatbot, openai, gemini, claude, ollam
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 8.0
-Stable tag: 2.0.0
+Stable tag: 2.0.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -98,6 +98,14 @@ Namespace: `/wp-json/oraculo/v1`. Principais rotas:
 
 == Changelog ==
 
+= 2.0.1 =
+* Corrige contrastes de texto no frontend e no chat widget
+* Corrige texto invisivel no input do chat (branco sobre branco)
+* Corrige texto invisivel em mensagens do usuario no chat (navy sobre navy)
+* Corrige subtitle do header do chat (escuro sobre fundo escuro)
+* Melhora contraste de placeholders e textos auxiliares para passar WCAG AA
+* Corrige declaracao CSS invalida no hero de busca
+
 = 2.0.0 =
 * Reescrita completa com arquitetura orientada a servicos e namespaces PSR-4
 * Requer PHP 8.0 e WordPress 6.0
@@ -120,6 +128,9 @@ Namespace: `/wp-json/oraculo/v1`. Principais rotas:
 * Integracao inicial com Tainacan
 
 == Upgrade Notice ==
+
+= 2.0.1 =
+Corrige contrastes de acessibilidade no frontend e no chat. Recomendado atualizar.
 
 = 2.0.0 =
 Grande reescrita. Requer PHP 8.0+, WordPress 6.0+ e Tainacan 1.0+. Tabelas novas sao criadas automaticamente na ativacao; configuracoes existentes sao preservadas.
