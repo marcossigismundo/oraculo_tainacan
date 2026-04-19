@@ -108,10 +108,12 @@
     font-size: 20px;
 }
 
-.oraculo-chat-title {
+.oraculo-chat-header .oraculo-chat-title,
+h3.oraculo-chat-title {
     font-size: 16px;
     font-weight: 600;
     margin: 0;
+    color: #ffffff !important;
 }
 
 .oraculo-chat-subtitle {
