@@ -4,7 +4,7 @@ Tags: tainacan, ia, busca semantica, rag, chatbot, openai, gemini, claude, ollam
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 8.0
-Stable tag: 2.0.2
+Stable tag: 2.0.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -97,6 +97,9 @@ Namespace: `/wp-json/oraculo/v1`. Principais rotas:
 6. **Ollama** - Qualquer modelo local (privacidade total, embeddings via nomic-embed-text)
 
 == Changelog ==
+
+= 2.0.3 =
+* Reforca cor e fundo do textarea do chat contra regras de tema (textarea seletor + !important + -webkit-text-fill-color)
 
 = 2.0.2 =
 * Corrige cor do titulo do chat (h3) que era sobrescrito pelo tema do WordPress
