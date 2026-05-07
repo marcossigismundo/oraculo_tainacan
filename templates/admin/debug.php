@@ -16,7 +16,7 @@ $env_info = [
     'WordPress Version' => get_bloginfo('version'),
     'Plugin Version' => ORACULO_TAINACAN_VERSION,
     'Tainacan Active' => defined('TAINACAN_VERSION') ? TAINACAN_VERSION : 'Não',
-    'Server Software' => $_SERVER['SERVER_SOFTWARE'] ?? 'N/A',
+    'Server Software' => sanitize_text_field( wp_unslash( $_SERVER['SERVER_SOFTWARE'] ?? 'N/A' ) ),
     'MySQL Version' => $GLOBALS['wpdb']->db_version(),
     'PHP Memory Limit' => ini_get('memory_limit'),
     'PHP Max Execution Time' => ini_get('max_execution_time') . 's',
@@ -38,7 +38,9 @@ $tables = [
 
 $table_status = [];
 foreach ($tables as $name => $full_name) {
-    $exists = $wpdb->get_var("SHOW TABLES LIKE '{$full_name}'") === $full_name;
+    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $full_name is built from $wpdb->prefix plus a hardcoded plugin table suffix.
+    $exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $full_name ) ) === $full_name;
+    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $full_name is built from $wpdb->prefix plus a hardcoded plugin table suffix.
     $count = $exists ? (int) $wpdb->get_var("SELECT COUNT(*) FROM {$full_name}") : 0;
     $table_status[$name] = [
         'exists' => $exists,
@@ -454,7 +456,7 @@ jQuery(document).ready(function($) {
             type: 'POST',
             data: {
                 action: 'oraculo_test_provider',
-                nonce: '<?php echo wp_create_nonce('oraculo_admin'); ?>',
+                nonce: '<?php echo esc_js( wp_create_nonce('oraculo_admin') ); ?>',
                 provider: provider
             },
             success: function(response) {
@@ -487,7 +489,7 @@ jQuery(document).ready(function($) {
             type: 'POST',
             data: {
                 action: 'oraculo_test_search',
-                nonce: '<?php echo wp_create_nonce('oraculo_admin'); ?>',
+                nonce: '<?php echo esc_js( wp_create_nonce('oraculo_admin') ); ?>',
                 query: query,
                 semantic_only: $('#test-semantic-only').is(':checked') ? 1 : 0
             },
@@ -514,7 +516,7 @@ jQuery(document).ready(function($) {
             type: 'POST',
             data: {
                 action: 'oraculo_repair_tables',
-                nonce: '<?php echo wp_create_nonce('oraculo_admin'); ?>'
+                nonce: '<?php echo esc_js( wp_create_nonce('oraculo_admin') ); ?>'
             },
             success: function(response) {
                 btn.prop('disabled', false);
@@ -535,7 +537,7 @@ jQuery(document).ready(function($) {
             type: 'POST',
             data: {
                 action: 'oraculo_clear_cache',
-                nonce: '<?php echo wp_create_nonce('oraculo_admin'); ?>'
+                nonce: '<?php echo esc_js( wp_create_nonce('oraculo_admin') ); ?>'
             },
             success: function(response) {
                 if (response.success) {
@@ -552,7 +554,7 @@ jQuery(document).ready(function($) {
             type: 'POST',
             data: {
                 action: 'oraculo_clear_errors',
-                nonce: '<?php echo wp_create_nonce('oraculo_admin'); ?>'
+                nonce: '<?php echo esc_js( wp_create_nonce('oraculo_admin') ); ?>'
             },
             success: function(response) {
                 if (response.success) {
@@ -572,7 +574,7 @@ jQuery(document).ready(function($) {
             type: 'POST',
             data: {
                 action: 'oraculo_optimize_db',
-                nonce: '<?php echo wp_create_nonce('oraculo_admin'); ?>'
+                nonce: '<?php echo esc_js( wp_create_nonce('oraculo_admin') ); ?>'
             },
             success: function(response) {
                 btn.prop('disabled', false).text('<?php esc_html_e('Otimizar Tabelas', 'oraculo_tainacan'); ?>');
@@ -597,7 +599,7 @@ jQuery(document).ready(function($) {
             type: 'POST',
             data: {
                 action: 'oraculo_reset_plugin',
-                nonce: '<?php echo wp_create_nonce('oraculo_admin'); ?>'
+                nonce: '<?php echo esc_js( wp_create_nonce('oraculo_admin') ); ?>'
             },
             success: function(response) {
                 if (response.success) {

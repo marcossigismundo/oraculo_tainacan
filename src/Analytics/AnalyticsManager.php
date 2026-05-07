@@ -85,6 +85,7 @@ class AnalyticsManager {
 
         $date_condition = $this->get_date_condition($period);
 
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->logs_table is plugin-owned (set in constructor from $wpdb->prefix.'oraculo_search_logs'); $date_condition is a hardcoded string from get_date_condition().
         // Total de buscas
         $total_searches = (int) $wpdb->get_var(
             "SELECT COUNT(*) FROM {$this->logs_table} WHERE {$date_condition}"
@@ -134,6 +135,7 @@ class AnalyticsManager {
             "SELECT COUNT(DISTINCT COALESCE(NULLIF(user_id, 0), ip_address))
              FROM {$this->logs_table} WHERE {$date_condition}"
         );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
         return [
             'total_searches' => $total_searches,
@@ -174,6 +176,7 @@ class AnalyticsManager {
                 $date_format = '%Y-%m-%d';
         }
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $date_format is from hardcoded switch; $this->logs_table is plugin-owned; $date_condition is from get_date_condition().
         $results = $wpdb->get_results(
             "SELECT DATE_FORMAT(created_at, '{$date_format}') as date_bucket,
                     COUNT(*) as searches,
@@ -208,6 +211,7 @@ class AnalyticsManager {
 
         $date_condition = $this->get_date_condition($period);
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->logs_table is plugin-owned; $date_condition is from get_date_condition().
         return $wpdb->get_results($wpdb->prepare(
             "SELECT query_text, COUNT(*) as count,
                     AVG(results_count) as avg_results,
@@ -234,6 +238,7 @@ class AnalyticsManager {
 
         $date_condition = $this->get_date_condition($period);
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->logs_table is plugin-owned; $date_condition is from get_date_condition().
         return $wpdb->get_results($wpdb->prepare(
             "SELECT query_text, COUNT(*) as count
              FROM {$this->logs_table}
@@ -257,6 +262,7 @@ class AnalyticsManager {
         $date_condition = $this->get_date_condition($period);
 
         // Buscar logs com collection_ids
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->logs_table is plugin-owned; $date_condition is from get_date_condition().
         $results = $wpdb->get_results(
             "SELECT collection_ids, COUNT(*) as searches
              FROM {$this->logs_table}
@@ -309,6 +315,7 @@ class AnalyticsManager {
 
         $date_condition = $this->get_date_condition($period);
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->logs_table is plugin-owned; $date_condition is from get_date_condition().
         return $wpdb->get_results(
             "SELECT model_used, COUNT(*) as count, SUM(tokens_used) as total_tokens
              FROM {$this->logs_table}
@@ -451,6 +458,7 @@ class AnalyticsManager {
     public function cleanup_old_logs(int $days_old = 90): int {
         global $wpdb;
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->logs_table is plugin-owned (set in constructor from $wpdb->prefix.'oraculo_search_logs').
         return $wpdb->query($wpdb->prepare(
             "DELETE FROM {$this->logs_table} WHERE created_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
             $days_old

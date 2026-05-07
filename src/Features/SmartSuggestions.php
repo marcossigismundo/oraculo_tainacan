@@ -126,6 +126,7 @@ class SmartSuggestions {
 
         $table = $wpdb->prefix . 'oraculo_search_logs';
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table is plugin-owned ($wpdb->prefix.'oraculo_search_logs').
         return $wpdb->get_results($wpdb->prepare(
             "SELECT query_text, COUNT(*) as count
              FROM {$table}
@@ -155,6 +156,7 @@ class SmartSuggestions {
         $where = $collection_id ? $wpdb->prepare("WHERE collection_id = %d", $collection_id) : "";
 
         // Obter títulos mais recentes/populares
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table is plugin-owned ($wpdb->prefix.'oraculo_vectors'); $where is built with $wpdb->prepare() or empty string.
         $items = $wpdb->get_col(
             "SELECT item_title FROM {$table}
              {$where}
@@ -259,6 +261,7 @@ class SmartSuggestions {
         $table = $wpdb->prefix . 'oraculo_search_logs';
 
         // Buscar queries que começam com o texto
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table is plugin-owned ($wpdb->prefix.'oraculo_search_logs').
         $suggestions = $wpdb->get_col($wpdb->prepare(
             "SELECT DISTINCT query_text
              FROM {$table}
@@ -307,6 +310,7 @@ class SmartSuggestions {
         $values[] = strtolower($query);
         $values[] = $limit;
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $table is plugin-owned; $like_conditions placeholders are %s literals spread via ...$values at runtime.
         $related = $wpdb->get_col($wpdb->prepare(
             "SELECT DISTINCT query_text
              FROM {$table}
@@ -333,11 +337,13 @@ class SmartSuggestions {
             delete_transient(self::CACHE_PREFIX . $collection_id . '_5');
             delete_transient(self::CACHE_PREFIX . $collection_id . '_10');
         } else {
-            // Limpar todos
-            $wpdb->query(
-                "DELETE FROM {$wpdb->options}
-                 WHERE option_name LIKE '_transient_" . self::CACHE_PREFIX . "%'"
-            );
+            // Limpar todos — $wpdb->options is a WordPress core property; self::CACHE_PREFIX is a class constant.
+            $cache_prefix = $wpdb->esc_like( '_transient_' . self::CACHE_PREFIX );
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- query built with esc_like and prepare; option_name pattern has no user input.
+            $wpdb->query( $wpdb->prepare(
+                "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+                $cache_prefix . '%'
+            ) );
         }
     }
 }

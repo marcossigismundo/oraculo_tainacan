@@ -454,7 +454,7 @@ function is_production(): bool {
  * @return bool
  */
 function is_xampp(): bool {
-    $server_software = $_SERVER['SERVER_SOFTWARE'] ?? '';
+    $server_software = sanitize_text_field( wp_unslash( $_SERVER['SERVER_SOFTWARE'] ?? '' ) );
     return stripos($server_software, 'apache') !== false &&
            (stripos(ABSPATH, 'xampp') !== false || stripos(ABSPATH, 'htdocs') !== false);
 }
@@ -465,7 +465,7 @@ function is_xampp(): bool {
  * @return bool
  */
 function is_hostinger(): bool {
-    $server_name = $_SERVER['SERVER_NAME'] ?? '';
+    $server_name = sanitize_text_field( wp_unslash( $_SERVER['SERVER_NAME'] ?? '' ) );
     return stripos($server_name, 'hostinger') !== false ||
            stripos(ABSPATH, 'hostinger') !== false;
 }
@@ -681,11 +681,13 @@ function get_collections_indexing_status(): array {
     $status = [];
 
     foreach ($collections as $collection) {
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $vectors_table is plugin-owned ($wpdb->prefix.'oraculo_vectors').
         $indexed_count = (int) $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM {$vectors_table} WHERE collection_id = %d",
             $collection['id']
         ));
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $jobs_table is plugin-owned ($wpdb->prefix.'oraculo_indexing_jobs').
         $job = $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$jobs_table} WHERE collection_id = %d ORDER BY id DESC LIMIT 1",
             $collection['id']

@@ -45,6 +45,7 @@ class VectorStore {
         }
 
         // Verificar se já existe
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->table_name is plugin-owned (set in constructor from $wpdb->prefix.'oraculo_vectors').
         $existing = $wpdb->get_var($wpdb->prepare(
             "SELECT id FROM {$this->table_name} WHERE item_id = %d AND collection_id = %d",
             $data['item_id'],
@@ -143,9 +144,11 @@ class VectorStore {
         $where_clause = "";
         if (!empty($collection_ids)) {
             $placeholders = implode(',', array_fill(0, count($collection_ids), '%d'));
+            // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $placeholders contains only %d entries built from array_fill.
             $where_clause = $wpdb->prepare("WHERE collection_id IN ($placeholders)", $collection_ids);
         }
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->table_name is plugin-owned; $where_clause is built with $wpdb->prepare() above.
         $vectors = $wpdb->get_results(
             "SELECT id, item_id, collection_id, collection_name, embedding_data,
                     content_text, item_url, item_title, metadata_json
@@ -220,6 +223,7 @@ class VectorStore {
 
         $where_clause = 'WHERE ' . implode(' AND ', $where_parts);
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->table_name is plugin-owned; $where_clause is built from %s/%d placeholders and esc_like values.
         $sql = $wpdb->prepare(
             "SELECT id, item_id, collection_id, collection_name,
                     content_text, item_url, item_title, metadata_json
@@ -229,6 +233,7 @@ class VectorStore {
             array_merge($like_values, [$limit])
         );
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is built with $wpdb->prepare() above.
         $results = $wpdb->get_results($sql, ARRAY_A);
 
         // Adicionar score baseado em matches
@@ -257,6 +262,7 @@ class VectorStore {
     public function get_by_item(int $item_id, int $collection_id): ?array {
         global $wpdb;
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->table_name is plugin-owned (set in constructor from $wpdb->prefix.'oraculo_vectors').
         return $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$this->table_name} WHERE item_id = %d AND collection_id = %d",
             $item_id,
@@ -275,6 +281,7 @@ class VectorStore {
     public function needs_reindex(int $item_id, int $collection_id, string $content_hash): bool {
         global $wpdb;
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->table_name is plugin-owned (set in constructor from $wpdb->prefix.'oraculo_vectors').
         $existing_hash = $wpdb->get_var($wpdb->prepare(
             "SELECT content_hash FROM {$this->table_name} WHERE item_id = %d AND collection_id = %d",
             $item_id,
@@ -329,7 +336,7 @@ class VectorStore {
      */
     private function table_exists(): bool {
         global $wpdb;
-        return $wpdb->get_var("SHOW TABLES LIKE '{$this->table_name}'") === $this->table_name;
+        return $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $this->table_name ) ) === $this->table_name;
     }
 
     /**
@@ -352,6 +359,7 @@ class VectorStore {
             ];
         }
 
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->table_name is plugin-owned (set in constructor from $wpdb->prefix.'oraculo_vectors').
         $total = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$this->table_name}");
 
         $by_collection = $wpdb->get_results(
@@ -371,6 +379,7 @@ class VectorStore {
 
         $oldest = $wpdb->get_var("SELECT MIN(created_at) FROM {$this->table_name}");
         $newest = $wpdb->get_var("SELECT MAX(updated_at) FROM {$this->table_name}");
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
         return [
             'total_vectors' => $total,
@@ -395,6 +404,7 @@ class VectorStore {
             return 0;
         }
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->table_name is plugin-owned (set in constructor from $wpdb->prefix.'oraculo_vectors').
         return (int) $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM {$this->table_name} WHERE collection_id = %d",
             $collection_id
@@ -414,6 +424,7 @@ class VectorStore {
             return [];
         }
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->table_name is plugin-owned (set in constructor from $wpdb->prefix.'oraculo_vectors').
         return $wpdb->get_col($wpdb->prepare(
             "SELECT item_id FROM {$this->table_name} WHERE collection_id = %d",
             $collection_id
@@ -429,6 +440,7 @@ class VectorStore {
     public function cleanup_old(int $days_old = 90): int {
         global $wpdb;
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->table_name is plugin-owned (set in constructor from $wpdb->prefix.'oraculo_vectors').
         return $wpdb->query($wpdb->prepare(
             "DELETE FROM {$this->table_name} WHERE updated_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
             $days_old
@@ -443,6 +455,7 @@ class VectorStore {
     public function optimize(): bool {
         global $wpdb;
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->table_name is plugin-owned (set in constructor from $wpdb->prefix.'oraculo_vectors').
         $result = $wpdb->query("OPTIMIZE TABLE {$this->table_name}");
         return $result !== false;
     }
@@ -457,6 +470,7 @@ class VectorStore {
     public function export(int $collection_id, string $format = 'json'): string {
         global $wpdb;
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->table_name is plugin-owned (set in constructor from $wpdb->prefix.'oraculo_vectors').
         $data = $wpdb->get_results($wpdb->prepare(
             "SELECT item_id, item_title, item_url, content_text, content_hash,
                     embedding_model, token_count, created_at, updated_at

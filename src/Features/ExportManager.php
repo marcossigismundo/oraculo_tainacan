@@ -93,6 +93,7 @@ class ExportManager {
             ? '*'
             : 'id, item_id, collection_id, collection_name, content_text, item_url, item_title, metadata_json, embedding_model, token_count, created_at, updated_at';
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $fields is either '*' or a hardcoded column list; $table is plugin-owned (oraculo_vectors).
         $data = $wpdb->get_results($wpdb->prepare(
             "SELECT {$fields} FROM {$table} WHERE collection_id = %d",
             $collection_id
@@ -152,6 +153,7 @@ class ExportManager {
 
         $date_condition = $this->get_date_condition($period);
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $wpdb->prefix.'oraculo_*' are plugin-owned tables; $date_condition is from get_date_condition() with hardcoded values.
         $conversations = $wpdb->get_results(
             "SELECT c.*,
                     (SELECT COUNT(*) FROM {$wpdb->prefix}oraculo_messages WHERE conversation_id = c.id) as message_count
@@ -162,6 +164,7 @@ class ExportManager {
         );
 
         foreach ($conversations as &$conv) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $wpdb->prefix.'oraculo_messages' is a plugin-owned table.
             $conv['messages'] = $wpdb->get_results($wpdb->prepare(
                 "SELECT role, content, tokens_used, created_at
                  FROM {$wpdb->prefix}oraculo_messages

@@ -766,7 +766,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
     public function ajax_search(): void {
         check_ajax_referer('oraculo_frontend', 'nonce');
 
-        $query = sanitize_text_field($_POST['query'] ?? '');
+        $query = sanitize_text_field( wp_unslash( $_POST['query'] ?? '' ) );
         $collections = array_map('absint', (array)($_POST['collections'] ?? []));
 
         if (empty($query)) {
@@ -787,8 +787,8 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
     public function ajax_chat(): void {
         check_ajax_referer('oraculo_frontend', 'nonce');
 
-        $message = sanitize_text_field($_POST['message'] ?? '');
-        $session_id = sanitize_text_field($_POST['session_id'] ?? '');
+        $message = sanitize_text_field( wp_unslash( $_POST['message'] ?? '' ) );
+        $session_id = sanitize_text_field( wp_unslash( $_POST['session_id'] ?? '' ) );
         $collections = array_map('absint', (array)($_POST['collections'] ?? []));
 
         if (empty($message)) {
@@ -880,8 +880,8 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
     public function ajax_feedback(): void {
         check_ajax_referer('oraculo_frontend', 'nonce');
 
-        $search_id = sanitize_text_field($_POST['search_id'] ?? '');
-        $feedback = sanitize_text_field($_POST['feedback'] ?? '');
+        $search_id = sanitize_text_field( wp_unslash( $_POST['search_id'] ?? '' ) );
+        $feedback = sanitize_text_field( wp_unslash( $_POST['feedback'] ?? '' ) );
         $message_id = absint($_POST['message_id'] ?? 0);
 
         try {
@@ -902,7 +902,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
             wp_send_json_error(['message' => __('Permissão negada.', 'oraculo_tainacan')]);
         }
 
-        $provider = sanitize_text_field($_POST['provider'] ?? 'openai');
+        $provider = sanitize_text_field( wp_unslash( $_POST['provider'] ?? 'openai' ) );
 
         try {
             $factory = new AI\AIProviderFactory();
@@ -955,6 +955,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
         try {
             global $wpdb;
             $table = $wpdb->prefix . 'oraculo_vectors';
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $table is whitelisted to plugin-owned table oraculo_vectors.
             $deleted = $wpdb->query("TRUNCATE TABLE {$table}");
             wp_send_json_success([
                 'message' => __('Todos os vetores foram removidos.', 'oraculo_tainacan')
@@ -983,6 +984,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
             ];
 
             foreach ($tables as $table) {
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table is whitelisted to plugin-owned tables above.
                 $wpdb->query("OPTIMIZE TABLE {$table}");
             }
 
@@ -1005,7 +1007,10 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
         }
 
         try {
-            parse_str($_POST['settings'] ?? '', $settings);
+            parse_str( wp_unslash( $_POST['settings'] ?? '' ), $settings );
+            // Allowlist of expected keys; each leaf sanitized individually below.
+            $allowed_settings_keys = [ 'batch_size', 'embedding_provider', 'auto_index', 'index_title', 'index_description', 'index_metadata', 'index_document' ];
+            $settings = array_intersect_key( $settings, array_flip( $allowed_settings_keys ) );
 
             // Salvar configurações
             update_option('oraculo_batch_size', absint($settings['batch_size'] ?? 10));
@@ -1040,8 +1045,9 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
             $options = [];
 
             // Provedor de IA
-            if (isset($_POST['oraculo_tainacan_options'])) {
-                $options = $_POST['oraculo_tainacan_options'];
+            if ( isset( $_POST['oraculo_tainacan_options'] ) ) {
+                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitize_options() below walks the array and sanitizes every leaf.
+                $options = wp_unslash( $_POST['oraculo_tainacan_options'] );
             }
 
             // Sanitizar opções

@@ -176,12 +176,15 @@ class WebhooksManager {
             $values[] = '%' . $wpdb->esc_like($filters['event']) . '%';
         }
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->table_name is plugin-owned (set in constructor from $wpdb->prefix); WHERE clauses use only hardcoded comparisons.
         $sql = "SELECT * FROM {$this->table_name} WHERE " . implode(' AND ', $where) . " ORDER BY created_at DESC";
 
         if (!empty($values)) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is built from a plugin-owned table name and hardcoded WHERE clauses; LIKE values are passed via $values with esc_like().
             $sql = $wpdb->prepare($sql, $values);
         }
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is built with $wpdb->prepare() above when $values are present, or is otherwise fully static.
         $webhooks = $wpdb->get_results($sql, ARRAY_A);
 
         foreach ($webhooks as &$webhook) {
@@ -452,6 +455,7 @@ class WebhooksManager {
     public function test_webhook(int $id): array {
         global $wpdb;
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->table_name is plugin-owned (set in constructor from $wpdb->prefix).
         $webhook = $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$this->table_name} WHERE id = %d",
             $id

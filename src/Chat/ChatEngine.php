@@ -162,6 +162,7 @@ class ChatEngine {
         global $wpdb;
 
         // Buscar conversa existente
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->conversations_table is plugin-owned (set in constructor from $wpdb->prefix).
         $conversation = $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$this->conversations_table} WHERE session_id = %s AND status = 'active'",
             $session_id
@@ -244,6 +245,7 @@ class ChatEngine {
     private function get_conversation_history(int $conversation_id, int $limit = 10): array {
         global $wpdb;
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->messages_table is plugin-owned (set in constructor from $wpdb->prefix).
         $messages = $wpdb->get_results($wpdb->prepare(
             "SELECT role, content FROM {$this->messages_table}
              WHERE conversation_id = %d
@@ -415,6 +417,7 @@ Quando citar itens do acervo, inclua os links quando disponíveis.', 'oraculo_ta
     public function get_user_conversations(int $user_id, int $limit = 20): array {
         global $wpdb;
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->conversations_table and $this->messages_table are plugin-owned (set in constructor from $wpdb->prefix).
         return $wpdb->get_results($wpdb->prepare(
             "SELECT c.*, COUNT(m.id) as message_count
              FROM {$this->conversations_table} c
@@ -438,6 +441,7 @@ Quando citar itens do acervo, inclua os links quando disponíveis.', 'oraculo_ta
     public function get_messages(int $conversation_id, int $limit = 50): array {
         global $wpdb;
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->messages_table is plugin-owned (set in constructor from $wpdb->prefix).
         return $wpdb->get_results($wpdb->prepare(
             "SELECT * FROM {$this->messages_table}
              WHERE conversation_id = %d
@@ -504,6 +508,7 @@ Quando citar itens do acervo, inclua os links quando disponíveis.', 'oraculo_ta
         global $wpdb;
 
         // Obter primeira mensagem do usuário
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->messages_table is plugin-owned (set in constructor from $wpdb->prefix).
         $first_message = $wpdb->get_var($wpdb->prepare(
             "SELECT content FROM {$this->messages_table}
              WHERE conversation_id = %d AND role = 'user'
@@ -540,6 +545,7 @@ Quando citar itens do acervo, inclua os links quando disponíveis.', 'oraculo_ta
         global $wpdb;
 
         // Obter IDs de conversas antigas
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->conversations_table and $this->messages_table are plugin-owned (set in constructor from $wpdb->prefix).
         $old_conversations = $wpdb->get_col($wpdb->prepare(
             "SELECT id FROM {$this->conversations_table}
              WHERE updated_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
@@ -552,13 +558,15 @@ Quando citar itens do acervo, inclua os links quando disponíveis.', 'oraculo_ta
 
         $ids_placeholder = implode(',', array_fill(0, count($old_conversations), '%d'));
 
-        // Remover mensagens
+        // Remover mensagens — $ids_placeholder contains only %d placeholders built from array_fill.
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $this->messages_table is plugin-owned; $ids_placeholder contains only %d placeholders.
         $wpdb->query($wpdb->prepare(
             "DELETE FROM {$this->messages_table} WHERE conversation_id IN ($ids_placeholder)",
             $old_conversations
         ));
 
         // Remover conversas
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $this->conversations_table is plugin-owned; $ids_placeholder contains only %d placeholders.
         $deleted = $wpdb->query($wpdb->prepare(
             "DELETE FROM {$this->conversations_table} WHERE id IN ($ids_placeholder)",
             $old_conversations

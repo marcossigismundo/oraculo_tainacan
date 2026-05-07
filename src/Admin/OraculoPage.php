@@ -77,7 +77,12 @@ class Oraculo_Page extends \Tainacan\Pages {
      */
     public function render_page_content() {
         // Determinar qual sub-página exibir baseado no parâmetro tab
-        $tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'dashboard';
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- tab is a read-only navigation parameter with no side effects; value is whitelisted below.
+        $tab = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : 'dashboard';
+        $allowed_tabs = [ 'dashboard', 'indexing', 'settings', 'analytics', 'debug' ];
+        if ( ! in_array( $tab, $allowed_tabs, true ) ) {
+            $tab = 'dashboard';
+        }
 
         // Wrapper seguindo padrão Tainacan (como o Extrator IA)
         echo '<div class="wrap tainacan-page-container-content oraculo-admin">';
@@ -309,7 +314,7 @@ class Oraculo_Page extends \Tainacan\Pages {
         foreach ($tabs as $tab_id => $tab_data) {
             $url = $tab_id === 'dashboard' ? $base_url : $base_url . '&tab=' . $tab_id;
             $active = $current_tab === $tab_id ? ' active' : '';
-            echo '<a href="' . esc_url($url) . '" class="oraculo-nav-tab' . $active . '">';
+            echo '<a href="' . esc_url($url) . '" class="oraculo-nav-tab' . esc_attr($active) . '">';
             echo '<span class="dashicons ' . esc_attr($tab_data['icon']) . '"></span>';
             echo '<span class="tab-label">' . esc_html($tab_data['label']) . '</span>';
             echo '</a>';
@@ -372,8 +377,10 @@ class Oraculo_Page extends \Tainacan\Pages {
         $logs_table = $wpdb->prefix . 'oraculo_search_logs';
 
         // Verificar se as tabelas existem
-        $vectors_exists = $wpdb->get_var("SHOW TABLES LIKE '{$vectors_table}'") === $vectors_table;
-        $logs_exists = $wpdb->get_var("SHOW TABLES LIKE '{$logs_table}'") === $logs_table;
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $vectors_table and $logs_table are whitelisted to plugin-owned tables.
+        $vectors_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $vectors_table ) ) === $vectors_table;
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $logs_table is whitelisted to plugin-owned tables.
+        $logs_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $logs_table ) ) === $logs_table;
 
         if (!$vectors_exists) {
             return [
@@ -386,10 +393,12 @@ class Oraculo_Page extends \Tainacan\Pages {
             ];
         }
 
-        // Total de itens indexados
+        // Total de itens indexados — $vectors_table is whitelisted to plugin-owned table.
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $vectors_table is whitelisted to plugin-owned tables.
         $total_indexed = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$vectors_table}");
 
         // Coleções indexadas
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $vectors_table is whitelisted to plugin-owned tables.
         $collections_indexed = (int) $wpdb->get_var("SELECT COUNT(DISTINCT collection_id) FROM {$vectors_table}");
 
         if (!$logs_exists) {
@@ -404,12 +413,14 @@ class Oraculo_Page extends \Tainacan\Pages {
         }
 
         // Buscas hoje
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $logs_table is whitelisted to plugin-owned tables.
         $searches_today = (int) $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM {$logs_table} WHERE DATE(created_at) = %s",
             current_time('Y-m-d')
         ));
 
         // Buscas este mês
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $logs_table is whitelisted to plugin-owned tables.
         $searches_month = (int) $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM {$logs_table} WHERE MONTH(created_at) = %d AND YEAR(created_at) = %d",
             current_time('n'),
@@ -417,9 +428,11 @@ class Oraculo_Page extends \Tainacan\Pages {
         ));
 
         // Taxa de feedback positivo
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $logs_table is whitelisted to plugin-owned tables.
         $positive_feedback = (int) $wpdb->get_var(
             "SELECT COUNT(*) FROM {$logs_table} WHERE feedback = 'positive'"
         );
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $logs_table is whitelisted to plugin-owned tables.
         $total_feedback = (int) $wpdb->get_var(
             "SELECT COUNT(*) FROM {$logs_table} WHERE feedback IS NOT NULL"
         );
@@ -428,6 +441,7 @@ class Oraculo_Page extends \Tainacan\Pages {
             : 0;
 
         // Tokens usados este mês
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $logs_table is whitelisted to plugin-owned tables.
         $tokens_month = (int) $wpdb->get_var($wpdb->prepare(
             "SELECT SUM(tokens_used) FROM {$logs_table} WHERE MONTH(created_at) = %d AND YEAR(created_at) = %d",
             current_time('n'),

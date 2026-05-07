@@ -258,6 +258,7 @@ EOT;
         global $wpdb;
 
         // Obter resumos
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->table_name is plugin-owned (set in constructor from $wpdb->prefix).
         $summaries = $wpdb->get_col($wpdb->prepare(
             "SELECT content FROM {$this->table_name}
              WHERE session_id = %s AND memory_type = 'summary'
@@ -267,6 +268,7 @@ EOT;
         ));
 
         // Obter fatos
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->facts_table is plugin-owned (set in constructor from $wpdb->prefix).
         $facts = $wpdb->get_results($wpdb->prepare(
             "SELECT fact_type, fact_key, fact_value, confidence
              FROM {$this->facts_table}
@@ -321,6 +323,7 @@ EOT;
     public function get_user_preferences(string $session_id): array {
         global $wpdb;
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->facts_table is plugin-owned (set in constructor from $wpdb->prefix).
         return $wpdb->get_results($wpdb->prepare(
             "SELECT fact_key, fact_value
              FROM {$this->facts_table}
@@ -339,6 +342,7 @@ EOT;
     public function get_user_interests(string $session_id): array {
         global $wpdb;
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->facts_table is plugin-owned (set in constructor from $wpdb->prefix).
         return $wpdb->get_col($wpdb->prepare(
             "SELECT fact_value
              FROM {$this->facts_table}
@@ -357,12 +361,14 @@ EOT;
     public function cleanup_old_memories(int $days_old = 30): int {
         global $wpdb;
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->table_name is plugin-owned (set in constructor from $wpdb->prefix).
         $deleted_memories = $wpdb->query($wpdb->prepare(
             "DELETE FROM {$this->table_name}
              WHERE created_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
             $days_old
         ));
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->facts_table is plugin-owned (set in constructor from $wpdb->prefix).
         $deleted_facts = $wpdb->query($wpdb->prepare(
             "DELETE FROM {$this->facts_table}
              WHERE updated_at < DATE_SUB(NOW(), INTERVAL %d DAY)",

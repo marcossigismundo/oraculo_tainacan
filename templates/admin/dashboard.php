@@ -19,6 +19,7 @@ if (class_exists('\Tainacan\Oraculo_Page')) {
     global $wpdb;
     $vectors_table = $wpdb->prefix . 'oraculo_vectors';
     $stats = [
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $vectors_table is plugin-owned ($wpdb->prefix.'oraculo_vectors').
         'total_indexed' => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$vectors_table}"),
         'searches_month' => 0,
         'satisfaction_rate' => 0,
@@ -35,10 +36,12 @@ $logs_table = $wpdb->prefix . 'oraculo_search_logs';
 $searches_30_days = [];
 
 // Verificar se a tabela existe
-$table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$logs_table}'") === $logs_table;
+// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $logs_table is plugin-owned ($wpdb->prefix.'oraculo_search_logs').
+$table_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $logs_table ) ) === $logs_table;
 
 if ($table_exists) {
     // Buscar contagem de buscas por dia nos últimos 30 dias
+    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $logs_table is plugin-owned ($wpdb->prefix.'oraculo_search_logs').
     $results = $wpdb->get_results(
         "SELECT DATE(created_at) as date, COUNT(*) as count
          FROM {$logs_table}
@@ -90,7 +93,7 @@ $base_url = admin_url('admin.php?page=oraculo_tainacan_page');
         <div class="oraculo-stat-card">
             <div class="oraculo-stat-icon">📚</div>
             <div class="oraculo-stat-content">
-                <span class="oraculo-stat-value"><?php echo number_format_i18n($stats['total_indexed']); ?></span>
+                <span class="oraculo-stat-value"><?php echo esc_html( number_format_i18n($stats['total_indexed']) ); ?></span>
                 <span class="oraculo-stat-label"><?php esc_html_e('Itens Indexados', 'oraculo_tainacan'); ?></span>
             </div>
         </div>
@@ -98,7 +101,7 @@ $base_url = admin_url('admin.php?page=oraculo_tainacan_page');
         <div class="oraculo-stat-card">
             <div class="oraculo-stat-icon">🔍</div>
             <div class="oraculo-stat-content">
-                <span class="oraculo-stat-value"><?php echo number_format_i18n($stats['searches_month']); ?></span>
+                <span class="oraculo-stat-value"><?php echo esc_html( number_format_i18n($stats['searches_month']) ); ?></span>
                 <span class="oraculo-stat-label"><?php esc_html_e('Buscas este Mês', 'oraculo_tainacan'); ?></span>
             </div>
         </div>
@@ -114,7 +117,7 @@ $base_url = admin_url('admin.php?page=oraculo_tainacan_page');
         <div class="oraculo-stat-card">
             <div class="oraculo-stat-icon">🎯</div>
             <div class="oraculo-stat-content">
-                <span class="oraculo-stat-value"><?php echo number_format_i18n($stats['tokens_month']); ?></span>
+                <span class="oraculo-stat-value"><?php echo esc_html( number_format_i18n($stats['tokens_month']) ); ?></span>
                 <span class="oraculo-stat-label"><?php esc_html_e('Tokens Utilizados', 'oraculo_tainacan'); ?></span>
             </div>
         </div>
@@ -148,7 +151,7 @@ $base_url = admin_url('admin.php?page=oraculo_tainacan_page');
                             <?php foreach (array_slice($indexing_status, 0, 5) as $collection): ?>
                             <tr>
                                 <td><?php echo esc_html($collection['collection_name']); ?></td>
-                                <td><?php echo number_format_i18n($collection['total_items']); ?></td>
+                                <td><?php echo esc_html( number_format_i18n($collection['total_items']) ); ?></td>
                                 <td>
                                     <div class="oraculo-progress-bar">
                                         <div class="oraculo-progress" style="width: <?php echo esc_attr($collection['percentage']); ?>%"></div>
