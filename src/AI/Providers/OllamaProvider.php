@@ -207,6 +207,7 @@ class OllamaProvider extends AbstractAIProvider {
         if (is_wp_error($response)) {
             return [
                 'success' => false,
+                /* translators: %s: Ollama server base URL */
                 'message' => sprintf(
                     __('Não foi possível conectar ao Ollama em %s. Verifique se está rodando.', 'oraculo_tainacan'),
                     $base_url
@@ -346,10 +347,11 @@ class OllamaProvider extends AbstractAIProvider {
         if (is_wp_error($response)) {
             // Tentar baixar o modelo se não existir
             if (strpos($response->get_error_message(), 'not found') !== false) {
+                /* translators: 1: model name, 2: model name repeated for the pull command */
                 return new WP_Error(
                     'model_not_found',
                     sprintf(
-                        __('Modelo "%s" não encontrado. Execute "ollama pull %s" para instalá-lo.', 'oraculo_tainacan'),
+                        __('Modelo "%1$s" não encontrado. Execute "ollama pull %2$s" para instalá-lo.', 'oraculo_tainacan'),
                         $model,
                         $model
                     )

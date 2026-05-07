@@ -204,6 +204,7 @@ class ExportManager {
         foreach ($settings as $key => $value) {
             // Validar chaves permitidas
             if (!$this->is_valid_setting_key($key)) {
+                /* translators: %s: configuration key that was ignored */
                 $errors[] = sprintf(__('Configuração ignorada: %s', 'oraculo_tainacan'), $key);
                 continue;
             }

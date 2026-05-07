@@ -247,6 +247,7 @@ abstract class AbstractAIProvider implements AIProviderInterface {
             503 => __('Serviço temporariamente indisponível.', 'oraculo_tainacan'),
         ];
 
+        /* translators: %d: HTTP error status code */
         return $messages[$code] ?? sprintf(__('Erro HTTP %d', 'oraculo_tainacan'), $code);
     }
 

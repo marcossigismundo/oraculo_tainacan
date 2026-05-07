@@ -64,6 +64,7 @@ class DocumentProcessor {
         }
 
         if (!$this->is_supported($mime_type)) {
+            /* translators: %s: MIME type of the unsupported file */
             return new WP_Error('unsupported_type', sprintf(
                 __('Tipo de arquivo não suportado: %s', 'oraculo_tainacan'),
                 $mime_type

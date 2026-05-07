@@ -48,6 +48,7 @@ class AIProviderFactory {
      */
     public function create(string $provider_id, array $config = []): AIProviderInterface {
         if (!isset(self::$providers[$provider_id])) {
+            /* translators: %s: AI provider identifier */
             throw new \InvalidArgumentException(
                 esc_html( sprintf( __( 'Provedor de IA "%s" não encontrado.', 'oraculo_tainacan' ), $provider_id ) )
             );
@@ -236,6 +237,7 @@ class AIProviderFactory {
      */
     public static function register_provider(string $id, string $class): void {
         if (!is_subclass_of($class, AIProviderInterface::class)) {
+            /* translators: %s: PHP class name */
             throw new \InvalidArgumentException(
                 esc_html( sprintf( __( 'Classe %s deve implementar AIProviderInterface.', 'oraculo_tainacan' ), $class ) )
             );

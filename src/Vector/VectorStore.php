@@ -40,6 +40,7 @@ class VectorStore {
         $required = ['item_id', 'collection_id', 'embedding_data', 'content_text'];
         foreach ($required as $field) {
             if (empty($data[$field])) {
+                /* translators: %s: name of the required field that is missing */
                 return new WP_Error('missing_field', sprintf(__('Campo obrigatório ausente: %s', 'oraculo_tainacan'), $field));
             }
         }
