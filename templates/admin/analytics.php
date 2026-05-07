@@ -8,7 +8,10 @@
 defined('ABSPATH') || exit;
 
 $analytics = new \Oraculo_Tainacan\Analytics\AnalyticsManager();
-$period = isset($_GET['period']) ? sanitize_text_field($_GET['period']) : 'month';
+// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- period is a read-only filter parameter with no side effects; value is whitelisted below.
+$period_raw = isset( $_GET['period'] ) ? sanitize_text_field( wp_unslash( $_GET['period'] ) ) : 'month';
+$allowed_periods = [ 'today', 'week', 'month', 'year', 'all' ];
+$period = in_array( $period_raw, $allowed_periods, true ) ? $period_raw : 'month';
 $stats = $analytics->get_stats($period);
 // Timeline removido - causava problemas de performance com Chart.js
 $top_searches = $analytics->get_top_searches($period, 15);
@@ -56,14 +59,14 @@ $by_collection = $analytics->get_stats_by_collection($period);
         <div class="oraculo-stat-card success">
             <span class="stat-icon">✓</span>
             <div class="stat-content">
-                <span class="stat-value"><?php echo $stats['success_rate']; ?>%</span>
+                <span class="stat-value"><?php echo esc_html( $stats['success_rate'] ); ?>%</span>
                 <span class="stat-label"><?php esc_html_e('Taxa de Sucesso', 'oraculo_tainacan'); ?></span>
             </div>
         </div>
         <div class="oraculo-stat-card">
             <span class="stat-icon">😊</span>
             <div class="stat-content">
-                <span class="stat-value"><?php echo $stats['satisfaction_rate']; ?>%</span>
+                <span class="stat-value"><?php echo esc_html( $stats['satisfaction_rate'] ); ?>%</span>
                 <span class="stat-label"><?php esc_html_e('Satisfação', 'oraculo_tainacan'); ?></span>
             </div>
         </div>
@@ -408,7 +411,7 @@ jQuery(document).ready(function($) {
 
     // Export
     $('#oraculo-export-analytics').on('click', function() {
-        window.location.href = '<?php echo admin_url('admin-ajax.php'); ?>?action=oraculo_export_analytics&period=<?php echo $period; ?>&nonce=<?php echo wp_create_nonce('oraculo_export'); ?>';
+        window.location.href = '<?php echo esc_url( admin_url('admin-ajax.php') ); ?>?action=oraculo_export_analytics&period=<?php echo esc_attr( $period ); ?>&nonce=<?php echo esc_attr( wp_create_nonce('oraculo_export') ); ?>';
     });
 });
 </script>

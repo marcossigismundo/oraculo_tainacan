@@ -49,7 +49,7 @@ class AIProviderFactory {
     public function create(string $provider_id, array $config = []): AIProviderInterface {
         if (!isset(self::$providers[$provider_id])) {
             throw new \InvalidArgumentException(
-                sprintf(__('Provedor de IA "%s" não encontrado.', 'oraculo_tainacan'), $provider_id)
+                esc_html( sprintf( __( 'Provedor de IA "%s" não encontrado.', 'oraculo_tainacan' ), $provider_id ) )
             );
         }
 
@@ -104,7 +104,7 @@ class AIProviderFactory {
             }
 
             throw new \RuntimeException(
-                __('Nenhum provedor configurado suporta geração de embeddings. Configure OpenAI ou Ollama.', 'oraculo_tainacan')
+                esc_html__( 'Nenhum provedor configurado suporta geração de embeddings. Configure OpenAI ou Ollama.', 'oraculo_tainacan' )
             );
         }
 
@@ -237,7 +237,7 @@ class AIProviderFactory {
     public static function register_provider(string $id, string $class): void {
         if (!is_subclass_of($class, AIProviderInterface::class)) {
             throw new \InvalidArgumentException(
-                sprintf(__('Classe %s deve implementar AIProviderInterface.', 'oraculo_tainacan'), $class)
+                esc_html( sprintf( __( 'Classe %s deve implementar AIProviderInterface.', 'oraculo_tainacan' ), $class ) )
             );
         }
 

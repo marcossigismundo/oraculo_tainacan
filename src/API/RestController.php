@@ -526,6 +526,7 @@ class RestController extends WP_REST_Controller {
         if ($format === 'csv') {
             header('Content-Type: text/csv');
             header('Content-Disposition: attachment; filename="oraculo-analytics.csv"');
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV binary output sent as attachment; escaping would corrupt the data.
             echo $data;
             exit;
         }

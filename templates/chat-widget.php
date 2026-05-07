@@ -367,7 +367,7 @@ $suggestions = $options['suggested_questions'] ?? [];
             },
             body: new URLSearchParams({
                 action: 'oraculo_chat',
-                nonce: '<?php echo wp_create_nonce('oraculo_frontend'); ?>',
+                nonce: '<?php echo esc_js( wp_create_nonce('oraculo_frontend') ); ?>',
                 message: message,
                 session_id: sessionId || ''
             })

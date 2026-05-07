@@ -167,7 +167,7 @@ if (empty($suggested_questions)) {
                 ?>
                     <div class="oraculo-example-item" data-query="<?php echo esc_attr($question); ?>">
                         <div class="oraculo-example-icon">
-                            <?php echo $icon; ?>
+                            <?php echo wp_kses( $icon, [ 'svg' => [ 'xmlns' => [], 'viewBox' => [], 'width' => [], 'height' => [], 'fill' => [], 'stroke' => [], 'stroke-width' => [], 'stroke-linecap' => [], 'stroke-linejoin' => [] ], 'path' => [ 'd' => [], 'fill' => [], 'stroke' => [], 'stroke-width' => [] ], 'circle' => [ 'cx' => [], 'cy' => [], 'r' => [], 'fill' => [], 'stroke' => [] ], 'polyline' => [ 'points' => [] ], 'line' => [ 'x1' => [], 'y1' => [], 'x2' => [], 'y2' => [], 'stroke' => [], 'stroke-width' => [] ] ] ); ?>
                         </div>
                         <span class="oraculo-example-text"><?php echo esc_html($question); ?></span>
                     </div>
@@ -267,7 +267,7 @@ if (empty($suggested_questions)) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-WP-Nonce': '<?php echo wp_create_nonce('wp_rest'); ?>'
+                'X-WP-Nonce': '<?php echo esc_js( wp_create_nonce('wp_rest') ); ?>'
             },
             body: JSON.stringify({
                 query: query,
@@ -355,7 +355,7 @@ if (empty($suggested_questions)) {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'X-WP-Nonce': '<?php echo wp_create_nonce('wp_rest'); ?>'
+                                'X-WP-Nonce': '<?php echo esc_js( wp_create_nonce('wp_rest') ); ?>'
                             },
                             body: JSON.stringify({
                                 search_id: searchIdFromContainer,

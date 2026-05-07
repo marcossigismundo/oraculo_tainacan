@@ -475,7 +475,7 @@ jQuery(document).ready(function($) {
     // Configuração AJAX - usar variável global do WordPress
     var oraculoAjax = {
         ajaxUrl: (typeof ajaxurl !== 'undefined') ? ajaxurl : '<?php echo esc_url(admin_url('admin-ajax.php')); ?>',
-        nonce: '<?php echo wp_create_nonce('oraculo_admin'); ?>'
+        nonce: '<?php echo esc_js( wp_create_nonce('oraculo_admin') ); ?>'
     };
 
     // Tabs

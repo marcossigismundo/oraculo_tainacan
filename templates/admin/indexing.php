@@ -30,7 +30,7 @@ $vector_stats = $vector_store->get_stats();
             <span class="stat-label"><?php esc_html_e('Tokens Armazenados', 'oraculo_tainacan'); ?></span>
         </div>
         <div class="oraculo-stat-card">
-            <span class="stat-value"><?php echo implode(', ', $vector_stats['models_used'] ?: ['-']); ?></span>
+            <span class="stat-value"><?php echo esc_html( implode(', ', $vector_stats['models_used'] ?: ['-']) ); ?></span>
             <span class="stat-label"><?php esc_html_e('Modelos Utilizados', 'oraculo_tainacan'); ?></span>
         </div>
     </div>
@@ -74,8 +74,8 @@ $vector_stats = $vector_store->get_stats();
                         <td class="column-indexed indexed-count"><?php echo number_format($indexed); ?></td>
                         <td class="column-progress">
                             <div class="oraculo-progress-bar">
-                                <div class="oraculo-progress-fill" style="width: <?php echo $percentage; ?>%"></div>
-                                <span class="oraculo-progress-text"><?php echo $percentage; ?>%</span>
+                                <div class="oraculo-progress-fill" style="width: <?php echo esc_attr( $percentage ); ?>%"></div>
+                                <span class="oraculo-progress-text"><?php echo esc_html( $percentage ); ?>%</span>
                             </div>
                         </td>
                         <td class="column-status">
@@ -374,7 +374,7 @@ jQuery(document).ready(function($) {
             timeout: 300000, // 5 minutos de timeout
             data: {
                 action: 'oraculo_index_collection',
-                nonce: '<?php echo wp_create_nonce('oraculo_admin'); ?>',
+                nonce: '<?php echo esc_js( wp_create_nonce('oraculo_admin') ); ?>',
                 collection_id: collectionId
             },
             success: function(response) {
@@ -446,7 +446,7 @@ jQuery(document).ready(function($) {
             type: 'POST',
             data: {
                 action: 'oraculo_clear_vectors',
-                nonce: '<?php echo wp_create_nonce('oraculo_admin'); ?>',
+                nonce: '<?php echo esc_js( wp_create_nonce('oraculo_admin') ); ?>',
                 collection_id: collectionId
             },
             success: function(response) {
@@ -490,7 +490,7 @@ jQuery(document).ready(function($) {
             type: 'POST',
             data: {
                 action: 'oraculo_clear_all_vectors',
-                nonce: '<?php echo wp_create_nonce('oraculo_admin'); ?>'
+                nonce: '<?php echo esc_js( wp_create_nonce('oraculo_admin') ); ?>'
             },
             success: function(response) {
                 if (response.success) {
@@ -513,7 +513,7 @@ jQuery(document).ready(function($) {
             type: 'POST',
             data: {
                 action: 'oraculo_optimize_db',
-                nonce: '<?php echo wp_create_nonce('oraculo_admin'); ?>'
+                nonce: '<?php echo esc_js( wp_create_nonce('oraculo_admin') ); ?>'
             },
             success: function(response) {
                 btn.prop('disabled', false).text('<?php esc_html_e('Otimizar Banco de Dados', 'oraculo_tainacan'); ?>');
@@ -535,7 +535,7 @@ jQuery(document).ready(function($) {
             type: 'POST',
             data: {
                 action: 'oraculo_save_indexing_settings',
-                nonce: '<?php echo wp_create_nonce('oraculo_admin'); ?>',
+                nonce: '<?php echo esc_js( wp_create_nonce('oraculo_admin') ); ?>',
                 settings: $(this).serialize()
             },
             success: function(response) {
