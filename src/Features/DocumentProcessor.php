@@ -56,7 +56,7 @@ class DocumentProcessor {
      */
     public function extract_text(string $file_path, ?string $mime_type = null) {
         if (!file_exists($file_path)) {
-            return new WP_Error('file_not_found', __('Arquivo não encontrado.', 'oraculo-tainacan'));
+            return new WP_Error('file_not_found', __('Arquivo não encontrado.', 'oraculo_tainacan'));
         }
 
         if (!$mime_type) {
@@ -65,7 +65,7 @@ class DocumentProcessor {
 
         if (!$this->is_supported($mime_type)) {
             return new WP_Error('unsupported_type', sprintf(
-                __('Tipo de arquivo não suportado: %s', 'oraculo-tainacan'),
+                __('Tipo de arquivo não suportado: %s', 'oraculo_tainacan'),
                 $mime_type
             ));
         }
@@ -97,7 +97,7 @@ class DocumentProcessor {
         $file_path = get_attached_file($attachment_id);
 
         if (!$file_path) {
-            return new WP_Error('invalid_attachment', __('Anexo inválido.', 'oraculo-tainacan'));
+            return new WP_Error('invalid_attachment', __('Anexo inválido.', 'oraculo_tainacan'));
         }
 
         $mime_type = get_post_mime_type($attachment_id);
@@ -144,7 +144,7 @@ class DocumentProcessor {
         $text = $this->extract_text_from_pdf_content($content);
 
         if (empty($text)) {
-            return new WP_Error('pdf_extraction_failed', __('Não foi possível extrair texto do PDF.', 'oraculo-tainacan'));
+            return new WP_Error('pdf_extraction_failed', __('Não foi possível extrair texto do PDF.', 'oraculo_tainacan'));
         }
 
         return $text;
@@ -181,14 +181,14 @@ class DocumentProcessor {
         $zip = new \ZipArchive();
 
         if ($zip->open($file_path) !== true) {
-            return new WP_Error('docx_open_failed', __('Não foi possível abrir o arquivo DOCX.', 'oraculo-tainacan'));
+            return new WP_Error('docx_open_failed', __('Não foi possível abrir o arquivo DOCX.', 'oraculo_tainacan'));
         }
 
         $content = $zip->getFromName('word/document.xml');
         $zip->close();
 
         if (!$content) {
-            return new WP_Error('docx_content_failed', __('Não foi possível ler o conteúdo do DOCX.', 'oraculo-tainacan'));
+            return new WP_Error('docx_content_failed', __('Não foi possível ler o conteúdo do DOCX.', 'oraculo_tainacan'));
         }
 
         // Remover tags XML e extrair texto
@@ -280,7 +280,7 @@ class DocumentProcessor {
         if (!$this->command_exists('tesseract')) {
             return new WP_Error(
                 'ocr_not_available',
-                __('OCR não disponível. Instale o Tesseract para processar imagens.', 'oraculo-tainacan')
+                __('OCR não disponível. Instale o Tesseract para processar imagens.', 'oraculo_tainacan')
             );
         }
 
@@ -299,7 +299,7 @@ class DocumentProcessor {
 
         if (!file_exists($text_file)) {
             @unlink($temp_file);
-            return new WP_Error('ocr_failed', __('Falha ao executar OCR na imagem.', 'oraculo-tainacan'));
+            return new WP_Error('ocr_failed', __('Falha ao executar OCR na imagem.', 'oraculo_tainacan'));
         }
 
         $text = file_get_contents($text_file);

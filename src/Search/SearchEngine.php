@@ -57,7 +57,7 @@ class SearchEngine {
         // Validar query
         $query = trim($query);
         if (empty($query)) {
-            return new WP_Error('empty_query', __('A pergunta não pode estar vazia.', 'oraculo-tainacan'));
+            return new WP_Error('empty_query', __('A pergunta não pode estar vazia.', 'oraculo_tainacan'));
         }
 
         // Verificar cache
@@ -301,7 +301,7 @@ Suas respostas devem ser:
 - Honestas quando não houver informação suficiente para responder
 
 Quando citar itens do acervo, sempre mencione o título e forneça o link quando disponível.
-Se a pergunta não puder ser respondida com as informações disponíveis, informe educadamente e sugira reformular a pergunta.', 'oraculo-tainacan');
+Se a pergunta não puder ser respondida com as informações disponíveis, informe educadamente e sugira reformular a pergunta.', 'oraculo_tainacan');
     }
 
     /**
@@ -334,7 +334,7 @@ ITENS DO ACERVO:
 
 PERGUNTA: {query}
 
-Forneça uma resposta clara, mencionando os itens mais relevantes encontrados. Se houver links, inclua-os na resposta.', 'oraculo-tainacan');
+Forneça uma resposta clara, mencionando os itens mais relevantes encontrados. Se houver links, inclua-os na resposta.', 'oraculo_tainacan');
     }
 
     /**
@@ -373,7 +373,7 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados. S
     private function build_no_results_response(string $query): array {
         return [
             'query' => $query,
-            'response' => __('Não encontrei itens no acervo que correspondam à sua busca. Tente reformular sua pergunta ou usar termos diferentes.', 'oraculo-tainacan'),
+            'response' => __('Não encontrei itens no acervo que correspondam à sua busca. Tente reformular sua pergunta ou usar termos diferentes.', 'oraculo_tainacan'),
             'items' => [],
             'total_results' => 0,
             'usage' => [],

@@ -191,7 +191,7 @@ class ExportManager {
         $data = json_decode($content, true);
 
         if (!$data || !isset($data['settings'])) {
-            return ['error' => __('Formato de arquivo inválido.', 'oraculo-tainacan')];
+            return ['error' => __('Formato de arquivo inválido.', 'oraculo_tainacan')];
         }
 
         $settings = $data['settings'];
@@ -201,7 +201,7 @@ class ExportManager {
         foreach ($settings as $key => $value) {
             // Validar chaves permitidas
             if (!$this->is_valid_setting_key($key)) {
-                $errors[] = sprintf(__('Configuração ignorada: %s', 'oraculo-tainacan'), $key);
+                $errors[] = sprintf(__('Configuração ignorada: %s', 'oraculo_tainacan'), $key);
                 continue;
             }
 
@@ -251,14 +251,14 @@ class ExportManager {
      */
     public function restore_backup(string $filepath): array {
         if (!file_exists($filepath)) {
-            return ['success' => false, 'error' => __('Arquivo não encontrado.', 'oraculo-tainacan')];
+            return ['success' => false, 'error' => __('Arquivo não encontrado.', 'oraculo_tainacan')];
         }
 
         $content = file_get_contents($filepath);
         $data = json_decode($content, true);
 
         if (!$data) {
-            return ['success' => false, 'error' => __('Arquivo de backup inválido.', 'oraculo-tainacan')];
+            return ['success' => false, 'error' => __('Arquivo de backup inválido.', 'oraculo_tainacan')];
         }
 
         $results = [];

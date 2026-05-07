@@ -40,7 +40,7 @@ class VectorStore {
         $required = ['item_id', 'collection_id', 'embedding_data', 'content_text'];
         foreach ($required as $field) {
             if (empty($data[$field])) {
-                return new WP_Error('missing_field', sprintf(__('Campo obrigatório ausente: %s', 'oraculo-tainacan'), $field));
+                return new WP_Error('missing_field', sprintf(__('Campo obrigatório ausente: %s', 'oraculo_tainacan'), $field));
             }
         }
 
@@ -81,7 +81,7 @@ class VectorStore {
                 ['%d']
             );
 
-            return $result !== false ? (int)$existing : new WP_Error('update_failed', __('Falha ao atualizar vetor.', 'oraculo-tainacan'));
+            return $result !== false ? (int)$existing : new WP_Error('update_failed', __('Falha ao atualizar vetor.', 'oraculo_tainacan'));
         }
 
         $record['created_at'] = current_time('mysql');
@@ -91,7 +91,7 @@ class VectorStore {
             ['%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s']
         );
 
-        return $result !== false ? $wpdb->insert_id : new WP_Error('insert_failed', __('Falha ao inserir vetor.', 'oraculo-tainacan'));
+        return $result !== false ? $wpdb->insert_id : new WP_Error('insert_failed', __('Falha ao inserir vetor.', 'oraculo_tainacan'));
     }
 
     /**

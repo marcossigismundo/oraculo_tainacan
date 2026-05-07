@@ -426,7 +426,7 @@ class WebhooksManager {
         $email_enabled = get_option('oraculo_daily_report_email', false);
         if ($email_enabled) {
             return $this->send_email_notification(
-                sprintf(__('Relatório Diário - %s', 'oraculo-tainacan'), $report['date']),
+                sprintf(__('Relatório Diário - %s', 'oraculo_tainacan'), $report['date']),
                 $message
             );
         }

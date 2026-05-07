@@ -69,7 +69,7 @@ class ChatEngine {
         // Validar mensagem
         $message = trim($message);
         if (empty($message)) {
-            return new WP_Error('empty_message', __('A mensagem não pode estar vazia.', 'oraculo-tainacan'));
+            return new WP_Error('empty_message', __('A mensagem não pode estar vazia.', 'oraculo_tainacan'));
         }
 
         // Obter ou criar conversa
@@ -185,7 +185,7 @@ class ChatEngine {
         );
 
         if ($result === false) {
-            return new WP_Error('db_error', __('Falha ao criar conversa.', 'oraculo-tainacan'));
+            return new WP_Error('db_error', __('Falha ao criar conversa.', 'oraculo_tainacan'));
         }
 
         return [
@@ -347,7 +347,7 @@ class ChatEngine {
 
 Você está em uma conversa contínua. Lembre-se do contexto das mensagens anteriores.
 Seja conversacional e amigável, mas mantenha a precisão das informações.
-Quando citar itens do acervo, inclua os links quando disponíveis.', 'oraculo-tainacan');
+Quando citar itens do acervo, inclua os links quando disponíveis.', 'oraculo_tainacan');
 
         return $base_prompt . $chat_additions;
     }
@@ -512,7 +512,7 @@ Quando citar itens do acervo, inclua os links quando disponíveis.', 'oraculo-ta
         ));
 
         if (!$first_message) {
-            return __('Nova conversa', 'oraculo-tainacan');
+            return __('Nova conversa', 'oraculo_tainacan');
         }
 
         // Truncar para título

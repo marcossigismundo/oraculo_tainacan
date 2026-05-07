@@ -117,7 +117,7 @@ class OpenAIProvider extends AbstractAIProvider {
      * {@inheritdoc}
      */
     public function get_description(): string {
-        return __('Provedor oficial da OpenAI. Inclui GPT-4o, GPT-4 e GPT-3.5 Turbo.', 'oraculo-tainacan');
+        return __('Provedor oficial da OpenAI. Inclui GPT-4o, GPT-4 e GPT-3.5 Turbo.', 'oraculo_tainacan');
     }
 
     /**
@@ -169,7 +169,7 @@ class OpenAIProvider extends AbstractAIProvider {
         if (!$this->is_configured()) {
             return [
                 'success' => false,
-                'message' => __('Chave de API não configurada.', 'oraculo-tainacan'),
+                'message' => __('Chave de API não configurada.', 'oraculo_tainacan'),
                 'details' => [],
             ];
         }
@@ -191,7 +191,7 @@ class OpenAIProvider extends AbstractAIProvider {
 
         return [
             'success' => true,
-            'message' => __('Conexão estabelecida com sucesso!', 'oraculo-tainacan'),
+            'message' => __('Conexão estabelecida com sucesso!', 'oraculo_tainacan'),
             'details' => [
                 'models_available' => count($response['data'] ?? []),
             ],
@@ -203,13 +203,13 @@ class OpenAIProvider extends AbstractAIProvider {
      */
     public function generate_embedding(string $text, ?string $model = null) {
         if (!$this->is_configured()) {
-            return new WP_Error('not_configured', __('Provedor OpenAI não configurado.', 'oraculo-tainacan'));
+            return new WP_Error('not_configured', __('Provedor OpenAI não configurado.', 'oraculo_tainacan'));
         }
 
         $text = $this->validate_input($text, 8191 * 4); // ~8191 tokens máximo para ada-002
 
         if (empty($text)) {
-            return new WP_Error('empty_input', __('Texto não pode estar vazio.', 'oraculo-tainacan'));
+            return new WP_Error('empty_input', __('Texto não pode estar vazio.', 'oraculo_tainacan'));
         }
 
         $model = $model ?? $this->get_config('embedding_model', 'text-embedding-ada-002');
@@ -228,7 +228,7 @@ class OpenAIProvider extends AbstractAIProvider {
         }
 
         if (!isset($response['data'][0]['embedding'])) {
-            return new WP_Error('invalid_response', __('Resposta inválida da API.', 'oraculo-tainacan'));
+            return new WP_Error('invalid_response', __('Resposta inválida da API.', 'oraculo_tainacan'));
         }
 
         return [
@@ -243,11 +243,11 @@ class OpenAIProvider extends AbstractAIProvider {
      */
     public function generate_embeddings_batch(array $texts, ?string $model = null) {
         if (!$this->is_configured()) {
-            return new WP_Error('not_configured', __('Provedor OpenAI não configurado.', 'oraculo-tainacan'));
+            return new WP_Error('not_configured', __('Provedor OpenAI não configurado.', 'oraculo_tainacan'));
         }
 
         if (empty($texts)) {
-            return new WP_Error('empty_input', __('Lista de textos não pode estar vazia.', 'oraculo-tainacan'));
+            return new WP_Error('empty_input', __('Lista de textos não pode estar vazia.', 'oraculo_tainacan'));
         }
 
         // OpenAI suporta até 2048 embeddings por requisição
@@ -302,7 +302,7 @@ class OpenAIProvider extends AbstractAIProvider {
             }
 
             if (!isset($response['data'])) {
-                return new WP_Error('invalid_response', __('Resposta inválida da API.', 'oraculo-tainacan'));
+                return new WP_Error('invalid_response', __('Resposta inválida da API.', 'oraculo_tainacan'));
             }
 
             // Ordenar por índice para manter ordem original
@@ -342,7 +342,7 @@ class OpenAIProvider extends AbstractAIProvider {
      */
     public function chat(array $messages, string $system_prompt = '', array $options = []) {
         if (!$this->is_configured()) {
-            return new WP_Error('not_configured', __('Provedor OpenAI não configurado.', 'oraculo-tainacan'));
+            return new WP_Error('not_configured', __('Provedor OpenAI não configurado.', 'oraculo_tainacan'));
         }
 
         $options = $this->prepare_options($options);
@@ -379,7 +379,7 @@ class OpenAIProvider extends AbstractAIProvider {
         }
 
         if (!isset($response['choices'][0]['message']['content'])) {
-            return new WP_Error('invalid_response', __('Resposta inválida da API.', 'oraculo-tainacan'));
+            return new WP_Error('invalid_response', __('Resposta inválida da API.', 'oraculo_tainacan'));
         }
 
         $usage = $this->normalize_usage($response['usage'] ?? []);
@@ -405,7 +405,7 @@ class OpenAIProvider extends AbstractAIProvider {
      */
     public function stream_response(string $prompt, string $system_prompt, callable $callback, array $options = []): void {
         if (!$this->is_configured()) {
-            $callback('', true, new WP_Error('not_configured', __('Provedor não configurado.', 'oraculo-tainacan')));
+            $callback('', true, new WP_Error('not_configured', __('Provedor não configurado.', 'oraculo_tainacan')));
             return;
         }
 

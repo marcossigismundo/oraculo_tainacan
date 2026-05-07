@@ -379,7 +379,7 @@ class RestController extends WP_REST_Controller {
         if (!$conversation) {
             return new WP_REST_Response([
                 'success' => false,
-                'error' => __('Conversa não encontrada.', 'oraculo-tainacan'),
+                'error' => __('Conversa não encontrada.', 'oraculo_tainacan'),
             ], 404);
         }
 
@@ -419,8 +419,8 @@ class RestController extends WP_REST_Controller {
         return new WP_REST_Response([
             'success' => $result,
             'message' => $result
-                ? __('Obrigado pelo feedback!', 'oraculo-tainacan')
-                : __('Erro ao registrar feedback.', 'oraculo-tainacan'),
+                ? __('Obrigado pelo feedback!', 'oraculo_tainacan')
+                : __('Erro ao registrar feedback.', 'oraculo_tainacan'),
         ]);
     }
 
@@ -632,7 +632,7 @@ class RestController extends WP_REST_Controller {
 
         return new WP_REST_Response([
             'success' => true,
-            'message' => __('Configurações salvas com sucesso.', 'oraculo-tainacan'),
+            'message' => __('Configurações salvas com sucesso.', 'oraculo_tainacan'),
         ]);
     }
 

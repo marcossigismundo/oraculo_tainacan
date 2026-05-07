@@ -237,17 +237,17 @@ abstract class AbstractAIProvider implements AIProviderInterface {
      */
     protected function get_http_error_message(int $code): string {
         $messages = [
-            400 => __('Requisição inválida. Verifique os parâmetros.', 'oraculo-tainacan'),
-            401 => __('Não autorizado. Verifique sua chave de API.', 'oraculo-tainacan'),
-            403 => __('Acesso negado. Sua chave de API não tem permissão.', 'oraculo-tainacan'),
-            404 => __('Recurso não encontrado.', 'oraculo-tainacan'),
-            429 => __('Limite de requisições excedido. Aguarde e tente novamente.', 'oraculo-tainacan'),
-            500 => __('Erro interno do servidor da API.', 'oraculo-tainacan'),
-            502 => __('Gateway inválido. Servidor da API indisponível.', 'oraculo-tainacan'),
-            503 => __('Serviço temporariamente indisponível.', 'oraculo-tainacan'),
+            400 => __('Requisição inválida. Verifique os parâmetros.', 'oraculo_tainacan'),
+            401 => __('Não autorizado. Verifique sua chave de API.', 'oraculo_tainacan'),
+            403 => __('Acesso negado. Sua chave de API não tem permissão.', 'oraculo_tainacan'),
+            404 => __('Recurso não encontrado.', 'oraculo_tainacan'),
+            429 => __('Limite de requisições excedido. Aguarde e tente novamente.', 'oraculo_tainacan'),
+            500 => __('Erro interno do servidor da API.', 'oraculo_tainacan'),
+            502 => __('Gateway inválido. Servidor da API indisponível.', 'oraculo_tainacan'),
+            503 => __('Serviço temporariamente indisponível.', 'oraculo_tainacan'),
         ];
 
-        return $messages[$code] ?? sprintf(__('Erro HTTP %d', 'oraculo-tainacan'), $code);
+        return $messages[$code] ?? sprintf(__('Erro HTTP %d', 'oraculo_tainacan'), $code);
     }
 
     /**

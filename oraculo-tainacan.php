@@ -8,7 +8,7 @@
  * Author URI: https://tainacan.org
  * License: GPL-2.0+
  * License URI: http://www.gnu.org/licenses/gpl-2.0.txt
- * Text Domain: oraculo-tainacan
+ * Text Domain: oraculo_tainacan
  * Domain Path: /languages
  * Requires at least: 6.0
  * Requires PHP: 8.0
@@ -79,7 +79,7 @@ final class Oraculo_Tainacan {
         if (version_compare(PHP_VERSION, ORACULO_TAINACAN_MIN_PHP, '<')) {
             add_action('admin_notices', function() {
                 $message = sprintf(
-                    __('Oráculo Tainacan requer PHP %s ou superior. Você está usando PHP %s.', 'oraculo-tainacan'),
+                    __('Oráculo Tainacan requer PHP %s ou superior. Você está usando PHP %s.', 'oraculo_tainacan'),
                     ORACULO_TAINACAN_MIN_PHP,
                     PHP_VERSION
                 );
@@ -94,7 +94,7 @@ final class Oraculo_Tainacan {
             add_action('admin_notices', function() {
                 global $wp_version;
                 $message = sprintf(
-                    __('Oráculo Tainacan requer WordPress %s ou superior. Você está usando WordPress %s.', 'oraculo-tainacan'),
+                    __('Oráculo Tainacan requer WordPress %s ou superior. Você está usando WordPress %s.', 'oraculo_tainacan'),
                     ORACULO_TAINACAN_MIN_WP,
                     $wp_version
                 );
@@ -459,11 +459,11 @@ final class Oraculo_Tainacan {
             'system_prompt' => $this->get_default_system_prompt(),
             'search_prompt' => $this->get_default_search_prompt(),
             'chat_prompt' => $this->get_default_chat_prompt(),
-            'welcome_message' => __('Olá! Sou o assistente do acervo. Como posso ajudá-lo a encontrar informações?', 'oraculo-tainacan'),
+            'welcome_message' => __('Olá! Sou o assistente do acervo. Como posso ajudá-lo a encontrar informações?', 'oraculo_tainacan'),
             'suggested_questions' => [
-                __('Quais são os itens mais recentes do acervo?', 'oraculo-tainacan'),
-                __('Mostre documentos sobre [tema]', 'oraculo-tainacan'),
-                __('Quais coleções estão disponíveis?', 'oraculo-tainacan'),
+                __('Quais são os itens mais recentes do acervo?', 'oraculo_tainacan'),
+                __('Mostre documentos sobre [tema]', 'oraculo_tainacan'),
+                __('Quais coleções estão disponíveis?', 'oraculo_tainacan'),
             ],
             'index_fields' => ['title', 'description'],
             'appearance' => [
@@ -492,7 +492,7 @@ Suas respostas devem ser:
 - Honestas quando não houver informação suficiente para responder
 
 Quando citar itens do acervo, sempre mencione o título e forneça o link quando disponível.
-Se a pergunta não puder ser respondida com as informações disponíveis, informe educadamente e sugira reformular a pergunta.', 'oraculo-tainacan');
+Se a pergunta não puder ser respondida com as informações disponíveis, informe educadamente e sugira reformular a pergunta.', 'oraculo_tainacan');
     }
 
     /**
@@ -506,7 +506,7 @@ ITENS DO ACERVO:
 
 PERGUNTA: {query}
 
-Forneça uma resposta clara, mencionando os itens mais relevantes encontrados.', 'oraculo-tainacan');
+Forneça uma resposta clara, mencionando os itens mais relevantes encontrados.', 'oraculo_tainacan');
     }
 
     /**
@@ -523,7 +523,7 @@ CONTEXTO DO ACERVO:
 
 MENSAGEM DO USUÁRIO: {message}
 
-Responda de forma natural e conversacional, sempre baseando-se nas informações do acervo quando relevante.', 'oraculo-tainacan');
+Responda de forma natural e conversacional, sempre baseando-se nas informações do acervo quando relevante.', 'oraculo_tainacan');
     }
 
     /**
@@ -541,7 +541,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
      */
     public function load_textdomain(): void {
         load_plugin_textdomain(
-            'oraculo-tainacan',
+            'oraculo_tainacan',
             false,
             dirname(ORACULO_TAINACAN_BASENAME) . '/languages'
         );
@@ -663,12 +663,12 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
             'nonce' => wp_create_nonce('oraculo_admin'),
             'restNonce' => wp_create_nonce('wp_rest'),
             'strings' => [
-                'confirmDelete' => __('Tem certeza que deseja excluir?', 'oraculo-tainacan'),
-                'indexing' => __('Indexando...', 'oraculo-tainacan'),
-                'completed' => __('Concluído!', 'oraculo-tainacan'),
-                'error' => __('Erro:', 'oraculo-tainacan'),
-                'testing' => __('Testando conexão...', 'oraculo-tainacan'),
-                'success' => __('Sucesso!', 'oraculo-tainacan'),
+                'confirmDelete' => __('Tem certeza que deseja excluir?', 'oraculo_tainacan'),
+                'indexing' => __('Indexando...', 'oraculo_tainacan'),
+                'completed' => __('Concluído!', 'oraculo_tainacan'),
+                'error' => __('Erro:', 'oraculo_tainacan'),
+                'testing' => __('Testando conexão...', 'oraculo_tainacan'),
+                'success' => __('Sucesso!', 'oraculo_tainacan'),
             ],
         ]);
     }
@@ -737,16 +737,16 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
             'welcomeMessage' => $options['welcome_message'] ?? '',
             'suggestedQuestions' => $options['suggested_questions'] ?? [],
             'strings' => [
-                'placeholder' => __('Digite sua pergunta...', 'oraculo-tainacan'),
-                'send' => __('Enviar', 'oraculo-tainacan'),
-                'searching' => __('Buscando...', 'oraculo-tainacan'),
-                'thinking' => __('Pensando...', 'oraculo-tainacan'),
-                'error' => __('Ocorreu um erro. Tente novamente.', 'oraculo-tainacan'),
-                'noResults' => __('Nenhum resultado encontrado.', 'oraculo-tainacan'),
-                'helpful' => __('Esta resposta foi útil?', 'oraculo-tainacan'),
-                'yes' => __('Sim', 'oraculo-tainacan'),
-                'no' => __('Não', 'oraculo-tainacan'),
-                'sources' => __('Fontes', 'oraculo-tainacan'),
+                'placeholder' => __('Digite sua pergunta...', 'oraculo_tainacan'),
+                'send' => __('Enviar', 'oraculo_tainacan'),
+                'searching' => __('Buscando...', 'oraculo_tainacan'),
+                'thinking' => __('Pensando...', 'oraculo_tainacan'),
+                'error' => __('Ocorreu um erro. Tente novamente.', 'oraculo_tainacan'),
+                'noResults' => __('Nenhum resultado encontrado.', 'oraculo_tainacan'),
+                'helpful' => __('Esta resposta foi útil?', 'oraculo_tainacan'),
+                'yes' => __('Sim', 'oraculo_tainacan'),
+                'no' => __('Não', 'oraculo_tainacan'),
+                'sources' => __('Fontes', 'oraculo_tainacan'),
             ],
         ]);
     }
@@ -770,7 +770,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
         $collections = array_map('absint', (array)($_POST['collections'] ?? []));
 
         if (empty($query)) {
-            wp_send_json_error(['message' => __('Pergunta não pode estar vazia.', 'oraculo-tainacan')]);
+            wp_send_json_error(['message' => __('Pergunta não pode estar vazia.', 'oraculo_tainacan')]);
         }
 
         try {
@@ -792,7 +792,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
         $collections = array_map('absint', (array)($_POST['collections'] ?? []));
 
         if (empty($message)) {
-            wp_send_json_error(['message' => __('Mensagem não pode estar vazia.', 'oraculo-tainacan')]);
+            wp_send_json_error(['message' => __('Mensagem não pode estar vazia.', 'oraculo_tainacan')]);
         }
 
         try {
@@ -815,7 +815,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
             check_ajax_referer('oraculo_admin', 'nonce');
 
             if (!current_user_can('manage_options')) {
-                wp_send_json_error(['message' => __('Permissão negada.', 'oraculo-tainacan')]);
+                wp_send_json_error(['message' => __('Permissão negada.', 'oraculo_tainacan')]);
                 return;
             }
 
@@ -823,12 +823,12 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
             $force = !empty($_POST['force']);
 
             if (empty($collection_id)) {
-                wp_send_json_error(['message' => __('ID da coleção inválido.', 'oraculo-tainacan')]);
+                wp_send_json_error(['message' => __('ID da coleção inválido.', 'oraculo_tainacan')]);
                 return;
             }
 
             if (!isset($this->services['indexing'])) {
-                wp_send_json_error(['message' => __('Serviço de indexação não inicializado.', 'oraculo-tainacan')]);
+                wp_send_json_error(['message' => __('Serviço de indexação não inicializado.', 'oraculo_tainacan')]);
                 return;
             }
 
@@ -857,14 +857,14 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
         check_ajax_referer('oraculo_admin', 'nonce');
 
         if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => __('Permissão negada.', 'oraculo-tainacan')]);
+            wp_send_json_error(['message' => __('Permissão negada.', 'oraculo_tainacan')]);
         }
 
         $collection_id = absint($_POST['collection_id'] ?? 0);
 
         try {
             if (!isset($this->services['indexing'])) {
-                wp_send_json_error(['message' => __('Serviço de indexação não inicializado.', 'oraculo-tainacan')]);
+                wp_send_json_error(['message' => __('Serviço de indexação não inicializado.', 'oraculo_tainacan')]);
                 return;
             }
             $status = $this->services['indexing']->get_status($collection_id);
@@ -886,7 +886,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 
         try {
             $this->services['analytics']->record_feedback($search_id, $feedback, $message_id);
-            wp_send_json_success(['message' => __('Obrigado pelo feedback!', 'oraculo-tainacan')]);
+            wp_send_json_success(['message' => __('Obrigado pelo feedback!', 'oraculo_tainacan')]);
         } catch (\Exception $e) {
             wp_send_json_error(['message' => $e->getMessage()]);
         }
@@ -899,7 +899,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
         check_ajax_referer('oraculo_admin', 'nonce');
 
         if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => __('Permissão negada.', 'oraculo-tainacan')]);
+            wp_send_json_error(['message' => __('Permissão negada.', 'oraculo_tainacan')]);
         }
 
         $provider = sanitize_text_field($_POST['provider'] ?? 'openai');
@@ -921,20 +921,20 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
         check_ajax_referer('oraculo_admin', 'nonce');
 
         if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => __('Permissão negada.', 'oraculo-tainacan')]);
+            wp_send_json_error(['message' => __('Permissão negada.', 'oraculo_tainacan')]);
         }
 
         $collection_id = absint($_POST['collection_id'] ?? 0);
 
         if (empty($collection_id)) {
-            wp_send_json_error(['message' => __('ID da coleção inválido.', 'oraculo-tainacan')]);
+            wp_send_json_error(['message' => __('ID da coleção inválido.', 'oraculo_tainacan')]);
         }
 
         try {
             $vector_store = new Vector\VectorStore();
             $deleted = $vector_store->delete_collection($collection_id);
             wp_send_json_success([
-                'message' => sprintf(__('%d vetores removidos.', 'oraculo-tainacan'), $deleted),
+                'message' => sprintf(__('%d vetores removidos.', 'oraculo_tainacan'), $deleted),
                 'deleted' => $deleted
             ]);
         } catch (\Exception $e) {
@@ -949,7 +949,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
         check_ajax_referer('oraculo_admin', 'nonce');
 
         if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => __('Permissão negada.', 'oraculo-tainacan')]);
+            wp_send_json_error(['message' => __('Permissão negada.', 'oraculo_tainacan')]);
         }
 
         try {
@@ -957,7 +957,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
             $table = $wpdb->prefix . 'oraculo_vectors';
             $deleted = $wpdb->query("TRUNCATE TABLE {$table}");
             wp_send_json_success([
-                'message' => __('Todos os vetores foram removidos.', 'oraculo-tainacan')
+                'message' => __('Todos os vetores foram removidos.', 'oraculo_tainacan')
             ]);
         } catch (\Exception $e) {
             wp_send_json_error(['message' => $e->getMessage()]);
@@ -971,7 +971,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
         check_ajax_referer('oraculo_admin', 'nonce');
 
         if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => __('Permissão negada.', 'oraculo-tainacan')]);
+            wp_send_json_error(['message' => __('Permissão negada.', 'oraculo_tainacan')]);
         }
 
         try {
@@ -987,7 +987,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
             }
 
             wp_send_json_success([
-                'message' => __('Banco de dados otimizado com sucesso.', 'oraculo-tainacan')
+                'message' => __('Banco de dados otimizado com sucesso.', 'oraculo_tainacan')
             ]);
         } catch (\Exception $e) {
             wp_send_json_error(['message' => $e->getMessage()]);
@@ -1001,7 +1001,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
         check_ajax_referer('oraculo_admin', 'nonce');
 
         if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => __('Permissão negada.', 'oraculo-tainacan')]);
+            wp_send_json_error(['message' => __('Permissão negada.', 'oraculo_tainacan')]);
         }
 
         try {
@@ -1017,7 +1017,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
             update_option('oraculo_index_document', !empty($settings['index_document']));
 
             wp_send_json_success([
-                'message' => __('Configurações salvas com sucesso.', 'oraculo-tainacan')
+                'message' => __('Configurações salvas com sucesso.', 'oraculo_tainacan')
             ]);
         } catch (\Exception $e) {
             wp_send_json_error(['message' => $e->getMessage()]);
@@ -1031,7 +1031,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
         check_ajax_referer('oraculo_admin', 'nonce');
 
         if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => __('Permissão negada.', 'oraculo-tainacan')]);
+            wp_send_json_error(['message' => __('Permissão negada.', 'oraculo_tainacan')]);
             return;
         }
 
@@ -1054,7 +1054,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
             \Oraculo_Tainacan\AI\AIProviderFactory::clear_cache();
 
             wp_send_json_success([
-                'message' => __('Configurações salvas com sucesso.', 'oraculo-tainacan')
+                'message' => __('Configurações salvas com sucesso.', 'oraculo_tainacan')
             ]);
         } catch (\Throwable $e) {
             wp_send_json_error(['message' => $e->getMessage()]);
@@ -1068,7 +1068,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
         check_ajax_referer('oraculo_admin', 'nonce');
 
         if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => __('Permissão negada.', 'oraculo-tainacan')]);
+            wp_send_json_error(['message' => __('Permissão negada.', 'oraculo_tainacan')]);
             return;
         }
 
@@ -1077,7 +1077,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
             $this->clear_all_transients();
 
             wp_send_json_success([
-                'message' => __('Cache limpo com sucesso.', 'oraculo-tainacan')
+                'message' => __('Cache limpo com sucesso.', 'oraculo_tainacan')
             ]);
         } catch (\Exception $e) {
             wp_send_json_error(['message' => $e->getMessage()]);
@@ -1099,8 +1099,8 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
      */
     public function render_search_shortcode(array $atts): string {
         $atts = shortcode_atts([
-            'placeholder' => __('O que você está procurando?', 'oraculo-tainacan'),
-            'button_text' => __('Buscar', 'oraculo-tainacan'),
+            'placeholder' => __('O que você está procurando?', 'oraculo_tainacan'),
+            'button_text' => __('Buscar', 'oraculo_tainacan'),
             'collections' => '',
             'show_filters' => 'true',
             'results_per_page' => 10,
@@ -1117,7 +1117,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
     public function render_chat_shortcode(array $atts): string {
         $atts = shortcode_atts([
             'collections' => '',
-            'title' => __('Assistente do Acervo', 'oraculo-tainacan'),
+            'title' => __('Assistente do Acervo', 'oraculo_tainacan'),
             'height' => '500px',
             'show_suggestions' => 'true',
         ], $atts, 'oraculo_chat');
@@ -1132,7 +1132,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
      */
     public function add_action_links(array $links): array {
         $settings_link = '<a href="' . admin_url('admin.php?page=oraculo-settings') . '">' .
-                        __('Configurações', 'oraculo-tainacan') . '</a>';
+                        __('Configurações', 'oraculo_tainacan') . '</a>';
         array_unshift($links, $settings_link);
         return $links;
     }
