@@ -188,22 +188,20 @@ class ConversationMemory {
         $recent = array_slice($messages, -6);
         $text = $this->format_messages_for_summary($recent);
 
-        $prompt = <<<EOT
-Analise a conversa abaixo e extraia fatos importantes em formato JSON.
-Tipos de fatos a extrair:
-- preference: preferências do usuário (ex: "prefere documentos em PDF")
-- interest: áreas de interesse (ex: "interessado em história do Brasil")
-- context: contexto relevante (ex: "está pesquisando para TCC")
-- feedback: feedback sobre o sistema (ex: "achou a resposta útil")
-
-Responda APENAS com um array JSON válido no formato:
-[{"type": "preference", "key": "formato_preferido", "value": "PDF", "confidence": 0.9}]
-
-Se não houver fatos relevantes, responda: []
-
-Conversa:
-{$text}
-EOT;
+        $prompt = 'Analise a conversa abaixo e extraia fatos importantes em formato JSON.' . "\n"
+            . 'Tipos de fatos a extrair:' . "\n"
+            . '- preference: preferências do usuário (ex: "prefere documentos em PDF")' . "\n"
+            . '- interest: áreas de interesse (ex: "interessado em história do Brasil")' . "\n"
+            . '- context: contexto relevante (ex: "está pesquisando para TCC")' . "\n"
+            . '- feedback: feedback sobre o sistema (ex: "achou a resposta útil")' . "\n"
+            . "\n"
+            . 'Responda APENAS com um array JSON válido no formato:' . "\n"
+            . '[{"type": "preference", "key": "formato_preferido", "value": "PDF", "confidence": 0.9}]' . "\n"
+            . "\n"
+            . 'Se não houver fatos relevantes, responda: []' . "\n"
+            . "\n"
+            . 'Conversa:' . "\n"
+            . $text;
 
         $result = $provider->generate_response($prompt, '', ['max_tokens' => 500]);
 

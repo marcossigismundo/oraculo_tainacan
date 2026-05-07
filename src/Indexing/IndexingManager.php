@@ -53,8 +53,14 @@ class IndexingManager {
      */
     public function start_indexing(int $collection_id, bool $force = false) {
         // Aumentar limites de execução
-        @set_time_limit(300);
-        @ini_set('memory_limit', '512M');
+        if ( function_exists( 'set_time_limit' ) ) {
+            // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Long-running indexing batch; conditional and harmless if disabled.
+            @set_time_limit( 300 );
+        }
+        if ( function_exists( 'ini_set' ) ) {
+            // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Memory limit increase for large indexing jobs; conditional and harmless if disabled.
+            @ini_set( 'memory_limit', '512M' );
+        }
 
         // Verificar se coleção existe
         $collection = $this->get_collection($collection_id);
@@ -236,8 +242,11 @@ class IndexingManager {
             }
 
             // Debug: verificar tamanho dos textos
-            $total_chars = array_sum(array_map('mb_strlen', $texts));
-            error_log('[Oraculo] Enviando ' . count($texts) . ' textos para embedding, total de ' . $total_chars . ' caracteres');
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                $total_chars = array_sum(array_map('mb_strlen', $texts));
+                // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Debug log gated by WP_DEBUG.
+                error_log('[Oraculo] Enviando ' . count($texts) . ' textos para embedding, total de ' . $total_chars . ' caracteres');
+            }
 
             $embedding_result = $embedding_provider->generate_embeddings_batch($texts);
 

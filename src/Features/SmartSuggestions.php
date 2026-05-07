@@ -197,7 +197,7 @@ class SmartSuggestions {
      * @return array
      */
     private function get_seasonal_suggestions(): array {
-        $month = (int) date('n');
+        $month = (int) gmdate('n');
         $suggestions = [];
 
         // Datas comemorativas brasileiras

@@ -57,10 +57,14 @@ function debug_log(string $message, $data = null, string $level = 'info'): void 
     );
 
     if ($data !== null) {
+        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r -- Debug log gated by WP_DEBUG.
         $log_entry .= ' | Data: ' . print_r($data, true);
     }
 
-    error_log($log_entry);
+    if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Debug log gated by WP_DEBUG.
+        error_log($log_entry);
+    }
 }
 
 /**

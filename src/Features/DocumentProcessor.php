@@ -193,7 +193,7 @@ class DocumentProcessor {
         }
 
         // Remover tags XML e extrair texto
-        $text = strip_tags($content);
+        $text = wp_strip_all_tags($content);
 
         // Limpar espaços em branco excessivos
         $text = preg_replace('/\s+/', ' ', $text);
@@ -262,7 +262,7 @@ class DocumentProcessor {
         $content = preg_replace('/<style\b[^>]*>(.*?)<\/style>/is', '', $content);
 
         // Converter para texto
-        $text = strip_tags($content);
+        $text = wp_strip_all_tags($content);
 
         // Decodificar entidades
         $text = html_entity_decode($text, ENT_QUOTES, 'UTF-8');
@@ -299,15 +299,15 @@ class DocumentProcessor {
         $text_file = $temp_file . '.txt';
 
         if (!file_exists($text_file)) {
-            @unlink($temp_file);
+            wp_delete_file($temp_file);
             return new WP_Error('ocr_failed', __('Falha ao executar OCR na imagem.', 'oraculo_tainacan'));
         }
 
         $text = file_get_contents($text_file);
 
         // Limpar arquivos temporários
-        @unlink($temp_file);
-        @unlink($text_file);
+        wp_delete_file($temp_file);
+        wp_delete_file($text_file);
 
         return $text;
     }

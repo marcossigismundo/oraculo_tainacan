@@ -130,7 +130,10 @@ class AIProviderFactory {
         switch ($provider_id) {
             case 'openai':
                 $api_key = $options['openai_api_key'] ?? '';
-                error_log('[Oraculo Factory] Getting OpenAI options - api_key exists: ' . (!empty($api_key) ? 'yes' : 'no') . ', length: ' . strlen($api_key));
+                if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                    // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Debug log gated by WP_DEBUG.
+                    error_log('[Oraculo Factory] Getting OpenAI options - api_key exists: ' . (!empty($api_key) ? 'yes' : 'no') . ', length: ' . strlen($api_key));
+                }
                 return array_merge($common, [
                     'api_key' => $api_key,
                     'model' => $options['openai_model'] ?? 'gpt-4o-mini',

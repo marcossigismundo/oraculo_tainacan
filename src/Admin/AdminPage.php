@@ -181,10 +181,10 @@ class AdminPage {
      * Enfileira assets específicos da página
      */
     public function enqueue_page_assets(): void {
-        // Chart.js para gráficos
+        // Chart.js para gráficos (bundled locally to avoid external CDN)
         wp_enqueue_script(
             'chart-js',
-            'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js',
+            plugins_url( 'assets/vendor/chart.umd.min.js', ORACULO_TAINACAN_FILE ),
             [],
             '4.4.1',
             true

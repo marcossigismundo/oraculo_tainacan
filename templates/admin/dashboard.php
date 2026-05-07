@@ -59,9 +59,9 @@ if ($table_exists) {
 
     // Preencher os últimos 30 dias (mesmo que zerados)
     for ($i = 29; $i >= 0; $i--) {
-        $date = date('Y-m-d', strtotime("-{$i} days"));
+        $date = gmdate('Y-m-d', strtotime("-{$i} days"));
         $searches_30_days[] = [
-            'date' => date('d/m', strtotime($date)),
+            'date' => wp_date('d/m', strtotime($date)),
             'count' => $searches_by_date[$date] ?? 0
         ];
     }

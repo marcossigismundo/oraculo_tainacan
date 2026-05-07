@@ -495,6 +495,7 @@ class VectorStore {
         ), ARRAY_A);
 
         if ($format === 'csv') {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- php://temp memory stream; WP_Filesystem has no equivalent for in-memory streaming writes.
             $output = fopen('php://temp', 'r+');
             if (!empty($data)) {
                 fputcsv($output, array_keys($data[0]));
@@ -504,6 +505,7 @@ class VectorStore {
             }
             rewind($output);
             $csv = stream_get_contents($output);
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- php://temp memory stream; WP_Filesystem has no equivalent for in-memory streaming writes.
             fclose($output);
             return $csv;
         }

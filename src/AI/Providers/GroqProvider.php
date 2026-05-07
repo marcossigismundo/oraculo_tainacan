@@ -273,8 +273,10 @@ class GroqProvider extends AbstractAIProvider {
             'stream' => true,
         ];
 
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_init -- WP HTTP API lacks streaming callback support required for SSE.
         $ch = curl_init(self::API_BASE_URL . '/chat/completions');
 
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_setopt_array -- WP HTTP API lacks streaming callback support required for SSE.
         curl_setopt_array($ch, [
             CURLOPT_POST => true,
             CURLOPT_POSTFIELDS => wp_json_encode($body),
@@ -304,12 +306,16 @@ class GroqProvider extends AbstractAIProvider {
             CURLOPT_TIMEOUT => $this->timeout,
         ]);
 
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_exec -- WP HTTP API lacks streaming callback support required for SSE.
         curl_exec($ch);
 
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_errno -- WP HTTP API lacks streaming callback support required for SSE.
         if (curl_errno($ch)) {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_error -- WP HTTP API lacks streaming callback support required for SSE.
             $callback('', true, new WP_Error('curl_error', curl_error($ch)));
         }
 
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_close -- WP HTTP API lacks streaming callback support required for SSE.
         curl_close($ch);
     }
 

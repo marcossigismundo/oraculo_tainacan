@@ -158,7 +158,10 @@ class OpenAIProvider extends AbstractAIProvider {
     public function is_configured(): bool {
         $has_key = $this->has_api_key('api_key');
         $api_key = $this->get_api_key('api_key');
-        error_log('[Oraculo OpenAI] is_configured check - has_key: ' . ($has_key ? 'true' : 'false') . ', key_length: ' . strlen($api_key));
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Debug log gated by WP_DEBUG.
+            error_log('[Oraculo OpenAI] is_configured check - has_key: ' . ($has_key ? 'true' : 'false') . ', key_length: ' . strlen($api_key));
+        }
         return $has_key;
     }
 
@@ -276,15 +279,22 @@ class OpenAIProvider extends AbstractAIProvider {
             }
 
             // Debug
-            error_log('[Oraculo OpenAI] Embedding request - Model: ' . $model . ', Texts: ' . count($clean_texts));
-            error_log('[Oraculo OpenAI] Primeiro texto (primeiros 100 chars): ' . mb_substr($clean_texts[0] ?? '', 0, 100));
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Debug log gated by WP_DEBUG.
+                error_log('[Oraculo OpenAI] Embedding request - Model: ' . $model . ', Texts: ' . count($clean_texts));
+                // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Debug log gated by WP_DEBUG.
+                error_log('[Oraculo OpenAI] Primeiro texto (primeiros 100 chars): ' . mb_substr($clean_texts[0] ?? '', 0, 100));
+            }
 
             $request_body = [
                 'model' => $model,
                 'input' => $clean_texts,
             ];
 
-            error_log('[Oraculo OpenAI] Request body model: ' . $request_body['model']);
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Debug log gated by WP_DEBUG.
+                error_log('[Oraculo OpenAI] Request body model: ' . $request_body['model']);
+            }
 
             $response = $this->make_request_with_retry(
                 self::API_BASE_URL . '/embeddings',
@@ -293,10 +303,14 @@ class OpenAIProvider extends AbstractAIProvider {
             );
 
             if (is_wp_error($response)) {
-                error_log('[Oraculo OpenAI] Embedding error: ' . $response->get_error_message());
-                $error_data = $response->get_error_data();
-                if ($error_data) {
-                    error_log('[Oraculo OpenAI] Error data: ' . print_r($error_data, true));
+                if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                    // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Debug log gated by WP_DEBUG.
+                    error_log('[Oraculo OpenAI] Embedding error: ' . $response->get_error_message());
+                    $error_data = $response->get_error_data();
+                    if ($error_data) {
+                        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log,WordPress.PHP.DevelopmentFunctions.error_log_print_r -- Debug log gated by WP_DEBUG.
+                        error_log('[Oraculo OpenAI] Error data: ' . print_r($error_data, true));
+                    }
                 }
                 return $response;
             }
@@ -423,8 +437,10 @@ class OpenAIProvider extends AbstractAIProvider {
         ];
 
         // Usar cURL para streaming
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_init -- WP HTTP API lacks streaming callback support required for SSE.
         $ch = curl_init(self::API_BASE_URL . '/chat/completions');
 
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_setopt_array -- WP HTTP API lacks streaming callback support required for SSE.
         curl_setopt_array($ch, [
             CURLOPT_POST => true,
             CURLOPT_POSTFIELDS => wp_json_encode($body),
@@ -454,12 +470,16 @@ class OpenAIProvider extends AbstractAIProvider {
             CURLOPT_TIMEOUT => $this->timeout,
         ]);
 
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_exec -- WP HTTP API lacks streaming callback support required for SSE.
         curl_exec($ch);
 
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_errno -- WP HTTP API lacks streaming callback support required for SSE.
         if (curl_errno($ch)) {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_error -- WP HTTP API lacks streaming callback support required for SSE.
             $callback('', true, new WP_Error('curl_error', curl_error($ch)));
         }
 
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_close -- WP HTTP API lacks streaming callback support required for SSE.
         curl_close($ch);
     }
 
@@ -506,10 +526,14 @@ class OpenAIProvider extends AbstractAIProvider {
         $api_key = $this->get_api_key();
 
         // Debug: verificar se a API key foi obtida (não logar a key completa por segurança)
-        if (empty($api_key)) {
-            error_log('[Oraculo OpenAI] WARNING: API key está vazia!');
-        } else {
-            error_log('[Oraculo OpenAI] API key presente (length: ' . strlen($api_key) . ', starts with: ' . substr($api_key, 0, 7) . '...)');
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            if (empty($api_key)) {
+                // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Debug log gated by WP_DEBUG.
+                error_log('[Oraculo OpenAI] WARNING: API key está vazia!');
+            } else {
+                // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Debug log gated by WP_DEBUG.
+                error_log('[Oraculo OpenAI] API key presente (length: ' . strlen($api_key) . ', starts with: ' . substr($api_key, 0, 7) . '...)');
+            }
         }
 
         return [

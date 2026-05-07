@@ -235,7 +235,7 @@ class ExportManager {
             file_put_contents($backup_dir . '/index.php', '<?php // Silence is golden');
         }
 
-        $filename = 'oraculo-backup-' . date('Y-m-d-His') . '.json';
+        $filename = 'oraculo-backup-' . gmdate('Y-m-d-His') . '.json';
         $filepath = $backup_dir . '/' . $filename;
 
         $content = $this->export_all('json');
@@ -375,6 +375,7 @@ class ExportManager {
      * @return string
      */
     private function array_to_csv(array $data): string {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- php://temp memory stream; WP_Filesystem has no equivalent for in-memory streaming writes.
         $output = fopen('php://temp', 'r+');
 
         // Flatten e escrever
@@ -382,6 +383,7 @@ class ExportManager {
 
         rewind($output);
         $csv = stream_get_contents($output);
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- php://temp memory stream; WP_Filesystem has no equivalent for in-memory streaming writes.
         fclose($output);
 
         return $csv;
@@ -544,7 +546,7 @@ class ExportManager {
 
         // Remover excedentes
         foreach (array_slice($files, $keep) as $file) {
-            @unlink($file);
+            wp_delete_file($file);
         }
     }
 }

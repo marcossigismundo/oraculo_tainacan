@@ -147,7 +147,7 @@ final class Oraculo_Tainacan {
         register_deactivation_hook(ORACULO_TAINACAN_FILE, [$this, 'deactivate']);
 
         // Inicialização
-        add_action('plugins_loaded', [$this, 'load_textdomain']);
+        // load_plugin_textdomain() removed: WP >= 4.6 auto-loads translations for WP.org-hosted plugins.
         add_action('plugins_loaded', [$this, 'init_tainacan_page'], 20);
         add_action('plugins_loaded', [$this, 'init'], 25);
 
@@ -541,17 +541,6 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
     }
 
     /**
-     * Carrega textdomain
-     */
-    public function load_textdomain(): void {
-        load_plugin_textdomain(
-            'oraculo_tainacan',
-            false,
-            dirname(ORACULO_TAINACAN_BASENAME) . '/languages'
-        );
-    }
-
-    /**
      * Inicializa página do Tainacan usando a API de Pages
      */
     public function init_tainacan_page(): void {
@@ -651,10 +640,10 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
             true
         );
 
-        // Chart.js para analytics
+        // Chart.js para analytics (bundled locally to avoid external CDN)
         wp_enqueue_script(
             'chart-js',
-            'https://cdn.jsdelivr.net/npm/chart.js',
+            ORACULO_TAINACAN_URL . 'assets/vendor/chart.umd.min.js',
             [],
             '4.4.1',
             true
@@ -813,8 +802,14 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
     public function ajax_index_collection(): void {
         try {
             // Aumentar limites para indexação síncrona
-            @set_time_limit(300);
-            @ini_set('memory_limit', '512M');
+            if ( function_exists( 'set_time_limit' ) ) {
+                // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Long-running indexing batch; conditional and harmless if disabled.
+                @set_time_limit( 300 );
+            }
+            if ( function_exists( 'ini_set' ) ) {
+                // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Memory limit increase for large indexing jobs; conditional and harmless if disabled.
+                @ini_set( 'memory_limit', '512M' );
+            }
 
             check_ajax_referer('oraculo_admin', 'nonce');
 
