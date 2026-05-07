@@ -415,6 +415,7 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados. S
 
         global $wpdb;
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table; no WP core API available for search logging.
         $wpdb->insert(
             $wpdb->prefix . 'oraculo_search_logs',
             [
@@ -474,6 +475,7 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados. S
             return false;
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table; no WP core API available.
         $result = $wpdb->update(
             $wpdb->prefix . 'oraculo_search_logs',
             ['feedback' => $feedback],
@@ -481,6 +483,7 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados. S
             ['%s'],
             ['%s']
         );
+        \Oraculo_Tainacan\oraculo_tainacan_flush_cache();
 
         return $result !== false;
     }
@@ -494,6 +497,7 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados. S
     public function get_popular_searches(int $limit = 5): array {
         global $wpdb;
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom plugin table; popular searches are analytics data; not critical to cache.
         $results = $wpdb->get_results($wpdb->prepare(
             "SELECT query_text, COUNT(*) as count
              FROM {$wpdb->prefix}oraculo_search_logs
@@ -515,6 +519,7 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados. S
     public function clear_cache(): int {
         global $wpdb;
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery -- Deletes only plugin's own transient keys from options table; no WP API for bulk transient deletion by prefix.
         $count = $wpdb->query(
             "DELETE FROM {$wpdb->options}
              WHERE option_name LIKE '_transient_oraculo_search_%'

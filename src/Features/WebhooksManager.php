@@ -82,7 +82,8 @@ class WebhooksManager {
         $events = is_array($data['events']) ? $data['events'] : [$data['events']];
         $headers = is_array($data['headers'] ?? null) ? wp_json_encode($data['headers']) : null;
 
-        return $wpdb->insert(
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table; no WP core API available.
+        $inserted = $wpdb->insert(
             $this->table_name,
             [
                 'name' => $data['name'],
@@ -94,7 +95,11 @@ class WebhooksManager {
                 'retry_count' => $data['retry_count'] ?? 3,
             ],
             ['%s', '%s', '%s', '%s', '%d', '%s', '%d']
-        ) ? $wpdb->insert_id : false;
+        );
+        if ( $inserted ) {
+            \Oraculo_Tainacan\oraculo_tainacan_flush_cache();
+        }
+        return $inserted ? $wpdb->insert_id : false;
     }
 
     /**
@@ -134,13 +139,18 @@ class WebhooksManager {
             return false;
         }
 
-        return $wpdb->update(
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table; no WP core API available.
+        $result = $wpdb->update(
             $this->table_name,
             $update_data,
             ['id' => $id],
             $formats,
             ['%d']
         ) !== false;
+        if ( $result ) {
+            \Oraculo_Tainacan\oraculo_tainacan_flush_cache();
+        }
+        return $result;
     }
 
     /**
@@ -151,7 +161,12 @@ class WebhooksManager {
      */
     public function delete(int $id): bool {
         global $wpdb;
-        return $wpdb->delete($this->table_name, ['id' => $id], ['%d']) !== false;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table; no WP core API available.
+        $result = $wpdb->delete($this->table_name, ['id' => $id], ['%d']) !== false;
+        if ( $result ) {
+            \Oraculo_Tainacan\oraculo_tainacan_flush_cache();
+        }
+        return $result;
     }
 
     /**
@@ -176,15 +191,15 @@ class WebhooksManager {
             $values[] = '%' . $wpdb->esc_like($filters['event']) . '%';
         }
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->table_name is plugin-owned (set in constructor from $wpdb->prefix); WHERE clauses use only hardcoded comparisons.
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->table_name is plugin-owned; WHERE clauses use only hardcoded comparisons.
         $sql = "SELECT * FROM {$this->table_name} WHERE " . implode(' AND ', $where) . " ORDER BY created_at DESC";
 
         if (!empty($values)) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is built from a plugin-owned table name and hardcoded WHERE clauses; LIKE values are passed via $values with esc_like().
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is built from plugin-owned table and hardcoded WHERE; LIKE values passed via esc_like().
             $sql = $wpdb->prepare($sql, $values);
         }
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is built with $wpdb->prepare() above when $values are present, or is otherwise fully static.
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom plugin table; webhook list changes rarely; caching not applied to keep data fresh.
         $webhooks = $wpdb->get_results($sql, ARRAY_A);
 
         foreach ($webhooks as &$webhook) {
@@ -307,6 +322,7 @@ class WebhooksManager {
     private function update_status(int $id, int $status): void {
         global $wpdb;
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table; status update; no WP core API.
         $wpdb->update(
             $this->table_name,
             [
@@ -317,6 +333,7 @@ class WebhooksManager {
             ['%s', '%d'],
             ['%d']
         );
+        \Oraculo_Tainacan\oraculo_tainacan_flush_cache();
     }
 
     /**
@@ -455,7 +472,7 @@ class WebhooksManager {
     public function test_webhook(int $id): array {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->table_name is plugin-owned (set in constructor from $wpdb->prefix).
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->table_name is plugin-owned; test webhook lookup.
         $webhook = $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$this->table_name} WHERE id = %d",
             $id

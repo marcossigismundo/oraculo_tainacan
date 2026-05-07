@@ -371,6 +371,7 @@ class RestController extends WP_REST_Controller {
 
         $session_id = $request->get_param('session_id');
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; per-request conversation lookup.
         $conversation = $wpdb->get_row($wpdb->prepare(
             "SELECT id FROM {$wpdb->prefix}oraculo_conversations WHERE session_id = %s",
             $session_id

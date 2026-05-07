@@ -714,13 +714,13 @@ function get_collections_indexing_status(): array {
     $status = [];
 
     foreach ($collections as $collection) {
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $vectors_table is plugin-owned ($wpdb->prefix.'oraculo_vectors').
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; per-collection index count for status display.
         $indexed_count = (int) $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM {$vectors_table} WHERE collection_id = %d",
             $collection['id']
         ));
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $jobs_table is plugin-owned ($wpdb->prefix.'oraculo_indexing_jobs').
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; latest indexing job per collection.
         $job = $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$jobs_table} WHERE collection_id = %d ORDER BY id DESC LIMIT 1",
             $collection['id']

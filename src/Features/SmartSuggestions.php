@@ -126,7 +126,7 @@ class SmartSuggestions {
 
         $table = $wpdb->prefix . 'oraculo_search_logs';
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table is plugin-owned ($wpdb->prefix.'oraculo_search_logs').
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; aggregated popularity data changes frequently, caching handled via transient in caller.
         return $wpdb->get_results($wpdb->prepare(
             "SELECT query_text, COUNT(*) as count
              FROM {$table}
@@ -156,7 +156,7 @@ class SmartSuggestions {
         $where = $collection_id ? $wpdb->prepare("WHERE collection_id = %d", $collection_id) : "";
 
         // Obter títulos mais recentes/populares
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table is plugin-owned ($wpdb->prefix.'oraculo_vectors'); $where is built with $wpdb->prepare() or empty string.
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; $where built with $wpdb->prepare(); results cached via transient in caller.
         $items = $wpdb->get_col(
             "SELECT item_title FROM {$table}
              {$where}
@@ -261,7 +261,7 @@ class SmartSuggestions {
         $table = $wpdb->prefix . 'oraculo_search_logs';
 
         // Buscar queries que começam com o texto
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table is plugin-owned ($wpdb->prefix.'oraculo_search_logs').
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; autocomplete queries are real-time, per-keystroke caching not appropriate.
         $suggestions = $wpdb->get_col($wpdb->prepare(
             "SELECT DISTINCT query_text
              FROM {$table}
@@ -310,7 +310,7 @@ class SmartSuggestions {
         $values[] = strtolower($query);
         $values[] = $limit;
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $table is plugin-owned; $like_conditions placeholders are %s literals spread via ...$values at runtime.
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; related questions are per-query and real-time.
         $related = $wpdb->get_col($wpdb->prepare(
             "SELECT DISTINCT query_text
              FROM {$table}
@@ -339,11 +339,12 @@ class SmartSuggestions {
         } else {
             // Limpar todos — $wpdb->options is a WordPress core property; self::CACHE_PREFIX is a class constant.
             $cache_prefix = $wpdb->esc_like( '_transient_' . self::CACHE_PREFIX );
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- query built with esc_like and prepare; option_name pattern has no user input.
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery -- Query built with esc_like and prepare; bulk transient DELETE has no WP API equivalent.
             $wpdb->query( $wpdb->prepare(
                 "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
                 $cache_prefix . '%'
             ) );
+            oraculo_tainacan_flush_cache();
         }
     }
 }

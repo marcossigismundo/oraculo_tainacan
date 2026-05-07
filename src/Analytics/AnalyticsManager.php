@@ -51,6 +51,7 @@ class AnalyticsManager {
 
         // Atualizar log de busca
         if (!empty($search_id)) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table; no WP core API available.
             $wpdb->update(
                 $this->logs_table,
                 ['feedback' => $feedback],
@@ -58,10 +59,12 @@ class AnalyticsManager {
                 ['%s'],
                 ['%s']
             );
+            \Oraculo_Tainacan\oraculo_tainacan_flush_cache();
         }
 
         // Atualizar mensagem de chat
         if ($message_id > 0) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table; no WP core API available.
             $wpdb->update(
                 $this->messages_table,
                 ['feedback' => $feedback],
@@ -69,6 +72,7 @@ class AnalyticsManager {
                 ['%s'],
                 ['%d']
             );
+            \Oraculo_Tainacan\oraculo_tainacan_flush_cache();
         }
 
         return true;
@@ -85,7 +89,7 @@ class AnalyticsManager {
 
         $date_condition = $this->get_date_condition($period);
 
-        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->logs_table is plugin-owned (set in constructor from $wpdb->prefix.'oraculo_search_logs'); $date_condition is a hardcoded string from get_date_condition().
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->logs_table is plugin-owned; custom plugin table; analytics stats are read-only aggregates, cached by caller if needed.
         // Total de buscas
         $total_searches = (int) $wpdb->get_var(
             "SELECT COUNT(*) FROM {$this->logs_table} WHERE {$date_condition}"
@@ -135,7 +139,7 @@ class AnalyticsManager {
             "SELECT COUNT(DISTINCT COALESCE(NULLIF(user_id, 0), ip_address))
              FROM {$this->logs_table} WHERE {$date_condition}"
         );
-        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 
         return [
             'total_searches' => $total_searches,
@@ -176,7 +180,7 @@ class AnalyticsManager {
                 $date_format = '%Y-%m-%d';
         }
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $date_format is from hardcoded switch; $this->logs_table is plugin-owned; $date_condition is from get_date_condition().
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $date_format is from hardcoded switch; $this->logs_table is plugin-owned; timeline is period-specific and not worth caching.
         $results = $wpdb->get_results(
             "SELECT DATE_FORMAT(created_at, '{$date_format}') as date_bucket,
                     COUNT(*) as searches,
@@ -211,7 +215,7 @@ class AnalyticsManager {
 
         $date_condition = $this->get_date_condition($period);
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->logs_table is plugin-owned; $date_condition is from get_date_condition().
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->logs_table is plugin-owned; analytics read; period-specific query.
         return $wpdb->get_results($wpdb->prepare(
             "SELECT query_text, COUNT(*) as count,
                     AVG(results_count) as avg_results,
@@ -238,7 +242,7 @@ class AnalyticsManager {
 
         $date_condition = $this->get_date_condition($period);
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->logs_table is plugin-owned; $date_condition is from get_date_condition().
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->logs_table is plugin-owned; analytics read; failed searches are period-specific.
         return $wpdb->get_results($wpdb->prepare(
             "SELECT query_text, COUNT(*) as count
              FROM {$this->logs_table}
@@ -262,7 +266,7 @@ class AnalyticsManager {
         $date_condition = $this->get_date_condition($period);
 
         // Buscar logs com collection_ids
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->logs_table is plugin-owned; $date_condition is from get_date_condition().
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->logs_table is plugin-owned; analytics aggregation; period-specific query.
         $results = $wpdb->get_results(
             "SELECT collection_ids, COUNT(*) as searches
              FROM {$this->logs_table}
@@ -315,7 +319,7 @@ class AnalyticsManager {
 
         $date_condition = $this->get_date_condition($period);
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->logs_table is plugin-owned; $date_condition is from get_date_condition().
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->logs_table is plugin-owned; analytics model usage; period-specific.
         return $wpdb->get_results(
             "SELECT model_used, COUNT(*) as count, SUM(tokens_used) as total_tokens
              FROM {$this->logs_table}
@@ -458,11 +462,13 @@ class AnalyticsManager {
     public function cleanup_old_logs(int $days_old = 90): int {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->logs_table is plugin-owned (set in constructor from $wpdb->prefix.'oraculo_search_logs').
-        return $wpdb->query($wpdb->prepare(
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery -- $this->logs_table is plugin-owned; DELETE write operation; no WP core API available.
+        $result = $wpdb->query($wpdb->prepare(
             "DELETE FROM {$this->logs_table} WHERE created_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
             $days_old
         ));
+        \Oraculo_Tainacan\oraculo_tainacan_flush_cache();
+        return $result;
     }
 
     /**

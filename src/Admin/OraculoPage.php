@@ -377,9 +377,9 @@ class Oraculo_Page extends \Tainacan\Pages {
         $logs_table = $wpdb->prefix . 'oraculo_search_logs';
 
         // Verificar se as tabelas existem
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $vectors_table and $logs_table are whitelisted to plugin-owned tables.
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table existence check via SHOW TABLES.
         $vectors_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $vectors_table ) ) === $vectors_table;
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $logs_table is whitelisted to plugin-owned tables.
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table existence check via SHOW TABLES.
         $logs_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $logs_table ) ) === $logs_table;
 
         if (!$vectors_exists) {
@@ -393,12 +393,12 @@ class Oraculo_Page extends \Tainacan\Pages {
             ];
         }
 
-        // Total de itens indexados — $vectors_table is whitelisted to plugin-owned table.
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $vectors_table is whitelisted to plugin-owned tables.
+        // Total de itens indexados
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; dashboard summary counts change frequently.
         $total_indexed = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$vectors_table}");
 
         // Coleções indexadas
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $vectors_table is whitelisted to plugin-owned tables.
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; dashboard summary counts change frequently.
         $collections_indexed = (int) $wpdb->get_var("SELECT COUNT(DISTINCT collection_id) FROM {$vectors_table}");
 
         if (!$logs_exists) {
@@ -413,14 +413,14 @@ class Oraculo_Page extends \Tainacan\Pages {
         }
 
         // Buscas hoje
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $logs_table is whitelisted to plugin-owned tables.
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; dashboard summary counts change frequently.
         $searches_today = (int) $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM {$logs_table} WHERE DATE(created_at) = %s",
             current_time('Y-m-d')
         ));
 
         // Buscas este mês
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $logs_table is whitelisted to plugin-owned tables.
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; dashboard summary counts change frequently.
         $searches_month = (int) $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM {$logs_table} WHERE MONTH(created_at) = %d AND YEAR(created_at) = %d",
             current_time('n'),
@@ -428,11 +428,11 @@ class Oraculo_Page extends \Tainacan\Pages {
         ));
 
         // Taxa de feedback positivo
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $logs_table is whitelisted to plugin-owned tables.
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; dashboard summary counts change frequently.
         $positive_feedback = (int) $wpdb->get_var(
             "SELECT COUNT(*) FROM {$logs_table} WHERE feedback = 'positive'"
         );
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $logs_table is whitelisted to plugin-owned tables.
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; dashboard summary counts change frequently.
         $total_feedback = (int) $wpdb->get_var(
             "SELECT COUNT(*) FROM {$logs_table} WHERE feedback IS NOT NULL"
         );
@@ -441,7 +441,7 @@ class Oraculo_Page extends \Tainacan\Pages {
             : 0;
 
         // Tokens usados este mês
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $logs_table is whitelisted to plugin-owned tables.
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; dashboard summary counts change frequently.
         $tokens_month = (int) $wpdb->get_var($wpdb->prepare(
             "SELECT SUM(tokens_used) FROM {$logs_table} WHERE MONTH(created_at) = %d AND YEAR(created_at) = %d",
             current_time('n'),

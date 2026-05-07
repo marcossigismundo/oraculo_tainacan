@@ -38,9 +38,9 @@ $tables = [
 
 $table_status = [];
 foreach ($tables as $name => $full_name) {
-    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $full_name is built from $wpdb->prefix plus a hardcoded plugin table suffix.
+    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table existence check via SHOW TABLES.
     $exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $full_name ) ) === $full_name;
-    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $full_name is built from $wpdb->prefix plus a hardcoded plugin table suffix.
+    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; debug count, not cached.
     $count = $exists ? (int) $wpdb->get_var("SELECT COUNT(*) FROM {$full_name}") : 0;
     $table_status[$name] = [
         'exists' => $exists,
@@ -52,6 +52,7 @@ foreach ($tables as $name => $full_name) {
 $providers = $factory->get_available_providers();
 
 // Últimas buscas
+// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; debug page, real-time data.
 $recent_searches = $wpdb->get_results(
     "SELECT query_text, results_count, response_time_ms, feedback, created_at
      FROM {$wpdb->prefix}oraculo_search_logs

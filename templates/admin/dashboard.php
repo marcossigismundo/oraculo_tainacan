@@ -19,7 +19,7 @@ if (class_exists('\Tainacan\Oraculo_Page')) {
     global $wpdb;
     $vectors_table = $wpdb->prefix . 'oraculo_vectors';
     $stats = [
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $vectors_table is plugin-owned ($wpdb->prefix.'oraculo_vectors').
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; fallback count when OraculoPage unavailable.
         'total_indexed' => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$vectors_table}"),
         'searches_month' => 0,
         'satisfaction_rate' => 0,
@@ -36,12 +36,12 @@ $logs_table = $wpdb->prefix . 'oraculo_search_logs';
 $searches_30_days = [];
 
 // Verificar se a tabela existe
-// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $logs_table is plugin-owned ($wpdb->prefix.'oraculo_search_logs').
+// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table existence check via SHOW TABLES.
 $table_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $logs_table ) ) === $logs_table;
 
 if ($table_exists) {
     // Buscar contagem de buscas por dia nos últimos 30 dias
-    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $logs_table is plugin-owned ($wpdb->prefix.'oraculo_search_logs').
+    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; timeline chart data, per-request.
     $results = $wpdb->get_results(
         "SELECT DATE(created_at) as date, COUNT(*) as count
          FROM {$logs_table}

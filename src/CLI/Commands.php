@@ -472,7 +472,7 @@ class Commands extends WP_CLI_Command {
         ];
 
         foreach ($tables as $table) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table is whitelisted to the plugin-owned table list defined above.
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery -- Plugin-owned table; CLI maintenance command with no WP API equivalent.
             $wpdb->query("OPTIMIZE TABLE {$table}");
             WP_CLI::log("  ✓ {$table}");
         }

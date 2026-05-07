@@ -531,9 +531,11 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
      */
     private function clear_all_transients(): void {
         global $wpdb;
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery -- Bulk transient DELETE by prefix; no WP API equivalent for pattern-based transient cleanup.
         $wpdb->query(
             "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_oraculo_%' OR option_name LIKE '_transient_timeout_oraculo_%'"
         );
+        oraculo_tainacan_flush_cache();
     }
 
     /**
@@ -984,7 +986,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
             ];
 
             foreach ($tables as $table) {
-                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table is whitelisted to plugin-owned tables above.
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery -- Plugin-owned table; OPTIMIZE TABLE has no WP API equivalent.
                 $wpdb->query("OPTIMIZE TABLE {$table}");
             }
 

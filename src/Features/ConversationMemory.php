@@ -151,6 +151,7 @@ class ConversationMemory {
         $summary = $result['response'];
 
         // Salvar resumo
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table; no WP core API available.
         $wpdb->insert(
             $this->table_name,
             [
@@ -230,6 +231,7 @@ EOT;
                 continue;
             }
 
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table; REPLACE is appropriate for upsert of facts.
             $wpdb->replace(
                 $this->facts_table,
                 [
@@ -258,7 +260,7 @@ EOT;
         global $wpdb;
 
         // Obter resumos
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->table_name is plugin-owned (set in constructor from $wpdb->prefix).
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned tables; memory context fetched per session during chat.
         $summaries = $wpdb->get_col($wpdb->prepare(
             "SELECT content FROM {$this->table_name}
              WHERE session_id = %s AND memory_type = 'summary'
@@ -268,7 +270,7 @@ EOT;
         ));
 
         // Obter fatos
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->facts_table is plugin-owned (set in constructor from $wpdb->prefix).
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; facts fetched per session during chat.
         $facts = $wpdb->get_results($wpdb->prepare(
             "SELECT fact_type, fact_key, fact_value, confidence
              FROM {$this->facts_table}
@@ -323,7 +325,7 @@ EOT;
     public function get_user_preferences(string $session_id): array {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->facts_table is plugin-owned (set in constructor from $wpdb->prefix).
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; user preferences per session.
         return $wpdb->get_results($wpdb->prepare(
             "SELECT fact_key, fact_value
              FROM {$this->facts_table}
@@ -342,7 +344,7 @@ EOT;
     public function get_user_interests(string $session_id): array {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->facts_table is plugin-owned (set in constructor from $wpdb->prefix).
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; user interests per session.
         return $wpdb->get_col($wpdb->prepare(
             "SELECT fact_value
              FROM {$this->facts_table}
@@ -361,19 +363,21 @@ EOT;
     public function cleanup_old_memories(int $days_old = 30): int {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->table_name is plugin-owned (set in constructor from $wpdb->prefix).
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery -- Plugin-owned table; bulk DELETE by age has no WP API equivalent.
         $deleted_memories = $wpdb->query($wpdb->prepare(
             "DELETE FROM {$this->table_name}
              WHERE created_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
             $days_old
         ));
+        oraculo_tainacan_flush_cache();
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->facts_table is plugin-owned (set in constructor from $wpdb->prefix).
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery -- Plugin-owned table; bulk DELETE by age has no WP API equivalent.
         $deleted_facts = $wpdb->query($wpdb->prepare(
             "DELETE FROM {$this->facts_table}
              WHERE updated_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
             $days_old * 2
         ));
+        oraculo_tainacan_flush_cache();
 
         return $deleted_memories + $deleted_facts;
     }
@@ -412,6 +416,7 @@ EOT;
         global $wpdb;
 
         // Atualizar memórias
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Plugin-owned table; session→user merge has no WP API equivalent.
         $wpdb->update(
             $this->table_name,
             ['user_id' => $user_id],
@@ -419,8 +424,10 @@ EOT;
             ['%d'],
             ['%s']
         );
+        oraculo_tainacan_flush_cache();
 
         // Atualizar fatos
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Plugin-owned table; session→user merge has no WP API equivalent.
         $wpdb->update(
             $this->facts_table,
             ['user_id' => $user_id],
@@ -428,5 +435,6 @@ EOT;
             ['%d'],
             ['%s']
         );
+        oraculo_tainacan_flush_cache();
     }
 }

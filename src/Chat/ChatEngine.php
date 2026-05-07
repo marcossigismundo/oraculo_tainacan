@@ -162,7 +162,7 @@ class ChatEngine {
         global $wpdb;
 
         // Buscar conversa existente
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->conversations_table is plugin-owned (set in constructor from $wpdb->prefix).
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->conversations_table is plugin-owned; session lookup per request; caching per-request only.
         $conversation = $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$this->conversations_table} WHERE session_id = %s AND status = 'active'",
             $session_id
@@ -173,6 +173,7 @@ class ChatEngine {
         }
 
         // Criar nova conversa
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table; no WP core API available.
         $result = $wpdb->insert(
             $this->conversations_table,
             [
@@ -218,6 +219,7 @@ class ChatEngine {
     ) {
         global $wpdb;
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table; no WP core API available.
         $result = $wpdb->insert(
             $this->messages_table,
             [
@@ -231,6 +233,7 @@ class ChatEngine {
             ],
             ['%d', '%s', '%s', '%d', '%s', '%s', '%s']
         );
+        \Oraculo_Tainacan\oraculo_tainacan_flush_cache();
 
         return $result !== false ? $wpdb->insert_id : false;
     }
@@ -245,7 +248,7 @@ class ChatEngine {
     private function get_conversation_history(int $conversation_id, int $limit = 10): array {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->messages_table is plugin-owned (set in constructor from $wpdb->prefix).
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->messages_table is plugin-owned; history fetched per-request for active chat.
         $messages = $wpdb->get_results($wpdb->prepare(
             "SELECT role, content FROM {$this->messages_table}
              WHERE conversation_id = %d
@@ -267,6 +270,7 @@ class ChatEngine {
     private function update_conversation(int $conversation_id): void {
         global $wpdb;
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table; no WP core API available.
         $wpdb->update(
             $this->conversations_table,
             ['updated_at' => current_time('mysql')],
@@ -274,6 +278,7 @@ class ChatEngine {
             ['%s'],
             ['%d']
         );
+        \Oraculo_Tainacan\oraculo_tainacan_flush_cache();
     }
 
     /**
@@ -417,7 +422,7 @@ Quando citar itens do acervo, inclua os links quando disponíveis.', 'oraculo_ta
     public function get_user_conversations(int $user_id, int $limit = 20): array {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->conversations_table and $this->messages_table are plugin-owned (set in constructor from $wpdb->prefix).
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned tables; user conversations list; not cached (changes frequently).
         return $wpdb->get_results($wpdb->prepare(
             "SELECT c.*, COUNT(m.id) as message_count
              FROM {$this->conversations_table} c
@@ -441,7 +446,7 @@ Quando citar itens do acervo, inclua os links quando disponíveis.', 'oraculo_ta
     public function get_messages(int $conversation_id, int $limit = 50): array {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->messages_table is plugin-owned (set in constructor from $wpdb->prefix).
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->messages_table is plugin-owned; messages change frequently during active conversation.
         return $wpdb->get_results($wpdb->prepare(
             "SELECT * FROM {$this->messages_table}
              WHERE conversation_id = %d
@@ -461,6 +466,7 @@ Quando citar itens do acervo, inclua os links quando disponíveis.', 'oraculo_ta
     public function end_conversation(string $session_id): bool {
         global $wpdb;
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table; no WP core API available.
         $result = $wpdb->update(
             $this->conversations_table,
             ['status' => 'ended', 'updated_at' => current_time('mysql')],
@@ -468,6 +474,7 @@ Quando citar itens do acervo, inclua os links quando disponíveis.', 'oraculo_ta
             ['%s', '%s'],
             ['%s']
         );
+        \Oraculo_Tainacan\oraculo_tainacan_flush_cache();
 
         return $result !== false;
     }
@@ -487,6 +494,7 @@ Quando citar itens do acervo, inclua os links quando disponíveis.', 'oraculo_ta
             return false;
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table; no WP core API available.
         $result = $wpdb->update(
             $this->messages_table,
             ['feedback' => $feedback],
@@ -494,6 +502,7 @@ Quando citar itens do acervo, inclua os links quando disponíveis.', 'oraculo_ta
             ['%s'],
             ['%d']
         );
+        \Oraculo_Tainacan\oraculo_tainacan_flush_cache();
 
         return $result !== false;
     }
@@ -508,7 +517,7 @@ Quando citar itens do acervo, inclua os links quando disponíveis.', 'oraculo_ta
         global $wpdb;
 
         // Obter primeira mensagem do usuário
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->messages_table is plugin-owned (set in constructor from $wpdb->prefix).
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->messages_table is plugin-owned; first message lookup for title generation.
         $first_message = $wpdb->get_var($wpdb->prepare(
             "SELECT content FROM {$this->messages_table}
              WHERE conversation_id = %d AND role = 'user'
@@ -524,6 +533,7 @@ Quando citar itens do acervo, inclua os links quando disponíveis.', 'oraculo_ta
         $title = \Oraculo_Tainacan\truncate_text($first_message, 50);
 
         // Atualizar título na conversa
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table; no WP core API available.
         $wpdb->update(
             $this->conversations_table,
             ['title' => $title],
@@ -531,6 +541,7 @@ Quando citar itens do acervo, inclua os links quando disponíveis.', 'oraculo_ta
             ['%s'],
             ['%d']
         );
+        \Oraculo_Tainacan\oraculo_tainacan_flush_cache();
 
         return $title;
     }
@@ -545,7 +556,7 @@ Quando citar itens do acervo, inclua os links quando disponíveis.', 'oraculo_ta
         global $wpdb;
 
         // Obter IDs de conversas antigas
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->conversations_table and $this->messages_table are plugin-owned (set in constructor from $wpdb->prefix).
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned tables; cleanup operation.
         $old_conversations = $wpdb->get_col($wpdb->prepare(
             "SELECT id FROM {$this->conversations_table}
              WHERE updated_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
@@ -559,18 +570,19 @@ Quando citar itens do acervo, inclua os links quando disponíveis.', 'oraculo_ta
         $ids_placeholder = implode(',', array_fill(0, count($old_conversations), '%d'));
 
         // Remover mensagens — $ids_placeholder contains only %d placeholders built from array_fill.
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $this->messages_table is plugin-owned; $ids_placeholder contains only %d placeholders.
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery -- Plugin-owned tables; bulk DELETE for cleanup; no WP API available.
         $wpdb->query($wpdb->prepare(
             "DELETE FROM {$this->messages_table} WHERE conversation_id IN ($ids_placeholder)",
             $old_conversations
         ));
 
         // Remover conversas
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $this->conversations_table is plugin-owned; $ids_placeholder contains only %d placeholders.
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery -- Plugin-owned tables; bulk DELETE for cleanup.
         $deleted = $wpdb->query($wpdb->prepare(
             "DELETE FROM {$this->conversations_table} WHERE id IN ($ids_placeholder)",
             $old_conversations
         ));
+        \Oraculo_Tainacan\oraculo_tainacan_flush_cache();
 
         return $deleted;
     }
