@@ -10,6 +10,10 @@
 
 namespace Tainacan;
 
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
 // Verificar se classe base existe
 if (!class_exists('\Tainacan\Pages')) {
     return;

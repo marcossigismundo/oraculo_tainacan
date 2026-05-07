@@ -1,142 +1,156 @@
-=== Oraculo Tainacan ===
+=== Oráculo Tainacan ===
 Contributors: tainacancommunity
-Tags: tainacan, ia, busca semantica, rag, chatbot, openai, gemini, claude, ollama
+Tags: tainacan, ai, search, rag, openai
 Requires at least: 6.0
-Tested up to: 6.7
+Tested up to: 6.8
 Requires PHP: 8.0
 Stable tag: 2.0.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Busca semantica em linguagem natural com IA para acervos Tainacan. RAG com multiplos provedores (OpenAI, Gemini, Claude, DeepSeek, Groq, Ollama).
+AI-powered natural-language search and chat for Tainacan digital archives. RAG with multiple providers (OpenAI, Gemini, Claude, DeepSeek, Groq, Ollama).
 
-== Descricao ==
+== Description ==
 
-O Oraculo Tainacan adiciona capacidades de Inteligencia Artificial ao Tainacan, permitindo:
+Oráculo Tainacan adds Artificial Intelligence capabilities to Tainacan, enabling:
 
-* **Busca Semantica (RAG)**: Encontre itens por significado, nao apenas por palavras-chave
-* **Chat com IA**: Converse sobre o acervo com memoria de conversa e fatos extraidos
-* **Indexacao Vetorial**: Gere embeddings dos itens para busca por similaridade
-* **Multiplos Provedores**: OpenAI, Google Gemini, Claude (Anthropic), DeepSeek, Groq e Ollama (local)
-* **Analytics**: Acompanhe metricas de uso, buscas, feedback e desempenho
-* **Prompts por colecao**: System/search/chat prompts customizaveis por colecao
-* **Webhooks**: Dispare integracoes externas em eventos do plugin
-* **Exportacao**: Exporte conversas e relatorios de analytics
-* **Busca multimodal**: Suporte a buscas que combinam texto e outros sinais
-* **Sugestoes inteligentes**: Perguntas sugeridas dinamicas por contexto
-* **WP-CLI**: Comandos para indexacao em lote, estatisticas e manutencao
-* **REST API**: 20 endpoints sob /wp-json/oraculo/v1
+* **Semantic Search (RAG)**: Find items by meaning, not just keywords
+* **AI Chat**: Converse about the archive with conversation memory and extracted facts
+* **Vector Indexing**: Generate embeddings for items to enable similarity search
+* **Multiple Providers**: OpenAI, Google Gemini, Claude (Anthropic), DeepSeek, Groq and Ollama (local)
+* **Analytics**: Track usage metrics, searches, feedback and performance
+* **Per-collection Prompts**: Customizable system/search/chat prompts per collection
+* **Webhooks**: Trigger external integrations on plugin events
+* **Export**: Export conversations and analytics reports
+* **Multimodal Search**: Search combining text and other signals
+* **Smart Suggestions**: Dynamic suggested questions based on context
+* **WP-CLI**: Commands for batch indexing, statistics and maintenance
+* **REST API**: 20 endpoints under /wp-json/oraculo/v1
 
-== Requisitos ==
+== Requirements ==
 
-* WordPress 6.0 ou superior
-* PHP 8.0 ou superior
-* Plugin Tainacan 1.0+ instalado e ativado (integracao via API de paginas)
-* Chave de API de pelo menos um provedor de IA, ou Ollama rodando localmente
+* WordPress 6.0 or higher
+* PHP 8.0 or higher
+* Tainacan plugin 1.0+ installed and active (integration via Pages API)
+* API key for at least one AI provider, or Ollama running locally
 
-== Instalacao ==
+== Installation ==
 
-1. Faca upload do plugin pelo menu Plugins > Adicionar Novo > Fazer Upload
-2. Ative o plugin atraves do menu 'Plugins' no WordPress
-3. Acesse Tainacan > Oraculo IA no menu administrativo
-4. Configure sua chave de API na aba Configuracoes
-5. Indexe suas colecoes na aba Indexacao
+1. Upload the plugin via Plugins > Add New > Upload Plugin
+2. Activate the plugin through the Plugins menu in WordPress
+3. Go to Tainacan > Oráculo AI in the admin menu
+4. Configure your API key in the Settings tab
+5. Index your collections in the Indexing tab
 
-== Configuracao ==
+== Configuration ==
 
-1. **Escolha o Provedor de IA**: OpenAI, Gemini, Claude, DeepSeek, Groq ou Ollama
-2. **Configure a API Key**: Insira a chave do provedor escolhido
-3. **Selecione o Modelo**: Escolha modelo de chat e de embeddings
-4. **Ajuste Parametros**: Temperature, max tokens, similarity threshold, batch size
-5. **Ative Funcionalidades**: Chat, busca, analytics e feedback sao ligaveis individualmente
+1. **Choose an AI Provider**: OpenAI, Gemini, Claude, DeepSeek, Groq or Ollama
+2. **Configure the API Key**: Enter the key for your chosen provider
+3. **Select the Model**: Choose chat and embedding models
+4. **Adjust Parameters**: Temperature, max tokens, similarity threshold, batch size
+5. **Enable Features**: Chat, search, analytics and feedback can each be toggled individually
 
-== Uso ==
+== Usage ==
 
 **Shortcodes:**
 
-* `[oraculo_search]` - Widget de busca semantica
-* `[oraculo_chat]` - Widget de chat com IA
+* `[oraculo_search]` - Semantic search widget
+* `[oraculo_chat]` - AI chat widget
 
-**Parametros do shortcode de busca:**
+**Search shortcode parameters:**
 
-* `collection` - ID da colecao (opcional, usa todas se nao especificado)
-* `placeholder` - Texto do placeholder do campo de busca
-* `show_suggestions` - Mostrar sugestoes (true/false)
+* `collection` - Collection ID (optional; uses all collections if omitted)
+* `placeholder` - Placeholder text for the search field
+* `show_suggestions` - Show suggestions (true/false)
 
-Exemplo: `[oraculo_search collection="123" placeholder="O que voce procura?" show_suggestions="true"]`
+Example: `[oraculo_search collection="123" placeholder="What are you looking for?" show_suggestions="true"]`
 
-== Comandos CLI ==
+== CLI Commands ==
 
-* `wp oraculo index --collection=<id>` - Indexa uma colecao
-* `wp oraculo reindex --all` - Reindexa todas as colecoes
-* `wp oraculo stats` - Estatisticas de uso
-* `wp oraculo clear-cache` - Limpa cache de buscas
+* `wp oraculo index --collection=<id>` - Index a collection
+* `wp oraculo reindex --all` - Re-index all collections
+* `wp oraculo stats` - Usage statistics
+* `wp oraculo clear-cache` - Clear search cache
 
 == REST API ==
 
-Namespace: `/wp-json/oraculo/v1`. Principais rotas:
+Namespace: `/wp-json/oraculo/v1`. Main routes:
 
-* `POST /search` - Busca semantica
-* `POST /chat` - Mensagem de chat
-* `GET /conversations` - Listar conversas
-* `POST /feedback` - Registrar feedback
-* `POST /indexing/start` - Iniciar indexacao
-* `GET /indexing/status` - Status da indexacao
-* `GET /analytics` - Metricas agregadas
-* `GET /providers` - Provedores disponiveis
-* `POST /providers/test` - Testar conexao com provedor
-* `GET /health` - Healthcheck
+* `POST /search` - Semantic search
+* `POST /chat` - Chat message
+* `GET /conversations` - List conversations
+* `POST /feedback` - Record feedback
+* `POST /indexing/start` - Start indexing
+* `GET /indexing/status` - Indexing status
+* `GET /analytics` - Aggregated metrics
+* `GET /providers` - Available providers
+* `POST /providers/test` - Test provider connection
+* `GET /health` - Health check
 
-== Provedores de IA Suportados ==
+== Supported AI Providers ==
 
 1. **OpenAI** - GPT-4o, GPT-4o-mini, GPT-3.5-turbo + text-embedding-ada-002/3
 2. **Google Gemini** - gemini-1.5-flash, gemini-1.5-pro
 3. **Claude (Anthropic)** - claude-3.5-sonnet, claude-3-opus/haiku
 4. **DeepSeek** - deepseek-chat, deepseek-coder
 5. **Groq** - llama-3.1-70b, mixtral-8x7b, gemma2-9b
-6. **Ollama** - Qualquer modelo local (privacidade total, embeddings via nomic-embed-text)
+6. **Ollama** - Any local model (full privacy; embeddings via nomic-embed-text)
+
+== Frequently Asked Questions ==
+
+= Does this plugin work without Tainacan? =
+
+No. Oráculo Tainacan is an add-on for the Tainacan digital archive plugin and requires Tainacan 1.0 or higher.
+
+= Which AI provider should I use? =
+
+OpenAI is the most tested option. Ollama is recommended for fully local, private deployments.
+
+= Is my data sent to third parties? =
+
+Only the text content of your archived items is sent to the AI provider you configure. When using Ollama, everything stays local.
 
 == Changelog ==
 
 = 2.0.3 =
-* Reforca cor e fundo do textarea do chat contra regras de tema (textarea seletor + !important + -webkit-text-fill-color)
+* Harden chat textarea color/background against theme resets
 
 = 2.0.2 =
-* Corrige cor do titulo do chat (h3) que era sobrescrito pelo tema do WordPress
+* Fix chat title color (h3) overridden by WordPress theme
 
 = 2.0.1 =
-* Corrige contrastes de texto no frontend e no chat widget
-* Corrige texto invisivel no input do chat (branco sobre branco)
-* Corrige texto invisivel em mensagens do usuario no chat (navy sobre navy)
-* Corrige subtitle do header do chat (escuro sobre fundo escuro)
-* Melhora contraste de placeholders e textos auxiliares para passar WCAG AA
-* Corrige declaracao CSS invalida no hero de busca
+* Fix text contrast issues in frontend and chat widget
+* Fix invisible text in chat input (white on white)
+* Fix invisible text in user messages (navy on navy)
+* Fix chat header subtitle contrast (dark on dark)
+* Improve placeholder and auxiliary text contrast to pass WCAG AA
+* Fix invalid CSS declaration in search hero
 
 = 2.0.0 =
-* Reescrita completa com arquitetura orientada a servicos e namespaces PSR-4
-* Requer PHP 8.0 e WordPress 6.0
-* Integracao com Tainacan 1.0+ via API de paginas (\Tainacan\Pages)
-* Novos provedores: Claude (Anthropic) e Groq
-* Memoria de conversa com summaries e fatos extraidos por sessao
-* Prompts customizaveis por colecao
-* Webhooks para integracoes externas
-* Exportacao de conversas e analytics
-* Busca multimodal e sugestoes inteligentes
-* REST API expandida (20 endpoints sob /oraculo/v1)
-* Dashboard admin reformulado com abas (Dashboard, Analytics, Indexacao, Configuracoes, Debug)
+* Complete rewrite with service-oriented architecture and PSR-4 namespaces
+* Requires PHP 8.0 and WordPress 6.0
+* Integration with Tainacan 1.0+ via Pages API (\Tainacan\Pages)
+* New providers: Claude (Anthropic) and Groq
+* Conversation memory with summaries and facts extracted per session
+* Customizable prompts per collection
+* Webhooks for external integrations
+* Export of conversations and analytics
+* Multimodal search and smart suggestions
+* Expanded REST API (20 endpoints under /oraculo/v1)
+* Redesigned admin dashboard with tabs (Dashboard, Analytics, Indexing, Settings, Debug)
 
 = 1.0.0 =
-* Versao inicial
-* Busca semantica com RAG
-* Chat com IA integrado
-* Suporte a 4 provedores de IA
-* Dashboard com analytics
-* Integracao inicial com Tainacan
+* Initial release
+* Semantic search with RAG
+* Integrated AI chat
+* Support for 4 AI providers
+* Analytics dashboard
+* Initial Tainacan integration
 
 == Upgrade Notice ==
 
 = 2.0.1 =
-Corrige contrastes de acessibilidade no frontend e no chat. Recomendado atualizar.
+Fixes accessibility contrast issues in frontend and chat. Update recommended.
 
 = 2.0.0 =
-Grande reescrita. Requer PHP 8.0+, WordPress 6.0+ e Tainacan 1.0+. Tabelas novas sao criadas automaticamente na ativacao; configuracoes existentes sao preservadas.
+Major rewrite. Requires PHP 8.0+, WordPress 6.0+ and Tainacan 1.0+. New tables are created automatically on activation; existing settings are preserved.

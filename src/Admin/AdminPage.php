@@ -7,6 +7,10 @@
 
 namespace Oraculo_Tainacan\Admin;
 
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
 use Oraculo_Tainacan\AI\AIProviderFactory;
 
 /**
