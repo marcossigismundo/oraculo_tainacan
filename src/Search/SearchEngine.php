@@ -428,7 +428,7 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados. S
                 'tokens_used' => $result['usage']['total_tokens'] ?? 0,
                 'model_used' => $result['model'],
                 'ip_address' => $this->get_client_ip(),
-                'user_agent' => sanitize_text_field($_SERVER['HTTP_USER_AGENT'] ?? ''),
+                'user_agent' => sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ?? '' ) ),
                 'created_at' => current_time('mysql'),
             ],
             ['%s', '%s', '%d', '%s', '%s', '%d', '%d', '%d', '%s', '%s', '%s', '%s']
@@ -450,7 +450,8 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados. S
 
         foreach ($headers as $header) {
             if (!empty($_SERVER[$header])) {
-                $ips = explode(',', $_SERVER[$header]);
+                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- IP address is used only internally for logging; not output or used in SQL.
+                $ips = explode(',', wp_unslash( $_SERVER[$header] ));
                 return trim($ips[0]);
             }
         }
