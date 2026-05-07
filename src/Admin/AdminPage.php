@@ -378,35 +378,35 @@ class AdminPage {
      * Renderiza página principal (Dashboard)
      */
     public function render_page(): void {
-        include ORACULO_TAINACAN_PATH . 'templates/admin/dashboard.php';
+        \Oraculo_Tainacan\oraculo_tainacan_render_template( 'admin/dashboard.php' );
     }
 
     /**
      * Renderiza página de indexação
      */
     public function render_indexing_page(): void {
-        include ORACULO_TAINACAN_PATH . 'templates/admin/indexing.php';
+        \Oraculo_Tainacan\oraculo_tainacan_render_template( 'admin/indexing.php' );
     }
 
     /**
      * Renderiza página de configurações
      */
     public function render_settings_page(): void {
-        include ORACULO_TAINACAN_PATH . 'templates/admin/settings.php';
+        \Oraculo_Tainacan\oraculo_tainacan_render_template( 'admin/settings.php' );
     }
 
     /**
      * Renderiza página de analytics
      */
     public function render_analytics_page(): void {
-        include ORACULO_TAINACAN_PATH . 'templates/admin/analytics.php';
+        \Oraculo_Tainacan\oraculo_tainacan_render_template( 'admin/analytics.php' );
     }
 
     /**
      * Renderiza página de debug
      */
     public function render_debug_page(): void {
-        include ORACULO_TAINACAN_PATH . 'templates/admin/debug.php';
+        \Oraculo_Tainacan\oraculo_tainacan_render_template( 'admin/debug.php' );
     }
 
     /**

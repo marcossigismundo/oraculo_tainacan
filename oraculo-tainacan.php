@@ -1113,7 +1113,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
         ], $atts, 'oraculo_search');
 
         ob_start();
-        include ORACULO_TAINACAN_PATH . 'templates/search-widget.php';
+        oraculo_tainacan_render_template( 'search-widget.php', [ 'atts' => $atts ] );
         return ob_get_clean();
     }
 
@@ -1129,7 +1129,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
         ], $atts, 'oraculo_chat');
 
         ob_start();
-        include ORACULO_TAINACAN_PATH . 'templates/chat-widget.php';
+        oraculo_tainacan_render_template( 'chat-widget.php', [ 'atts' => $atts ] );
         return ob_get_clean();
     }
 

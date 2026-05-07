@@ -208,8 +208,8 @@ class Oraculo_Page extends \Tainacan\Pages {
      * Renderiza o dashboard
      */
     private function render_dashboard_content() {
-        if (defined('ORACULO_TAINACAN_PATH') && file_exists(ORACULO_TAINACAN_PATH . 'templates/admin/dashboard.php')) {
-            include ORACULO_TAINACAN_PATH . 'templates/admin/dashboard.php';
+        if ( defined( 'ORACULO_TAINACAN_PATH' ) ) {
+            \Oraculo_Tainacan\oraculo_tainacan_render_template( 'admin/dashboard.php' );
         } else {
             echo '<div class="wrap"><h1>' . esc_html__('Oráculo IA - Dashboard', 'oraculo_tainacan') . '</h1>';
             echo '<p>' . esc_html__('Página em construção.', 'oraculo_tainacan') . '</p></div>';
@@ -220,8 +220,8 @@ class Oraculo_Page extends \Tainacan\Pages {
      * Renderiza a página de indexação
      */
     private function render_indexing_content() {
-        if (defined('ORACULO_TAINACAN_PATH') && file_exists(ORACULO_TAINACAN_PATH . 'templates/admin/indexing.php')) {
-            include ORACULO_TAINACAN_PATH . 'templates/admin/indexing.php';
+        if ( defined( 'ORACULO_TAINACAN_PATH' ) ) {
+            \Oraculo_Tainacan\oraculo_tainacan_render_template( 'admin/indexing.php' );
         } else {
             echo '<div class="wrap"><h1>' . esc_html__('Indexação', 'oraculo_tainacan') . '</h1></div>';
         }
@@ -231,8 +231,8 @@ class Oraculo_Page extends \Tainacan\Pages {
      * Renderiza a página de configurações
      */
     private function render_settings_content() {
-        if (defined('ORACULO_TAINACAN_PATH') && file_exists(ORACULO_TAINACAN_PATH . 'templates/admin/settings.php')) {
-            include ORACULO_TAINACAN_PATH . 'templates/admin/settings.php';
+        if ( defined( 'ORACULO_TAINACAN_PATH' ) ) {
+            \Oraculo_Tainacan\oraculo_tainacan_render_template( 'admin/settings.php' );
         } else {
             echo '<div class="wrap"><h1>' . esc_html__('Configurações', 'oraculo_tainacan') . '</h1></div>';
         }
@@ -242,8 +242,8 @@ class Oraculo_Page extends \Tainacan\Pages {
      * Renderiza a página de analytics
      */
     private function render_analytics_content() {
-        if (defined('ORACULO_TAINACAN_PATH') && file_exists(ORACULO_TAINACAN_PATH . 'templates/admin/analytics.php')) {
-            include ORACULO_TAINACAN_PATH . 'templates/admin/analytics.php';
+        if ( defined( 'ORACULO_TAINACAN_PATH' ) ) {
+            \Oraculo_Tainacan\oraculo_tainacan_render_template( 'admin/analytics.php' );
         } else {
             echo '<div class="wrap"><h1>' . esc_html__('Analytics', 'oraculo_tainacan') . '</h1></div>';
         }
@@ -253,8 +253,8 @@ class Oraculo_Page extends \Tainacan\Pages {
      * Renderiza a página de debug
      */
     private function render_debug_content() {
-        if (defined('ORACULO_TAINACAN_PATH') && file_exists(ORACULO_TAINACAN_PATH . 'templates/admin/debug.php')) {
-            include ORACULO_TAINACAN_PATH . 'templates/admin/debug.php';
+        if ( defined( 'ORACULO_TAINACAN_PATH' ) ) {
+            \Oraculo_Tainacan\oraculo_tainacan_render_template( 'admin/debug.php' );
         } else {
             echo '<div class="wrap"><h1>' . esc_html__('Debug', 'oraculo_tainacan') . '</h1></div>';
         }

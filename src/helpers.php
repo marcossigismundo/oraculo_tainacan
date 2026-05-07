@@ -667,6 +667,39 @@ function decrypt_value(string $encrypted): string {
 }
 
 /**
+ * Flushes the plugin object-cache group to keep cached reads coherent after writes.
+ *
+ * Uses wp_cache_flush_group() when available (WP 6.1+); falls back to a no-op
+ * because the group TTL will expire naturally.
+ */
+function oraculo_tainacan_flush_cache(): void {
+    if ( function_exists( 'wp_cache_flush_group' ) ) {
+        wp_cache_flush_group( 'oraculo_tainacan' );
+    }
+    // On older WP versions the group expires on its own TTL; no global flush needed.
+}
+
+/**
+ * Renders a plugin template file in a local scope, preventing global variable pollution.
+ *
+ * Variables passed in $vars are extracted into the local scope of this function,
+ * which is then inherited by the included template. No template variable leaks
+ * into the global scope.
+ *
+ * @param string $template Relative path under templates/ (e.g. 'admin/dashboard.php').
+ * @param array  $vars     Optional associative array of variables to expose inside the template.
+ */
+function oraculo_tainacan_render_template( string $template, array $vars = [] ): void {
+    $template_path = ORACULO_TAINACAN_PATH . 'templates/' . ltrim( $template, '/' );
+    if ( ! file_exists( $template_path ) ) {
+        return;
+    }
+    // phpcs:ignore WordPress.PHP.DontExtract.extract_extract -- Controlled scalar set, never user input; variables are local to this function's scope.
+    extract( $vars, EXTR_SKIP );
+    include $template_path;
+}
+
+/**
  * Obtém status de indexação de todas as coleções
  *
  * @return array
