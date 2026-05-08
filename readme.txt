@@ -2,13 +2,13 @@
 Contributors: tainacancommunity
 Tags: tainacan, ai, search, rag, openai
 Requires at least: 6.0
-Tested up to: 6.8
+Tested up to: 6.9
 Requires PHP: 8.0
 Stable tag: 2.0.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-AI-powered natural-language search and chat for Tainacan digital archives. RAG with multiple providers (OpenAI, Gemini, Claude, DeepSeek, Groq, Ollama).
+AI-powered natural-language search and chat for Tainacan digital archives. RAG with multiple providers (OpenAI, Gemini, Claude, DeepSeek, Groq).
 
 == Description ==
 

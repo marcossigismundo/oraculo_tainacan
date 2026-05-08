@@ -1007,6 +1007,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
         }
 
         try {
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- parse_str target; each key in $settings is sanitized individually below (absint, sanitize_text_field, !empty).
             parse_str( wp_unslash( $_POST['settings'] ?? '' ), $settings );
             // Allowlist of expected keys; each leaf sanitized individually below.
             $allowed_settings_keys = [ 'batch_size', 'embedding_provider', 'auto_index', 'index_title', 'index_description', 'index_metadata', 'index_document' ];
