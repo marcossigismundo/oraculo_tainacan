@@ -13,6 +13,14 @@ namespace Oraculo_Tainacan\Analytics;
 class AnalyticsManager {
 
     /**
+     * Suffixes das tabelas (sem prefixo do WordPress).
+     * Constantes de classe: garantem que os nomes das tabelas
+     * nunca podem vir de input do usuário em tempo de execução.
+     */
+    private const TABLE_LOGS     = 'oraculo_search_logs';
+    private const TABLE_MESSAGES = 'oraculo_messages';
+
+    /**
      * Nome da tabela de logs
      * @var string
      */
@@ -29,8 +37,8 @@ class AnalyticsManager {
      */
     public function __construct() {
         global $wpdb;
-        $this->logs_table = $wpdb->prefix . 'oraculo_search_logs';
-        $this->messages_table = $wpdb->prefix . 'oraculo_messages';
+        $this->logs_table = $wpdb->prefix . self::TABLE_LOGS;
+        $this->messages_table = $wpdb->prefix . self::TABLE_MESSAGES;
     }
 
     /**
@@ -89,7 +97,7 @@ class AnalyticsManager {
 
         $date_condition = $this->get_date_condition($period);
 
-        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->logs_table is plugin-owned (oraculo_search_logs, built from $wpdb->prefix + literal); $date_condition is a hardcoded SQL literal returned by get_date_condition() (no user input); analytics stats are read-only aggregates, cached by caller if needed.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->logs_table is $wpdb->prefix . self::TABLE_LOGS (class constant; cannot receive user input); $date_condition is a hardcoded SQL literal returned by get_date_condition() (no user input); analytics stats are read-only aggregates, cached by caller if needed.
         // Total de buscas
         $total_searches = (int) $wpdb->get_var(
             "SELECT COUNT(*) FROM {$this->logs_table} WHERE {$date_condition}"
@@ -180,7 +188,7 @@ class AnalyticsManager {
                 $date_format = '%Y-%m-%d';
         }
 
-        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $date_format is from hardcoded switch; $this->logs_table is plugin-owned table built from $wpdb->prefix + literal; table/format identifiers cannot be parameterized.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $date_format is from hardcoded switch; $this->logs_table is $wpdb->prefix . self::TABLE_LOGS (class constant; cannot receive user input); table/format identifiers cannot be parameterized.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- timeline is period-specific and not worth caching.
         $results = $wpdb->get_results(
             "SELECT DATE_FORMAT(created_at, '{$date_format}') as date_bucket,
@@ -217,7 +225,7 @@ class AnalyticsManager {
 
         $date_condition = $this->get_date_condition($period);
 
-        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->logs_table is plugin-owned table built from $wpdb->prefix + literal; table identifier cannot be parameterized.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->logs_table is $wpdb->prefix . self::TABLE_LOGS (class constant; cannot receive user input); table identifier cannot be parameterized.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- analytics read; period-specific query.
         return $wpdb->get_results($wpdb->prepare(
             "SELECT query_text, COUNT(*) as count,
@@ -246,7 +254,7 @@ class AnalyticsManager {
 
         $date_condition = $this->get_date_condition($period);
 
-        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->logs_table is plugin-owned table built from $wpdb->prefix + literal; table identifier cannot be parameterized.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->logs_table is $wpdb->prefix . self::TABLE_LOGS (class constant; cannot receive user input); table identifier cannot be parameterized.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- analytics read; failed searches are period-specific.
         return $wpdb->get_results($wpdb->prepare(
             "SELECT query_text, COUNT(*) as count
@@ -272,7 +280,7 @@ class AnalyticsManager {
         $date_condition = $this->get_date_condition($period);
 
         // Buscar logs com collection_ids
-        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->logs_table is plugin-owned table built from $wpdb->prefix + literal; table identifier cannot be parameterized.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->logs_table is $wpdb->prefix . self::TABLE_LOGS (class constant; cannot receive user input); table identifier cannot be parameterized.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- analytics aggregation; period-specific query.
         $results = $wpdb->get_results(
             "SELECT collection_ids, COUNT(*) as searches
@@ -327,7 +335,7 @@ class AnalyticsManager {
 
         $date_condition = $this->get_date_condition($period);
 
-        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->logs_table is plugin-owned table built from $wpdb->prefix + literal; table identifier cannot be parameterized.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->logs_table is $wpdb->prefix . self::TABLE_LOGS (class constant; cannot receive user input); table identifier cannot be parameterized.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- analytics model usage; period-specific.
         return $wpdb->get_results(
             "SELECT model_used, COUNT(*) as count, SUM(tokens_used) as total_tokens
@@ -474,7 +482,7 @@ class AnalyticsManager {
     public function cleanup_old_logs(int $days_old = 90): int {
         global $wpdb;
 
-        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->logs_table is plugin-owned table built from $wpdb->prefix + literal; table identifier cannot be parameterized.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->logs_table is $wpdb->prefix . self::TABLE_LOGS (class constant; cannot receive user input); table identifier cannot be parameterized.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- DELETE write operation; caching N/A for writes.
         $result = $wpdb->query($wpdb->prepare(
             "DELETE FROM {$this->logs_table} WHERE created_at < DATE_SUB(NOW(), INTERVAL %d DAY)",

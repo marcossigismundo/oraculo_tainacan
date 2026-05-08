@@ -31,6 +31,13 @@ class WebhooksManager {
     ];
 
     /**
+     * Suffix da tabela de webhooks (sem prefixo do WordPress).
+     * Constante de classe: garante que o nome da tabela nunca pode
+     * vir de input do usuário em tempo de execução.
+     */
+    private const TABLE_WEBHOOKS = 'oraculo_webhooks';
+
+    /**
      * @var string Tabela de webhooks
      */
     private string $table_name;
@@ -40,7 +47,7 @@ class WebhooksManager {
      */
     public function __construct() {
         global $wpdb;
-        $this->table_name = $wpdb->prefix . 'oraculo_webhooks';
+        $this->table_name = $wpdb->prefix . self::TABLE_WEBHOOKS;
     }
 
     /**
@@ -191,15 +198,15 @@ class WebhooksManager {
             $values[] = '%' . $wpdb->esc_like($filters['event']) . '%';
         }
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->table_name is plugin-owned; WHERE clauses use only hardcoded comparisons.
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->table_name is $wpdb->prefix . self::TABLE_WEBHOOKS (class constant; cannot receive user input); WHERE clauses use only hardcoded comparisons.
         $sql = "SELECT * FROM {$this->table_name} WHERE " . implode(' AND ', $where) . " ORDER BY created_at DESC";
 
         if (!empty($values)) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is built from plugin-owned table and hardcoded WHERE; LIKE values passed via esc_like().
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is built from $this->table_name ($wpdb->prefix . self::TABLE_WEBHOOKS, class constant) and hardcoded WHERE; LIKE values passed via esc_like().
             $sql = $wpdb->prepare($sql, $values);
         }
 
-        // phpcs:disable PluginCheck.Security.DirectDB.UnescapedDBParameter -- $sql is built from $this->table_name (plugin-owned, $wpdb->prefix + literal) and hardcoded WHERE; table identifier cannot be parameterized.
+        // phpcs:disable PluginCheck.Security.DirectDB.UnescapedDBParameter -- $sql is built from $this->table_name ($wpdb->prefix . self::TABLE_WEBHOOKS, class constant; cannot receive user input) and hardcoded WHERE; table identifier cannot be parameterized.
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom plugin table; webhook list changes rarely; caching not applied to keep data fresh.
         $webhooks = $wpdb->get_results($sql, ARRAY_A);
         // phpcs:enable PluginCheck.Security.DirectDB.UnescapedDBParameter
@@ -475,7 +482,7 @@ class WebhooksManager {
     public function test_webhook(int $id): array {
         global $wpdb;
 
-        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->table_name is plugin-owned table built from $wpdb->prefix + literal; table identifier cannot be parameterized.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->table_name is $wpdb->prefix . self::TABLE_WEBHOOKS (class constant; cannot receive user input); table identifier cannot be parameterized.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- test webhook lookup.
         $webhook = $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$this->table_name} WHERE id = %d",

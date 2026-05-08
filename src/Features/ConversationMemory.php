@@ -18,6 +18,14 @@ use Oraculo_Tainacan\AI\AIProviderFactory;
 class ConversationMemory {
 
     /**
+     * Suffixes das tabelas (sem prefixo do WordPress).
+     * Constantes de classe: garantem que os nomes das tabelas
+     * nunca podem vir de input do usuário em tempo de execução.
+     */
+    private const TABLE_MEMORY = 'oraculo_memory';
+    private const TABLE_FACTS  = 'oraculo_facts';
+
+    /**
      * @var string Tabela de memórias
      */
     private string $table_name;
@@ -43,8 +51,8 @@ class ConversationMemory {
      */
     public function __construct() {
         global $wpdb;
-        $this->table_name = $wpdb->prefix . 'oraculo_memory';
-        $this->facts_table = $wpdb->prefix . 'oraculo_facts';
+        $this->table_name = $wpdb->prefix . self::TABLE_MEMORY;
+        $this->facts_table = $wpdb->prefix . self::TABLE_FACTS;
         $this->factory = new AIProviderFactory();
     }
 
@@ -257,7 +265,7 @@ class ConversationMemory {
     public function get_memory_context(string $session_id): array {
         global $wpdb;
 
-        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->table_name and $this->facts_table are plugin-owned tables built from $wpdb->prefix + literal; table identifiers cannot be parameterized.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->table_name and $this->facts_table are $wpdb->prefix . self::TABLE_MEMORY / self::TABLE_FACTS (class constants; cannot receive user input); table identifiers cannot be parameterized.
 
         // Obter resumos
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned tables; memory context fetched per session during chat.
@@ -327,7 +335,7 @@ class ConversationMemory {
     public function get_user_preferences(string $session_id): array {
         global $wpdb;
 
-        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->facts_table is a plugin-owned table built from $wpdb->prefix + literal; table identifier cannot be parameterized.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->facts_table is $wpdb->prefix . self::TABLE_FACTS (class constant; cannot receive user input); table identifier cannot be parameterized.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; user preferences per session.
         return $wpdb->get_results($wpdb->prepare(
             "SELECT fact_key, fact_value
@@ -348,7 +356,7 @@ class ConversationMemory {
     public function get_user_interests(string $session_id): array {
         global $wpdb;
 
-        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->facts_table is a plugin-owned table built from $wpdb->prefix + literal; table identifier cannot be parameterized.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->facts_table is $wpdb->prefix . self::TABLE_FACTS (class constant; cannot receive user input); table identifier cannot be parameterized.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; user interests per session.
         return $wpdb->get_col($wpdb->prepare(
             "SELECT fact_value
@@ -369,7 +377,7 @@ class ConversationMemory {
     public function cleanup_old_memories(int $days_old = 30): int {
         global $wpdb;
 
-        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->table_name and $this->facts_table are plugin-owned tables built from $wpdb->prefix + literal; table identifiers cannot be parameterized.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->table_name and $this->facts_table are $wpdb->prefix . self::TABLE_MEMORY / self::TABLE_FACTS (class constants; cannot receive user input); table identifiers cannot be parameterized.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; bulk DELETE by age; caching N/A for writes.
         $deleted_memories = $wpdb->query($wpdb->prepare(
             "DELETE FROM {$this->table_name}
