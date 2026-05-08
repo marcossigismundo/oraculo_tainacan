@@ -93,11 +93,13 @@ class ExportManager {
             ? '*'
             : 'id, item_id, collection_id, collection_name, content_text, item_url, item_title, metadata_json, embedding_model, token_count, created_at, updated_at';
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; full collection export, no WP API equivalent.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $table is built from $wpdb->prefix + literal (oraculo_vectors); $fields is a hardcoded string or literal '*'; neither can be parameterized as identifiers.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; full collection export, no WP API equivalent.
         $data = $wpdb->get_results($wpdb->prepare(
             "SELECT {$fields} FROM {$table} WHERE collection_id = %d",
             $collection_id
         ), ARRAY_A);
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 
         if (!$include_embeddings) {
             foreach ($data as &$row) {
@@ -153,7 +155,8 @@ class ExportManager {
 
         $date_condition = $this->get_date_condition($period);
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned tables; full export query, no WP API equivalent.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $wpdb->prefix + literal table names for oraculo_conversations and oraculo_messages; $date_condition is built from hardcoded date strings, not user input; table identifiers cannot be parameterized.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned tables; full export query, no WP API equivalent.
         $conversations = $wpdb->get_results(
             "SELECT c.*,
                     (SELECT COUNT(*) FROM {$wpdb->prefix}oraculo_messages WHERE conversation_id = c.id) as message_count
@@ -162,6 +165,7 @@ class ExportManager {
              ORDER BY c.created_at DESC",
             ARRAY_A
         );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 
         foreach ($conversations as &$conv) {
             // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; per-conversation message export.

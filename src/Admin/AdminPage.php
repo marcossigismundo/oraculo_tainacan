@@ -424,23 +424,25 @@ class AdminPage {
         $vectors_table = $wpdb->prefix . 'oraculo_vectors';
         $logs_table = $wpdb->prefix . 'oraculo_search_logs';
 
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $vectors_table and $logs_table are plugin-owned tables built from $wpdb->prefix + literal; table identifiers cannot be parameterized.
+
         // Total de itens indexados
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; dashboard summary counts change frequently.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; dashboard summary counts change frequently.
         $total_indexed = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$vectors_table}");
 
         // Coleções indexadas
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; dashboard summary counts change frequently.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; dashboard summary counts change frequently.
         $collections_indexed = (int) $wpdb->get_var("SELECT COUNT(DISTINCT collection_id) FROM {$vectors_table}");
 
         // Buscas hoje
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; dashboard summary counts change frequently.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; dashboard summary counts change frequently.
         $searches_today = (int) $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM {$logs_table} WHERE DATE(created_at) = %s",
             current_time('Y-m-d')
         ));
 
         // Buscas este mês
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; dashboard summary counts change frequently.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; dashboard summary counts change frequently.
         $searches_month = (int) $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM {$logs_table} WHERE MONTH(created_at) = %d AND YEAR(created_at) = %d",
             current_time('n'),
@@ -448,11 +450,11 @@ class AdminPage {
         ));
 
         // Taxa de feedback positivo
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; dashboard summary counts change frequently.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; dashboard summary counts change frequently.
         $positive_feedback = (int) $wpdb->get_var(
             "SELECT COUNT(*) FROM {$logs_table} WHERE feedback = 'positive'"
         );
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; dashboard summary counts change frequently.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; dashboard summary counts change frequently.
         $total_feedback = (int) $wpdb->get_var(
             "SELECT COUNT(*) FROM {$logs_table} WHERE feedback IS NOT NULL"
         );
@@ -461,12 +463,14 @@ class AdminPage {
             : 0;
 
         // Tokens usados este mês
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; dashboard summary counts change frequently.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; dashboard summary counts change frequently.
         $tokens_month = (int) $wpdb->get_var($wpdb->prepare(
             "SELECT SUM(tokens_used) FROM {$logs_table} WHERE MONTH(created_at) = %d AND YEAR(created_at) = %d",
             current_time('n'),
             current_time('Y')
         ));
+
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 
         return [
             'total_indexed' => $total_indexed,
@@ -492,14 +496,15 @@ class AdminPage {
         $collections = \Oraculo_Tainacan\get_tainacan_collections();
         $status = [];
 
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $vectors_table and $jobs_table are plugin-owned tables built from $wpdb->prefix + literal; table identifiers cannot be parameterized.
         foreach ($collections as $collection) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; per-collection counts for status display.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; per-collection counts for status display.
             $indexed_count = (int) $wpdb->get_var($wpdb->prepare(
                 "SELECT COUNT(*) FROM {$vectors_table} WHERE collection_id = %d",
                 $collection['id']
             ));
 
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; latest indexing job per collection.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; latest indexing job per collection.
             $job = $wpdb->get_row($wpdb->prepare(
                 "SELECT * FROM {$jobs_table} WHERE collection_id = %d ORDER BY id DESC LIMIT 1",
                 $collection['id']
@@ -517,6 +522,7 @@ class AdminPage {
                 'last_indexed' => $job['completed_at'] ?? null,
             ];
         }
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 
         return $status;
     }

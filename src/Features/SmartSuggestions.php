@@ -126,7 +126,8 @@ class SmartSuggestions {
 
         $table = $wpdb->prefix . 'oraculo_search_logs';
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; aggregated popularity data changes frequently, caching handled via transient in caller.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $table is plugin-owned (oraculo_search_logs, built from $wpdb->prefix + literal); table identifier cannot be parameterized.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- aggregated popularity data; caching handled via transient in caller.
         return $wpdb->get_results($wpdb->prepare(
             "SELECT query_text, COUNT(*) as count
              FROM {$table}
@@ -139,6 +140,7 @@ class SmartSuggestions {
              LIMIT %d",
             $limit
         ), ARRAY_A) ?: [];
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
     }
 
     /**
@@ -156,13 +158,15 @@ class SmartSuggestions {
         $where = $collection_id ? $wpdb->prepare("WHERE collection_id = %d", $collection_id) : "";
 
         // Obter títulos mais recentes/populares
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; $where built with $wpdb->prepare(); results cached via transient in caller.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $table is plugin-owned (oraculo_vectors, built from $wpdb->prefix + literal); $where is built with $wpdb->prepare(); table identifier cannot be parameterized.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- results cached via transient in caller.
         $items = $wpdb->get_col(
             "SELECT item_title FROM {$table}
              {$where}
              ORDER BY updated_at DESC
              LIMIT 50"
         );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 
         if (empty($items)) {
             return [];
@@ -261,7 +265,8 @@ class SmartSuggestions {
         $table = $wpdb->prefix . 'oraculo_search_logs';
 
         // Buscar queries que começam com o texto
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; autocomplete queries are real-time, per-keystroke caching not appropriate.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $table is plugin-owned (oraculo_search_logs, built from $wpdb->prefix + literal); table identifier cannot be parameterized.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- autocomplete queries are real-time, per-keystroke caching not appropriate.
         $suggestions = $wpdb->get_col($wpdb->prepare(
             "SELECT DISTINCT query_text
              FROM {$table}
@@ -275,6 +280,7 @@ class SmartSuggestions {
             $query . '%',
             $limit
         ));
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 
         return $suggestions ?: [];
     }
@@ -310,7 +316,8 @@ class SmartSuggestions {
         $values[] = strtolower($query);
         $values[] = $limit;
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; related questions are per-query and real-time.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $table is plugin-owned (oraculo_search_logs, built from $wpdb->prefix + literal); $like_conditions is built from literal LIKE %s patterns with esc_like values; table identifier cannot be parameterized.
+        // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- related questions are per-query and real-time.
         $related = $wpdb->get_col($wpdb->prepare(
             "SELECT DISTINCT query_text
              FROM {$table}
@@ -321,6 +328,7 @@ class SmartSuggestions {
              LIMIT %d",
             ...$values
         ));
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 
         return $related ?: [];
     }

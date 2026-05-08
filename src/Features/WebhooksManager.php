@@ -199,8 +199,10 @@ class WebhooksManager {
             $sql = $wpdb->prepare($sql, $values);
         }
 
+        // phpcs:disable PluginCheck.Security.DirectDB.UnescapedDBParameter -- $sql is built from $this->table_name (plugin-owned, $wpdb->prefix + literal) and hardcoded WHERE; table identifier cannot be parameterized.
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom plugin table; webhook list changes rarely; caching not applied to keep data fresh.
         $webhooks = $wpdb->get_results($sql, ARRAY_A);
+        // phpcs:enable PluginCheck.Security.DirectDB.UnescapedDBParameter
 
         foreach ($webhooks as &$webhook) {
             $webhook['events'] = json_decode($webhook['events'], true);
@@ -473,11 +475,13 @@ class WebhooksManager {
     public function test_webhook(int $id): array {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->table_name is plugin-owned; test webhook lookup.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->table_name is plugin-owned table built from $wpdb->prefix + literal; table identifier cannot be parameterized.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- test webhook lookup.
         $webhook = $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$this->table_name} WHERE id = %d",
             $id
         ), ARRAY_A);
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 
         if (!$webhook) {
             return ['success' => false, 'error' => 'Webhook não encontrado'];

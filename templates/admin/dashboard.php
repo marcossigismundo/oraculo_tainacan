@@ -21,7 +21,7 @@ if (class_exists('\Tainacan\Oraculo_Page')) {
     global $wpdb;
     $vectors_table = $wpdb->prefix . 'oraculo_vectors';
     $stats = [
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; fallback count when OraculoPage unavailable.
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table ($vectors_table built from $wpdb->prefix + literal oraculo_vectors); fallback count when OraculoPage unavailable.
         'total_indexed' => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$vectors_table}"),
         'searches_month' => 0,
         'satisfaction_rate' => 0,
@@ -43,7 +43,8 @@ $table_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $logs_tab
 
 if ($table_exists) {
     // Buscar contagem de buscas por dia nos últimos 30 dias
-    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; timeline chart data, per-request.
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $logs_table is plugin-owned (oraculo_search_logs, built from $wpdb->prefix + literal); table identifier cannot be parameterized.
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- timeline chart data, per-request.
     $results = $wpdb->get_results(
         "SELECT DATE(created_at) as date, COUNT(*) as count
          FROM {$logs_table}
@@ -52,6 +53,7 @@ if ($table_exists) {
          ORDER BY date ASC",
         ARRAY_A
     );
+    // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 
     // Criar array indexado por data
     $searches_by_date = [];

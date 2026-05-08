@@ -257,8 +257,10 @@ class ConversationMemory {
     public function get_memory_context(string $session_id): array {
         global $wpdb;
 
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->table_name and $this->facts_table are plugin-owned tables built from $wpdb->prefix + literal; table identifiers cannot be parameterized.
+
         // Obter resumos
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned tables; memory context fetched per session during chat.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned tables; memory context fetched per session during chat.
         $summaries = $wpdb->get_col($wpdb->prepare(
             "SELECT content FROM {$this->table_name}
              WHERE session_id = %s AND memory_type = 'summary'
@@ -268,7 +270,7 @@ class ConversationMemory {
         ));
 
         // Obter fatos
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; facts fetched per session during chat.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; facts fetched per session during chat.
         $facts = $wpdb->get_results($wpdb->prepare(
             "SELECT fact_type, fact_key, fact_value, confidence
              FROM {$this->facts_table}
@@ -277,6 +279,8 @@ class ConversationMemory {
              LIMIT 10",
             $session_id
         ), ARRAY_A);
+
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 
         return [
             'summaries' => $summaries,
@@ -323,7 +327,8 @@ class ConversationMemory {
     public function get_user_preferences(string $session_id): array {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; user preferences per session.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->facts_table is a plugin-owned table built from $wpdb->prefix + literal; table identifier cannot be parameterized.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; user preferences per session.
         return $wpdb->get_results($wpdb->prepare(
             "SELECT fact_key, fact_value
              FROM {$this->facts_table}
@@ -331,6 +336,7 @@ class ConversationMemory {
              ORDER BY confidence DESC",
             $session_id
         ), ARRAY_A) ?: [];
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
     }
 
     /**
@@ -342,7 +348,8 @@ class ConversationMemory {
     public function get_user_interests(string $session_id): array {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; user interests per session.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->facts_table is a plugin-owned table built from $wpdb->prefix + literal; table identifier cannot be parameterized.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; user interests per session.
         return $wpdb->get_col($wpdb->prepare(
             "SELECT fact_value
              FROM {$this->facts_table}
@@ -350,6 +357,7 @@ class ConversationMemory {
              ORDER BY confidence DESC",
             $session_id
         )) ?: [];
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
     }
 
     /**
@@ -361,7 +369,8 @@ class ConversationMemory {
     public function cleanup_old_memories(int $days_old = 30): int {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery -- Plugin-owned table; bulk DELETE by age has no WP API equivalent.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->table_name and $this->facts_table are plugin-owned tables built from $wpdb->prefix + literal; table identifiers cannot be parameterized.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; bulk DELETE by age; caching N/A for writes.
         $deleted_memories = $wpdb->query($wpdb->prepare(
             "DELETE FROM {$this->table_name}
              WHERE created_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
@@ -369,12 +378,13 @@ class ConversationMemory {
         ));
         oraculo_tainacan_flush_cache();
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery -- Plugin-owned table; bulk DELETE by age has no WP API equivalent.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; bulk DELETE by age; caching N/A for writes.
         $deleted_facts = $wpdb->query($wpdb->prepare(
             "DELETE FROM {$this->facts_table}
              WHERE updated_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
             $days_old * 2
         ));
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
         oraculo_tainacan_flush_cache();
 
         return $deleted_memories + $deleted_facts;

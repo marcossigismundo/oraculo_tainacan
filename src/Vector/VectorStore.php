@@ -46,7 +46,7 @@ class VectorStore {
         }
 
         // Verificar se já existe
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->table_name is plugin-owned; custom plugin table has no WP API; result cached per-request only (called during bulk upsert).
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->table_name is plugin-owned (oraculo_vectors, built from $wpdb->prefix + literal); table identifier cannot be parameterized; result cached per-request only.
         $existing = $wpdb->get_var($wpdb->prepare(
             "SELECT id FROM {$this->table_name} WHERE item_id = %d AND collection_id = %d",
             $data['item_id'],
@@ -149,11 +149,12 @@ class VectorStore {
         $where_clause = "";
         if (!empty($collection_ids)) {
             $placeholders = implode(',', array_fill(0, count($collection_ids), '%d'));
-            // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $placeholders contains only %d entries built from array_fill.
+            // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $placeholders contains only %d entries built from array_fill; $where_clause is passed through $wpdb->prepare.
             $where_clause = $wpdb->prepare("WHERE collection_id IN ($placeholders)", $collection_ids);
         }
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->table_name is plugin-owned; custom table; caching not applied here because embedding data is large and similarity computed in PHP.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->table_name is plugin-owned (oraculo_vectors, built from $wpdb->prefix + literal); $where_clause is prepared above; table identifier cannot be parameterized.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- custom table; caching not applied here because embedding data is large and similarity computed in PHP.
         $vectors = $wpdb->get_results(
             "SELECT id, item_id, collection_id, collection_name, embedding_data,
                     content_text, item_url, item_title, metadata_json
@@ -161,6 +162,7 @@ class VectorStore {
              {$where_clause}",
             ARRAY_A
         );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 
         if (empty($vectors)) {
             return [];
@@ -228,7 +230,7 @@ class VectorStore {
 
         $where_clause = 'WHERE ' . implode(' AND ', $where_parts);
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $this->table_name is plugin-owned; $where_clause is built from %s/%d placeholders and esc_like values.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->table_name is plugin-owned (oraculo_vectors, built from $wpdb->prefix + literal); $where_clause is built from %s/%d placeholders and esc_like values; table identifier cannot be parameterized.
         $sql = $wpdb->prepare(
             "SELECT id, item_id, collection_id, collection_name,
                     content_text, item_url, item_title, metadata_json
@@ -237,6 +239,7 @@ class VectorStore {
              LIMIT %d",
             array_merge($like_values, [$limit])
         );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $sql is built with $wpdb->prepare(); custom plugin table; keyword searches are query-specific and not worth caching.
         $results = $wpdb->get_results($sql, ARRAY_A);
@@ -267,7 +270,7 @@ class VectorStore {
     public function get_by_item(int $item_id, int $collection_id): ?array {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->table_name is plugin-owned; per-item lookup during indexing; caching not useful here.
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->table_name is plugin-owned (oraculo_vectors, built from $wpdb->prefix + literal); table identifier cannot be parameterized; per-item lookup during indexing.
         return $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$this->table_name} WHERE item_id = %d AND collection_id = %d",
             $item_id,
@@ -286,7 +289,7 @@ class VectorStore {
     public function needs_reindex(int $item_id, int $collection_id, string $content_hash): bool {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->table_name is plugin-owned; per-item hash check during indexing.
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->table_name is plugin-owned (oraculo_vectors, built from $wpdb->prefix + literal); table identifier cannot be parameterized; per-item hash check during indexing.
         $existing_hash = $wpdb->get_var($wpdb->prepare(
             "SELECT content_hash FROM {$this->table_name} WHERE item_id = %d AND collection_id = %d",
             $item_id,
@@ -416,7 +419,7 @@ class VectorStore {
             return 0;
         }
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->table_name is plugin-owned; per-collection count used in admin UI; not worth caching.
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->table_name is plugin-owned (oraculo_vectors, built from $wpdb->prefix + literal); table identifier cannot be parameterized; per-collection count used in admin UI.
         return (int) $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM {$this->table_name} WHERE collection_id = %d",
             $collection_id
@@ -436,7 +439,7 @@ class VectorStore {
             return [];
         }
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->table_name is plugin-owned; ID list used during indexing batch; caching not useful here.
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->table_name is plugin-owned (oraculo_vectors, built from $wpdb->prefix + literal); table identifier cannot be parameterized; ID list used during indexing batch.
         return $wpdb->get_col($wpdb->prepare(
             "SELECT item_id FROM {$this->table_name} WHERE collection_id = %d",
             $collection_id
@@ -452,7 +455,7 @@ class VectorStore {
     public function cleanup_old(int $days_old = 90): int {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery -- $this->table_name is plugin-owned; DELETE write operation; no WP core API available.
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->table_name is plugin-owned (oraculo_vectors, built from $wpdb->prefix + literal); DELETE write operation; caching N/A for writes.
         $result = $wpdb->query($wpdb->prepare(
             "DELETE FROM {$this->table_name} WHERE updated_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
             $days_old
@@ -484,7 +487,8 @@ class VectorStore {
     public function export(int $collection_id, string $format = 'json'): string {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->table_name is plugin-owned; export is an admin-only bulk read; caching export data is impractical.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->table_name is plugin-owned (oraculo_vectors, built from $wpdb->prefix + literal); table identifier cannot be parameterized.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- export is an admin-only bulk read; caching export data is impractical.
         $data = $wpdb->get_results($wpdb->prepare(
             "SELECT item_id, item_title, item_url, content_text, content_hash,
                     embedding_model, token_count, created_at, updated_at
@@ -493,6 +497,7 @@ class VectorStore {
              ORDER BY item_id",
             $collection_id
         ), ARRAY_A);
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 
         if ($format === 'csv') {
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- php://temp memory stream; WP_Filesystem has no equivalent for in-memory streaming writes.

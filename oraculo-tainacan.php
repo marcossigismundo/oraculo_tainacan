@@ -955,7 +955,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
         try {
             global $wpdb;
             $table = $wpdb->prefix . 'oraculo_vectors';
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $table is whitelisted to plugin-owned table oraculo_vectors.
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $table is plugin-owned (oraculo_vectors, built from $wpdb->prefix + literal); TRUNCATE TABLE cannot use $wpdb->prepare(); write operation, caching N/A.
             $deleted = $wpdb->query("TRUNCATE TABLE {$table}");
             wp_send_json_success([
                 'message' => __('Todos os vetores foram removidos.', 'oraculo-tainacan')
@@ -984,7 +984,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
             ];
 
             foreach ($tables as $table) {
-                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery -- Plugin-owned table; OPTIMIZE TABLE has no WP API equivalent.
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $table is plugin-owned (built from $wpdb->prefix + literal); OPTIMIZE TABLE has no WP API equivalent; write operation, caching N/A.
                 $wpdb->query("OPTIMIZE TABLE {$table}");
             }
 

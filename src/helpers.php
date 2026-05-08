@@ -717,14 +717,15 @@ function get_collections_indexing_status(): array {
     $collections = get_tainacan_collections();
     $status = [];
 
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $vectors_table and $jobs_table are plugin-owned tables built from $wpdb->prefix + literal (oraculo_vectors, oraculo_indexing_jobs); table identifiers cannot be parameterized.
     foreach ($collections as $collection) {
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; per-collection index count for status display.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; per-collection index count for status display.
         $indexed_count = (int) $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM {$vectors_table} WHERE collection_id = %d",
             $collection['id']
         ));
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; latest indexing job per collection.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; latest indexing job per collection.
         $job = $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$jobs_table} WHERE collection_id = %d ORDER BY id DESC LIMIT 1",
             $collection['id']
@@ -768,6 +769,7 @@ function get_collections_indexing_status(): array {
             'last_indexed' => $job['completed_at'] ?? null,
         ];
     }
+    // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 
     return $status;
 }

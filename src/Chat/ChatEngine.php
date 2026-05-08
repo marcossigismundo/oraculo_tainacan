@@ -162,11 +162,13 @@ class ChatEngine {
         global $wpdb;
 
         // Buscar conversa existente
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->conversations_table is plugin-owned; session lookup per request; caching per-request only.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->conversations_table is plugin-owned table built from $wpdb->prefix + literal; table identifier cannot be parameterized.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- session lookup per request; caching per-request only.
         $conversation = $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$this->conversations_table} WHERE session_id = %s AND status = 'active'",
             $session_id
         ), ARRAY_A);
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 
         if ($conversation) {
             return $conversation;
@@ -248,7 +250,8 @@ class ChatEngine {
     private function get_conversation_history(int $conversation_id, int $limit = 10): array {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->messages_table is plugin-owned; history fetched per-request for active chat.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->messages_table is plugin-owned table built from $wpdb->prefix + literal; table identifier cannot be parameterized.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- history fetched per-request for active chat.
         $messages = $wpdb->get_results($wpdb->prepare(
             "SELECT role, content FROM {$this->messages_table}
              WHERE conversation_id = %d
@@ -257,6 +260,7 @@ class ChatEngine {
             $conversation_id,
             $limit
         ), ARRAY_A);
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 
         // Inverter para ordem cronológica
         return array_reverse($messages);
@@ -422,7 +426,8 @@ Quando citar itens do acervo, inclua os links quando disponíveis.', 'oraculo-ta
     public function get_user_conversations(int $user_id, int $limit = 20): array {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned tables; user conversations list; not cached (changes frequently).
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->conversations_table and $this->messages_table are plugin-owned tables built from $wpdb->prefix + literal; table identifiers cannot be parameterized.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- user conversations list; not cached (changes frequently).
         return $wpdb->get_results($wpdb->prepare(
             "SELECT c.*, COUNT(m.id) as message_count
              FROM {$this->conversations_table} c
@@ -434,6 +439,7 @@ Quando citar itens do acervo, inclua os links quando disponíveis.', 'oraculo-ta
             $user_id,
             $limit
         ), ARRAY_A);
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
     }
 
     /**
@@ -446,7 +452,8 @@ Quando citar itens do acervo, inclua os links quando disponíveis.', 'oraculo-ta
     public function get_messages(int $conversation_id, int $limit = 50): array {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->messages_table is plugin-owned; messages change frequently during active conversation.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->messages_table is plugin-owned table built from $wpdb->prefix + literal; table identifier cannot be parameterized.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- messages change frequently during active conversation.
         return $wpdb->get_results($wpdb->prepare(
             "SELECT * FROM {$this->messages_table}
              WHERE conversation_id = %d
@@ -455,6 +462,7 @@ Quando citar itens do acervo, inclua os links quando disponíveis.', 'oraculo-ta
             $conversation_id,
             $limit
         ), ARRAY_A);
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
     }
 
     /**
@@ -517,13 +525,15 @@ Quando citar itens do acervo, inclua os links quando disponíveis.', 'oraculo-ta
         global $wpdb;
 
         // Obter primeira mensagem do usuário
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->messages_table is plugin-owned; first message lookup for title generation.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->messages_table is plugin-owned table built from $wpdb->prefix + literal; table identifier cannot be parameterized.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- first message lookup for title generation.
         $first_message = $wpdb->get_var($wpdb->prepare(
             "SELECT content FROM {$this->messages_table}
              WHERE conversation_id = %d AND role = 'user'
              ORDER BY id ASC LIMIT 1",
             $conversation_id
         ));
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 
         if (!$first_message) {
             return __('Nova conversa', 'oraculo-tainacan');
@@ -556,7 +566,8 @@ Quando citar itens do acervo, inclua os links quando disponíveis.', 'oraculo-ta
         global $wpdb;
 
         // Obter IDs de conversas antigas
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned tables; cleanup operation.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->conversations_table and $this->messages_table are plugin-owned tables built from $wpdb->prefix + literal; table identifiers cannot be parameterized.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- cleanup operation; returns IDs for subsequent DELETE.
         $old_conversations = $wpdb->get_col($wpdb->prepare(
             "SELECT id FROM {$this->conversations_table}
              WHERE updated_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
@@ -570,18 +581,19 @@ Quando citar itens do acervo, inclua os links quando disponíveis.', 'oraculo-ta
         $ids_placeholder = implode(',', array_fill(0, count($old_conversations), '%d'));
 
         // Remover mensagens — $ids_placeholder contains only %d placeholders built from array_fill.
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery -- Plugin-owned tables; bulk DELETE for cleanup; no WP API available.
+        // phpcs:ignore WordPress.DB.PreparedSQL.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $ids_placeholder is built via array_fill('%d'); bulk DELETE for oraculo_messages; caching N/A for writes.
         $wpdb->query($wpdb->prepare(
             "DELETE FROM {$this->messages_table} WHERE conversation_id IN ($ids_placeholder)",
             $old_conversations
         ));
 
         // Remover conversas
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery -- Plugin-owned tables; bulk DELETE for cleanup.
+        // phpcs:ignore WordPress.DB.PreparedSQL.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $ids_placeholder is built via array_fill('%d'); bulk DELETE for oraculo_conversations; caching N/A for writes.
         $deleted = $wpdb->query($wpdb->prepare(
             "DELETE FROM {$this->conversations_table} WHERE id IN ($ids_placeholder)",
             $old_conversations
         ));
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
         \Oraculo_Tainacan\oraculo_tainacan_flush_cache();
 
         return $deleted;
