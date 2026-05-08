@@ -7,6 +7,8 @@
 
 defined('ABSPATH') || exit;
 
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template file; all variables are local to this included template scope.
+
 $indexing = new \Oraculo_Tainacan\Indexing\IndexingManager();
 $vector_store = new \Oraculo_Tainacan\Vector\VectorStore();
 $collections = \Oraculo_Tainacan\get_tainacan_collections();
@@ -549,3 +551,4 @@ jQuery(document).ready(function($) {
     });
 });
 </script>
+<?php // phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound ?>

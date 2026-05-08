@@ -8,6 +8,8 @@
 
 defined('ABSPATH') || exit;
 
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template file; all variables are local to this included template scope.
+
 $options = \Oraculo_Tainacan\Oraculo_Tainacan::get_options();
 $collections = \Oraculo_Tainacan\get_tainacan_collections();
 $widget_id = 'oraculo-search-' . uniqid();
@@ -477,3 +479,4 @@ if (empty($suggested_questions)) {
     });
 })();
 </script>
+<?php // phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound ?>

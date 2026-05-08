@@ -7,6 +7,8 @@
 
 if (!defined('ABSPATH')) exit;
 
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template file; all variables are local to this included template scope.
+
 $options = \Oraculo_Tainacan\Oraculo_Tainacan::get_options();
 $factory = new \Oraculo_Tainacan\AI\AIProviderFactory();
 $providers = $factory->get_available_providers();
@@ -649,3 +651,4 @@ jQuery(document).ready(function($) {
     });
 });
 </script>
+<?php // phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound ?>

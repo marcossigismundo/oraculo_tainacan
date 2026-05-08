@@ -7,6 +7,8 @@
 
 defined('ABSPATH') || exit;
 
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template file; all variables are local to this included template scope.
+
 $analytics = new \Oraculo_Tainacan\Analytics\AnalyticsManager();
 // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- period is a read-only filter parameter with no side effects; value is whitelisted below.
 $period_raw = isset( $_GET['period'] ) ? sanitize_text_field( wp_unslash( $_GET['period'] ) ) : 'month';
@@ -415,3 +417,4 @@ jQuery(document).ready(function($) {
     });
 });
 </script>
+<?php // phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound ?>

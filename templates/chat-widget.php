@@ -7,6 +7,8 @@
 
 defined('ABSPATH') || exit;
 
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template file; all variables are local to this included template scope.
+
 $options = \Oraculo_Tainacan\Oraculo_Tainacan::get_options();
 $widget_id = 'oraculo-chat-embedded-' . uniqid();
 $height = $atts['height'] ?? '500px';
@@ -455,3 +457,4 @@ $suggestions = $options['suggested_questions'] ?? [];
     }
 })();
 </script>
+<?php // phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound ?>

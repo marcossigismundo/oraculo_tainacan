@@ -7,6 +7,8 @@
 
 if (!defined('ABSPATH')) exit;
 
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template file; all variables are local to this included template scope.
+
 // Usar a instância do OraculoPage se disponível
 $stats = [];
 $indexing_status = [];
@@ -364,3 +366,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
+<?php // phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound ?>
