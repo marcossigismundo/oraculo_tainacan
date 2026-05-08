@@ -78,8 +78,8 @@ final class Oraculo_Tainacan {
         // Verificar versão PHP
         if (version_compare(PHP_VERSION, ORACULO_TAINACAN_MIN_PHP, '<')) {
             add_action('admin_notices', function() {
-                /* translators: 1: minimum required PHP version, 2: current PHP version */
                 $message = sprintf(
+                    /* translators: 1: minimum required PHP version, 2: current PHP version */
                     __('Oráculo Tainacan requer PHP %1$s ou superior. Você está usando PHP %2$s.', 'oraculo-tainacan'),
                     ORACULO_TAINACAN_MIN_PHP,
                     PHP_VERSION
@@ -94,8 +94,8 @@ final class Oraculo_Tainacan {
         if (version_compare($wp_version, ORACULO_TAINACAN_MIN_WP, '<')) {
             add_action('admin_notices', function() {
                 global $wp_version;
-                /* translators: 1: minimum required WordPress version, 2: current WordPress version */
                 $message = sprintf(
+                    /* translators: 1: minimum required WordPress version, 2: current WordPress version */
                     __('Oráculo Tainacan requer WordPress %1$s ou superior. Você está usando WordPress %2$s.', 'oraculo-tainacan'),
                     ORACULO_TAINACAN_MIN_WP,
                     $wp_version

@@ -105,8 +105,8 @@ class IndexingManager {
             'failed_items' => $result['failed'],
             'status' => 'completed',
             'percentage' => 100,
-            /* translators: 1: number of items successfully indexed, 2: total number of items */
             'message' => sprintf(
+                /* translators: 1: number of items successfully indexed, 2: total number of items */
                 __('Indexação concluída! %1$d de %2$d itens indexados.', 'oraculo-tainacan'),
                 $result['success'],
                 $total_items
