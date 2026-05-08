@@ -46,12 +46,13 @@ class VectorStore {
         }
 
         // Verificar se já existe
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->table_name is plugin-owned (oraculo_vectors, built from $wpdb->prefix + literal); table identifier cannot be parameterized; result cached per-request only.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->table_name is plugin-owned (oraculo_vectors, built from $wpdb->prefix + literal); table identifier cannot be parameterized; result cached per-request only.
         $existing = $wpdb->get_var($wpdb->prepare(
             "SELECT id FROM {$this->table_name} WHERE item_id = %d AND collection_id = %d",
             $data['item_id'],
             $data['collection_id']
         ));
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 
         $embedding_json = is_array($data['embedding_data'])
             ? wp_json_encode($data['embedding_data'])
@@ -149,8 +150,9 @@ class VectorStore {
         $where_clause = "";
         if (!empty($collection_ids)) {
             $placeholders = implode(',', array_fill(0, count($collection_ids), '%d'));
-            // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $placeholders contains only %d entries built from array_fill; $where_clause is passed through $wpdb->prepare.
+            // phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $placeholders contains only %d entries built from array_fill; count matches $collection_ids spread; $where_clause is passed through $wpdb->prepare.
             $where_clause = $wpdb->prepare("WHERE collection_id IN ($placeholders)", $collection_ids);
+            // phpcs:enable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
         }
 
         // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->table_name is plugin-owned (oraculo_vectors, built from $wpdb->prefix + literal); $where_clause is prepared above; table identifier cannot be parameterized.
@@ -241,7 +243,7 @@ class VectorStore {
         );
         // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $sql is built with $wpdb->prepare(); custom plugin table; keyword searches are query-specific and not worth caching.
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $sql is pre-prepared via $wpdb->prepare() at the assignment above (line 234); custom plugin table; keyword searches are query-specific and not worth caching.
         $results = $wpdb->get_results($sql, ARRAY_A);
 
         // Adicionar score baseado em matches
@@ -270,12 +272,14 @@ class VectorStore {
     public function get_by_item(int $item_id, int $collection_id): ?array {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->table_name is plugin-owned (oraculo_vectors, built from $wpdb->prefix + literal); table identifier cannot be parameterized; per-item lookup during indexing.
-        return $wpdb->get_row($wpdb->prepare(
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->table_name is plugin-owned (oraculo_vectors, built from $wpdb->prefix + literal); table identifier cannot be parameterized; per-item lookup during indexing.
+        $row = $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM {$this->table_name} WHERE item_id = %d AND collection_id = %d",
             $item_id,
             $collection_id
         ), ARRAY_A);
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        return $row;
     }
 
     /**
@@ -289,12 +293,13 @@ class VectorStore {
     public function needs_reindex(int $item_id, int $collection_id, string $content_hash): bool {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->table_name is plugin-owned (oraculo_vectors, built from $wpdb->prefix + literal); table identifier cannot be parameterized; per-item hash check during indexing.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->table_name is plugin-owned (oraculo_vectors, built from $wpdb->prefix + literal); table identifier cannot be parameterized; per-item hash check during indexing.
         $existing_hash = $wpdb->get_var($wpdb->prepare(
             "SELECT content_hash FROM {$this->table_name} WHERE item_id = %d AND collection_id = %d",
             $item_id,
             $collection_id
         ));
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 
         return $existing_hash !== $content_hash;
     }
@@ -419,11 +424,13 @@ class VectorStore {
             return 0;
         }
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->table_name is plugin-owned (oraculo_vectors, built from $wpdb->prefix + literal); table identifier cannot be parameterized; per-collection count used in admin UI.
-        return (int) $wpdb->get_var($wpdb->prepare(
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->table_name is plugin-owned (oraculo_vectors, built from $wpdb->prefix + literal); table identifier cannot be parameterized; per-collection count used in admin UI.
+        $count = (int) $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM {$this->table_name} WHERE collection_id = %d",
             $collection_id
         ));
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        return $count;
     }
 
     /**
@@ -439,11 +446,13 @@ class VectorStore {
             return [];
         }
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->table_name is plugin-owned (oraculo_vectors, built from $wpdb->prefix + literal); table identifier cannot be parameterized; ID list used during indexing batch.
-        return $wpdb->get_col($wpdb->prepare(
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->table_name is plugin-owned (oraculo_vectors, built from $wpdb->prefix + literal); table identifier cannot be parameterized; ID list used during indexing batch.
+        $ids = $wpdb->get_col($wpdb->prepare(
             "SELECT item_id FROM {$this->table_name} WHERE collection_id = %d",
             $collection_id
         )) ?: [];
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        return $ids;
     }
 
     /**
@@ -455,11 +464,12 @@ class VectorStore {
     public function cleanup_old(int $days_old = 90): int {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->table_name is plugin-owned (oraculo_vectors, built from $wpdb->prefix + literal); DELETE write operation; caching N/A for writes.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->table_name is plugin-owned (oraculo_vectors, built from $wpdb->prefix + literal); DELETE write operation; caching N/A for writes.
         $result = $wpdb->query($wpdb->prepare(
             "DELETE FROM {$this->table_name} WHERE updated_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
             $days_old
         ));
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
         \Oraculo_Tainacan\oraculo_tainacan_flush_cache();
         return $result;
     }

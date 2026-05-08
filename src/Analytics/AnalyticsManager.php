@@ -89,7 +89,7 @@ class AnalyticsManager {
 
         $date_condition = $this->get_date_condition($period);
 
-        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->logs_table is plugin-owned; custom plugin table; analytics stats are read-only aggregates, cached by caller if needed.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->logs_table is plugin-owned (oraculo_search_logs, built from $wpdb->prefix + literal); $date_condition is a hardcoded SQL literal returned by get_date_condition() (no user input); analytics stats are read-only aggregates, cached by caller if needed.
         // Total de buscas
         $total_searches = (int) $wpdb->get_var(
             "SELECT COUNT(*) FROM {$this->logs_table} WHERE {$date_condition}"
@@ -139,7 +139,7 @@ class AnalyticsManager {
             "SELECT COUNT(DISTINCT COALESCE(NULLIF(user_id, 0), ip_address))
              FROM {$this->logs_table} WHERE {$date_condition}"
         );
-        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 
         return [
             'total_searches' => $total_searches,
