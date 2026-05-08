@@ -79,10 +79,10 @@ $base_url = admin_url('admin.php?page=oraculo_tainacan_page');
     <?php if (!$has_provider): ?>
     <div class="notice notice-warning oraculo-notice">
         <p>
-            <strong><?php esc_html_e('Configuração necessária!', 'oraculo_tainacan'); ?></strong>
-            <?php esc_html_e('Configure uma API Key para começar a usar o Oráculo.', 'oraculo_tainacan'); ?>
+            <strong><?php esc_html_e('Configuração necessária!', 'oraculo-tainacan'); ?></strong>
+            <?php esc_html_e('Configure uma API Key para começar a usar o Oráculo.', 'oraculo-tainacan'); ?>
             <a href="<?php echo esc_url($base_url . '&tab=settings'); ?>">
-                <?php esc_html_e('Ir para Configurações', 'oraculo_tainacan'); ?>
+                <?php esc_html_e('Ir para Configurações', 'oraculo-tainacan'); ?>
             </a>
         </p>
     </div>
@@ -94,7 +94,7 @@ $base_url = admin_url('admin.php?page=oraculo_tainacan_page');
             <div class="oraculo-stat-icon">📚</div>
             <div class="oraculo-stat-content">
                 <span class="oraculo-stat-value"><?php echo esc_html( number_format_i18n($stats['total_indexed']) ); ?></span>
-                <span class="oraculo-stat-label"><?php esc_html_e('Itens Indexados', 'oraculo_tainacan'); ?></span>
+                <span class="oraculo-stat-label"><?php esc_html_e('Itens Indexados', 'oraculo-tainacan'); ?></span>
             </div>
         </div>
 
@@ -102,7 +102,7 @@ $base_url = admin_url('admin.php?page=oraculo_tainacan_page');
             <div class="oraculo-stat-icon">🔍</div>
             <div class="oraculo-stat-content">
                 <span class="oraculo-stat-value"><?php echo esc_html( number_format_i18n($stats['searches_month']) ); ?></span>
-                <span class="oraculo-stat-label"><?php esc_html_e('Buscas este Mês', 'oraculo_tainacan'); ?></span>
+                <span class="oraculo-stat-label"><?php esc_html_e('Buscas este Mês', 'oraculo-tainacan'); ?></span>
             </div>
         </div>
 
@@ -110,7 +110,7 @@ $base_url = admin_url('admin.php?page=oraculo_tainacan_page');
             <div class="oraculo-stat-icon">😊</div>
             <div class="oraculo-stat-content">
                 <span class="oraculo-stat-value"><?php echo esc_html($stats['satisfaction_rate']); ?>%</span>
-                <span class="oraculo-stat-label"><?php esc_html_e('Taxa de Satisfação', 'oraculo_tainacan'); ?></span>
+                <span class="oraculo-stat-label"><?php esc_html_e('Taxa de Satisfação', 'oraculo-tainacan'); ?></span>
             </div>
         </div>
 
@@ -118,7 +118,7 @@ $base_url = admin_url('admin.php?page=oraculo_tainacan_page');
             <div class="oraculo-stat-icon">🎯</div>
             <div class="oraculo-stat-content">
                 <span class="oraculo-stat-value"><?php echo esc_html( number_format_i18n($stats['tokens_month']) ); ?></span>
-                <span class="oraculo-stat-label"><?php esc_html_e('Tokens Utilizados', 'oraculo_tainacan'); ?></span>
+                <span class="oraculo-stat-label"><?php esc_html_e('Tokens Utilizados', 'oraculo-tainacan'); ?></span>
             </div>
         </div>
     </div>
@@ -127,24 +127,24 @@ $base_url = admin_url('admin.php?page=oraculo_tainacan_page');
         <!-- Status das Coleções -->
         <div class="oraculo-card">
             <div class="oraculo-card-header">
-                <h2><?php esc_html_e('Status de Indexação', 'oraculo_tainacan'); ?></h2>
+                <h2><?php esc_html_e('Status de Indexação', 'oraculo-tainacan'); ?></h2>
                 <a href="<?php echo esc_url($base_url . '&tab=indexing'); ?>" class="button">
-                    <?php esc_html_e('Gerenciar', 'oraculo_tainacan'); ?>
+                    <?php esc_html_e('Gerenciar', 'oraculo-tainacan'); ?>
                 </a>
             </div>
             <div class="oraculo-card-body">
                 <?php if (empty($indexing_status)): ?>
                     <p class="oraculo-empty-state">
-                        <?php esc_html_e('Nenhuma coleção encontrada no Tainacan.', 'oraculo_tainacan'); ?>
+                        <?php esc_html_e('Nenhuma coleção encontrada no Tainacan.', 'oraculo-tainacan'); ?>
                     </p>
                 <?php else: ?>
                     <table class="oraculo-table">
                         <thead>
                             <tr>
-                                <th><?php esc_html_e('Coleção', 'oraculo_tainacan'); ?></th>
-                                <th><?php esc_html_e('Itens', 'oraculo_tainacan'); ?></th>
-                                <th><?php esc_html_e('Indexados', 'oraculo_tainacan'); ?></th>
-                                <th><?php esc_html_e('Status', 'oraculo_tainacan'); ?></th>
+                                <th><?php esc_html_e('Coleção', 'oraculo-tainacan'); ?></th>
+                                <th><?php esc_html_e('Itens', 'oraculo-tainacan'); ?></th>
+                                <th><?php esc_html_e('Indexados', 'oraculo-tainacan'); ?></th>
+                                <th><?php esc_html_e('Status', 'oraculo-tainacan'); ?></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -174,7 +174,7 @@ $base_url = admin_url('admin.php?page=oraculo_tainacan_page');
         <!-- Gráfico de Buscas -->
         <div class="oraculo-card">
             <div class="oraculo-card-header">
-                <h2><?php esc_html_e('Buscas nos Últimos 30 Dias', 'oraculo_tainacan'); ?></h2>
+                <h2><?php esc_html_e('Buscas nos Últimos 30 Dias', 'oraculo-tainacan'); ?></h2>
             </div>
             <div class="oraculo-card-body">
                 <canvas id="oraculo-searches-chart" height="200"></canvas>
@@ -184,28 +184,28 @@ $base_url = admin_url('admin.php?page=oraculo_tainacan_page');
         <!-- Atalhos Rápidos -->
         <div class="oraculo-card oraculo-card-small">
             <div class="oraculo-card-header">
-                <h2><?php esc_html_e('Ações Rápidas', 'oraculo_tainacan'); ?></h2>
+                <h2><?php esc_html_e('Ações Rápidas', 'oraculo-tainacan'); ?></h2>
             </div>
             <div class="oraculo-card-body">
                 <div class="oraculo-quick-actions">
                     <a href="<?php echo esc_url($base_url . '&tab=settings'); ?>" class="oraculo-action-button">
                         <span class="dashicons dashicons-admin-generic"></span>
-                        <?php esc_html_e('Configurações', 'oraculo_tainacan'); ?>
+                        <?php esc_html_e('Configurações', 'oraculo-tainacan'); ?>
                     </a>
 
                     <a href="<?php echo esc_url($base_url . '&tab=indexing'); ?>" class="oraculo-action-button">
                         <span class="dashicons dashicons-update"></span>
-                        <?php esc_html_e('Indexar Coleções', 'oraculo_tainacan'); ?>
+                        <?php esc_html_e('Indexar Coleções', 'oraculo-tainacan'); ?>
                     </a>
 
                     <a href="<?php echo esc_url($base_url . '&tab=analytics'); ?>" class="oraculo-action-button">
                         <span class="dashicons dashicons-chart-area"></span>
-                        <?php esc_html_e('Ver Analytics', 'oraculo_tainacan'); ?>
+                        <?php esc_html_e('Ver Analytics', 'oraculo-tainacan'); ?>
                     </a>
 
                     <button type="button" class="oraculo-action-button" id="oraculo-test-search">
                         <span class="dashicons dashicons-search"></span>
-                        <?php esc_html_e('Testar Busca', 'oraculo_tainacan'); ?>
+                        <?php esc_html_e('Testar Busca', 'oraculo-tainacan'); ?>
                     </button>
                 </div>
             </div>
@@ -214,12 +214,12 @@ $base_url = admin_url('admin.php?page=oraculo_tainacan_page');
         <!-- Configuração Atual -->
         <div class="oraculo-card oraculo-card-small">
             <div class="oraculo-card-header">
-                <h2><?php esc_html_e('Configuração Atual', 'oraculo_tainacan'); ?></h2>
+                <h2><?php esc_html_e('Configuração Atual', 'oraculo-tainacan'); ?></h2>
             </div>
             <div class="oraculo-card-body">
                 <ul class="oraculo-config-list">
                     <li>
-                        <span class="oraculo-config-label"><?php esc_html_e('Provedor de IA:', 'oraculo_tainacan'); ?></span>
+                        <span class="oraculo-config-label"><?php esc_html_e('Provedor de IA:', 'oraculo-tainacan'); ?></span>
                         <span class="oraculo-config-value">
                             <?php
                             $providers = [
@@ -235,19 +235,19 @@ $base_url = admin_url('admin.php?page=oraculo_tainacan_page');
                         </span>
                     </li>
                     <li>
-                        <span class="oraculo-config-label"><?php esc_html_e('Modelo:', 'oraculo_tainacan'); ?></span>
+                        <span class="oraculo-config-label"><?php esc_html_e('Modelo:', 'oraculo-tainacan'); ?></span>
                         <span class="oraculo-config-value">
                             <?php echo esc_html($options[$options['ai_provider'] . '_model'] ?? 'Padrão'); ?>
                         </span>
                     </li>
                     <li>
-                        <span class="oraculo-config-label"><?php esc_html_e('Chat Ativo:', 'oraculo_tainacan'); ?></span>
+                        <span class="oraculo-config-label"><?php esc_html_e('Chat Ativo:', 'oraculo-tainacan'); ?></span>
                         <span class="oraculo-config-value">
                             <?php echo !empty($options['enable_chat']) ? '✅' : '❌'; ?>
                         </span>
                     </li>
                     <li>
-                        <span class="oraculo-config-label"><?php esc_html_e('Analytics:', 'oraculo_tainacan'); ?></span>
+                        <span class="oraculo-config-label"><?php esc_html_e('Analytics:', 'oraculo-tainacan'); ?></span>
                         <span class="oraculo-config-value">
                             <?php echo !empty($options['enable_analytics']) ? '✅' : '❌'; ?>
                         </span>
@@ -261,16 +261,16 @@ $base_url = admin_url('admin.php?page=oraculo_tainacan_page');
     <div id="oraculo-test-modal" class="oraculo-modal-overlay" style="display:none;">
         <div class="oraculo-modal">
             <div class="oraculo-modal-header">
-                <h3><?php esc_html_e('Testar Busca', 'oraculo_tainacan'); ?></h3>
+                <h3><?php esc_html_e('Testar Busca', 'oraculo-tainacan'); ?></h3>
                 <button type="button" class="oraculo-modal-close">&times;</button>
             </div>
             <div class="oraculo-modal-body">
                 <div class="oraculo-form-group">
-                    <label for="oraculo-test-query"><?php esc_html_e('Digite sua pergunta:', 'oraculo_tainacan'); ?></label>
-                    <input type="text" id="oraculo-test-query" placeholder="<?php esc_attr_e('Ex: Quais documentos tratam de...', 'oraculo_tainacan'); ?>">
+                    <label for="oraculo-test-query"><?php esc_html_e('Digite sua pergunta:', 'oraculo-tainacan'); ?></label>
+                    <input type="text" id="oraculo-test-query" placeholder="<?php esc_attr_e('Ex: Quais documentos tratam de...', 'oraculo-tainacan'); ?>">
                 </div>
                 <button type="button" id="oraculo-run-test" class="oraculo-btn oraculo-btn-primary">
-                    <?php esc_html_e('Buscar', 'oraculo_tainacan'); ?>
+                    <?php esc_html_e('Buscar', 'oraculo-tainacan'); ?>
                 </button>
                 <div id="oraculo-test-results" class="oraculo-test-results"></div>
             </div>
@@ -300,7 +300,7 @@ document.addEventListener('DOMContentLoaded', function() {
         data: {
             labels: labels,
             datasets: [{
-                label: '<?php esc_attr_e('Buscas', 'oraculo_tainacan'); ?>',
+                label: '<?php esc_attr_e('Buscas', 'oraculo-tainacan'); ?>',
                 data: counts,
                 borderColor: '#187181',
                 backgroundColor: 'rgba(24, 113, 129, 0.1)',
@@ -329,7 +329,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     displayColors: false,
                     callbacks: {
                         label: function(context) {
-                            return context.parsed.y + ' <?php esc_attr_e('buscas', 'oraculo_tainacan'); ?>';
+                            return context.parsed.y + ' <?php esc_attr_e('buscas', 'oraculo-tainacan'); ?>';
                         }
                     }
                 }

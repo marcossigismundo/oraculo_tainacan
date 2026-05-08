@@ -10,8 +10,8 @@ defined('ABSPATH') || exit;
 $options = \Oraculo_Tainacan\Oraculo_Tainacan::get_options();
 $widget_id = 'oraculo-chat-embedded-' . uniqid();
 $height = $atts['height'] ?? '500px';
-$title = $atts['title'] ?? __('Assistente do Acervo', 'oraculo_tainacan');
-$welcome_message = $options['welcome_message'] ?? __('Olá! Como posso ajudá-lo a encontrar informações no acervo?', 'oraculo_tainacan');
+$title = $atts['title'] ?? __('Assistente do Acervo', 'oraculo-tainacan');
+$welcome_message = $options['welcome_message'] ?? __('Olá! Como posso ajudá-lo a encontrar informações no acervo?', 'oraculo-tainacan');
 $suggestions = $options['suggested_questions'] ?? [];
 ?>
 
@@ -19,7 +19,7 @@ $suggestions = $options['suggested_questions'] ?? [];
     <div class="oraculo-chat-embedded-header">
         <div class="oraculo-chat-embedded-avatar">🔮</div>
         <div class="oraculo-chat-embedded-title"><?php echo esc_html($title); ?></div>
-        <button type="button" class="oraculo-chat-embedded-clear" title="<?php esc_attr_e('Nova conversa', 'oraculo_tainacan'); ?>">
+        <button type="button" class="oraculo-chat-embedded-clear" title="<?php esc_attr_e('Nova conversa', 'oraculo-tainacan'); ?>">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="1 4 1 10 7 10"></polyline>
                 <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
@@ -44,7 +44,7 @@ $suggestions = $options['suggested_questions'] ?? [];
     <div class="oraculo-chat-embedded-input">
         <form class="oraculo-chat-embedded-form">
             <textarea
-                placeholder="<?php esc_attr_e('Digite sua mensagem...', 'oraculo_tainacan'); ?>"
+                placeholder="<?php esc_attr_e('Digite sua mensagem...', 'oraculo-tainacan'); ?>"
                 rows="1"
             ></textarea>
             <button type="submit">
@@ -386,12 +386,12 @@ $suggestions = $options['suggested_questions'] ?? [];
                     sources: data.data.sources
                 });
             } else {
-                addMessage(data.data.message || '<?php esc_html_e('Ocorreu um erro. Tente novamente.', 'oraculo_tainacan'); ?>', 'assistant');
+                addMessage(data.data.message || '<?php esc_html_e('Ocorreu um erro. Tente novamente.', 'oraculo-tainacan'); ?>', 'assistant');
             }
         })
         .catch(function() {
             hideTyping();
-            addMessage('<?php esc_html_e('Erro de conexão. Tente novamente.', 'oraculo_tainacan'); ?>', 'assistant');
+            addMessage('<?php esc_html_e('Erro de conexão. Tente novamente.', 'oraculo-tainacan'); ?>', 'assistant');
         });
     });
 
@@ -405,7 +405,7 @@ $suggestions = $options['suggested_questions'] ?? [];
 
         if (options.sources && options.sources.length > 0) {
             html += '<div class="message-sources">';
-            html += '<div class="message-sources-title"><?php esc_html_e('Fontes:', 'oraculo_tainacan'); ?></div>';
+            html += '<div class="message-sources-title"><?php esc_html_e('Fontes:', 'oraculo-tainacan'); ?></div>';
             options.sources.forEach(function(source) {
                 html += '<a href="' + escapeHtml(source.url) + '" class="message-source" target="_blank">📄 ' + escapeHtml(source.title) + '</a>';
             });

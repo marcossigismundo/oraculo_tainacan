@@ -62,7 +62,7 @@ class MultimodalSearch {
         if (!$this->supports_vision($model)) {
             return new WP_Error(
                 'vision_not_supported',
-                __('O modelo atual não suporta análise de imagens.', 'oraculo_tainacan')
+                __('O modelo atual não suporta análise de imagens.', 'oraculo-tainacan')
             );
         }
 
@@ -96,13 +96,13 @@ class MultimodalSearch {
         $file_path = get_attached_file($attachment_id);
 
         if (!$file_path || !file_exists($file_path)) {
-            return new WP_Error('file_not_found', __('Arquivo de imagem não encontrado.', 'oraculo_tainacan'));
+            return new WP_Error('file_not_found', __('Arquivo de imagem não encontrado.', 'oraculo-tainacan'));
         }
 
         // Verificar se é imagem
         $mime_type = get_post_mime_type($attachment_id);
         if (!str_starts_with($mime_type, 'image/')) {
-            return new WP_Error('not_image', __('O arquivo não é uma imagem.', 'oraculo_tainacan'));
+            return new WP_Error('not_image', __('O arquivo não é uma imagem.', 'oraculo-tainacan'));
         }
 
         // Gerar descrição
@@ -214,13 +214,13 @@ class MultimodalSearch {
 
         // Se for arquivo local
         if (!file_exists($image_path)) {
-            return new WP_Error('file_not_found', __('Arquivo de imagem não encontrado.', 'oraculo_tainacan'));
+            return new WP_Error('file_not_found', __('Arquivo de imagem não encontrado.', 'oraculo-tainacan'));
         }
 
         // Verificar tamanho
         $size = filesize($image_path);
         if ($size > 20 * 1024 * 1024) { // 20MB
-            return new WP_Error('file_too_large', __('Arquivo muito grande. Máximo 20MB.', 'oraculo_tainacan'));
+            return new WP_Error('file_too_large', __('Arquivo muito grande. Máximo 20MB.', 'oraculo-tainacan'));
         }
 
         // Converter para base64
@@ -282,7 +282,7 @@ class MultimodalSearch {
             return $this->call_claude_vision($prompt, $image_data, $model);
         }
 
-        return new WP_Error('unsupported_model', __('Modelo não suportado para visão.', 'oraculo_tainacan'));
+        return new WP_Error('unsupported_model', __('Modelo não suportado para visão.', 'oraculo-tainacan'));
     }
 
     /**

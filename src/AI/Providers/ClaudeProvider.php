@@ -84,7 +84,7 @@ class ClaudeProvider extends AbstractAIProvider {
      * {@inheritdoc}
      */
     public function get_description(): string {
-        return __('IA da Anthropic conhecida por respostas seguras, precisas e contexto de 200K tokens.', 'oraculo_tainacan');
+        return __('IA da Anthropic conhecida por respostas seguras, precisas e contexto de 200K tokens.', 'oraculo-tainacan');
     }
 
     /**
@@ -125,7 +125,7 @@ class ClaudeProvider extends AbstractAIProvider {
         if (!$this->is_configured()) {
             return [
                 'success' => false,
-                'message' => __('Chave de API não configurada.', 'oraculo_tainacan'),
+                'message' => __('Chave de API não configurada.', 'oraculo-tainacan'),
                 'details' => [],
             ];
         }
@@ -147,7 +147,7 @@ class ClaudeProvider extends AbstractAIProvider {
 
         return [
             'success' => true,
-            'message' => __('Conexão estabelecida com sucesso!', 'oraculo_tainacan'),
+            'message' => __('Conexão estabelecida com sucesso!', 'oraculo-tainacan'),
             'details' => [
                 'model' => $response['model'] ?? 'unknown',
             ],
@@ -160,7 +160,7 @@ class ClaudeProvider extends AbstractAIProvider {
     public function generate_embedding(string $text, ?string $model = null) {
         return new WP_Error(
             'not_supported',
-            __('Claude não oferece API de embeddings. Use OpenAI ou Ollama para embeddings.', 'oraculo_tainacan')
+            __('Claude não oferece API de embeddings. Use OpenAI ou Ollama para embeddings.', 'oraculo-tainacan')
         );
     }
 
@@ -170,7 +170,7 @@ class ClaudeProvider extends AbstractAIProvider {
     public function generate_embeddings_batch(array $texts, ?string $model = null) {
         return new WP_Error(
             'not_supported',
-            __('Claude não oferece API de embeddings. Use OpenAI ou Ollama para embeddings.', 'oraculo_tainacan')
+            __('Claude não oferece API de embeddings. Use OpenAI ou Ollama para embeddings.', 'oraculo-tainacan')
         );
     }
 
@@ -186,7 +186,7 @@ class ClaudeProvider extends AbstractAIProvider {
      */
     public function chat(array $messages, string $system_prompt = '', array $options = []) {
         if (!$this->is_configured()) {
-            return new WP_Error('not_configured', __('Provedor Claude não configurado.', 'oraculo_tainacan'));
+            return new WP_Error('not_configured', __('Provedor Claude não configurado.', 'oraculo-tainacan'));
         }
 
         $options = $this->prepare_options($options);
@@ -234,9 +234,9 @@ class ClaudeProvider extends AbstractAIProvider {
         if (!isset($response['content'][0]['text'])) {
             // Verificar motivo de parada
             if (isset($response['stop_reason']) && $response['stop_reason'] === 'max_tokens') {
-                return new WP_Error('max_tokens', __('Resposta truncada por limite de tokens.', 'oraculo_tainacan'));
+                return new WP_Error('max_tokens', __('Resposta truncada por limite de tokens.', 'oraculo-tainacan'));
             }
-            return new WP_Error('invalid_response', __('Resposta inválida da API.', 'oraculo_tainacan'));
+            return new WP_Error('invalid_response', __('Resposta inválida da API.', 'oraculo-tainacan'));
         }
 
         $usage = [
@@ -266,7 +266,7 @@ class ClaudeProvider extends AbstractAIProvider {
      */
     public function stream_response(string $prompt, string $system_prompt, callable $callback, array $options = []): void {
         if (!$this->is_configured()) {
-            $callback('', true, new WP_Error('not_configured', __('Provedor não configurado.', 'oraculo_tainacan')));
+            $callback('', true, new WP_Error('not_configured', __('Provedor não configurado.', 'oraculo-tainacan')));
             return;
         }
 

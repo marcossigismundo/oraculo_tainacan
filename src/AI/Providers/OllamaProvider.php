@@ -105,7 +105,7 @@ class OllamaProvider extends AbstractAIProvider {
      * {@inheritdoc}
      */
     public function get_description(): string {
-        return __('Execute modelos de IA localmente sem custos. Requer Ollama instalado no servidor.', 'oraculo_tainacan');
+        return __('Execute modelos de IA localmente sem custos. Requer Ollama instalado no servidor.', 'oraculo-tainacan');
     }
 
     /**
@@ -122,7 +122,7 @@ class OllamaProvider extends AbstractAIProvider {
                 $info = self::COMMON_MODELS[$name] ?? [
                     'name' => ucfirst($name),
                     'context' => 4096,
-                    'description' => __('Modelo instalado localmente', 'oraculo_tainacan'),
+                    'description' => __('Modelo instalado localmente', 'oraculo-tainacan'),
                 ];
 
                 $models[] = [
@@ -196,7 +196,7 @@ class OllamaProvider extends AbstractAIProvider {
         if (!$this->is_configured()) {
             return [
                 'success' => false,
-                'message' => __('URL do Ollama não configurada.', 'oraculo_tainacan'),
+                'message' => __('URL do Ollama não configurada.', 'oraculo-tainacan'),
                 'details' => [],
             ];
         }
@@ -209,7 +209,7 @@ class OllamaProvider extends AbstractAIProvider {
                 'success' => false,
                 /* translators: %s: Ollama server base URL */
                 'message' => sprintf(
-                    __('Não foi possível conectar ao Ollama em %s. Verifique se está rodando.', 'oraculo_tainacan'),
+                    __('Não foi possível conectar ao Ollama em %s. Verifique se está rodando.', 'oraculo-tainacan'),
                     $base_url
                 ),
                 'details' => [
@@ -222,7 +222,7 @@ class OllamaProvider extends AbstractAIProvider {
 
         return [
             'success' => true,
-            'message' => __('Conexão estabelecida com sucesso!', 'oraculo_tainacan'),
+            'message' => __('Conexão estabelecida com sucesso!', 'oraculo-tainacan'),
             'details' => [
                 'url' => $base_url,
                 'models_installed' => count($models),
@@ -236,13 +236,13 @@ class OllamaProvider extends AbstractAIProvider {
      */
     public function generate_embedding(string $text, ?string $model = null) {
         if (!$this->is_configured()) {
-            return new WP_Error('not_configured', __('Provedor Ollama não configurado.', 'oraculo_tainacan'));
+            return new WP_Error('not_configured', __('Provedor Ollama não configurado.', 'oraculo-tainacan'));
         }
 
         $text = $this->validate_input($text);
 
         if (empty($text)) {
-            return new WP_Error('empty_input', __('Texto não pode estar vazio.', 'oraculo_tainacan'));
+            return new WP_Error('empty_input', __('Texto não pode estar vazio.', 'oraculo-tainacan'));
         }
 
         $model = $model ?? $this->get_config('embedding_model', 'nomic-embed-text');
@@ -270,7 +270,7 @@ class OllamaProvider extends AbstractAIProvider {
         }
 
         if (!isset($response['embedding'])) {
-            return new WP_Error('invalid_response', __('Resposta inválida da API.', 'oraculo_tainacan'));
+            return new WP_Error('invalid_response', __('Resposta inválida da API.', 'oraculo-tainacan'));
         }
 
         return [
@@ -285,7 +285,7 @@ class OllamaProvider extends AbstractAIProvider {
      */
     public function generate_embeddings_batch(array $texts, ?string $model = null) {
         if (!$this->is_configured()) {
-            return new WP_Error('not_configured', __('Provedor Ollama não configurado.', 'oraculo_tainacan'));
+            return new WP_Error('not_configured', __('Provedor Ollama não configurado.', 'oraculo-tainacan'));
         }
 
         $embeddings = [];
@@ -320,7 +320,7 @@ class OllamaProvider extends AbstractAIProvider {
      */
     public function chat(array $messages, string $system_prompt = '', array $options = []) {
         if (!$this->is_configured()) {
-            return new WP_Error('not_configured', __('Provedor Ollama não configurado.', 'oraculo_tainacan'));
+            return new WP_Error('not_configured', __('Provedor Ollama não configurado.', 'oraculo-tainacan'));
         }
 
         $options = $this->prepare_options($options);
@@ -351,7 +351,7 @@ class OllamaProvider extends AbstractAIProvider {
                 return new WP_Error(
                     'model_not_found',
                     sprintf(
-                        __('Modelo "%1$s" não encontrado. Execute "ollama pull %2$s" para instalá-lo.', 'oraculo_tainacan'),
+                        __('Modelo "%1$s" não encontrado. Execute "ollama pull %2$s" para instalá-lo.', 'oraculo-tainacan'),
                         $model,
                         $model
                     )
@@ -361,7 +361,7 @@ class OllamaProvider extends AbstractAIProvider {
         }
 
         if (!isset($response['message']['content'])) {
-            return new WP_Error('invalid_response', __('Resposta inválida da API.', 'oraculo_tainacan'));
+            return new WP_Error('invalid_response', __('Resposta inválida da API.', 'oraculo-tainacan'));
         }
 
         $usage = [
@@ -392,7 +392,7 @@ class OllamaProvider extends AbstractAIProvider {
      */
     public function stream_response(string $prompt, string $system_prompt, callable $callback, array $options = []): void {
         if (!$this->is_configured()) {
-            $callback('', true, new WP_Error('not_configured', __('Provedor não configurado.', 'oraculo_tainacan')));
+            $callback('', true, new WP_Error('not_configured', __('Provedor não configurado.', 'oraculo-tainacan')));
             return;
         }
 

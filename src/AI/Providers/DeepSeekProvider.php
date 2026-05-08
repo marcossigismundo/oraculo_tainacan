@@ -65,7 +65,7 @@ class DeepSeekProvider extends AbstractAIProvider {
      * {@inheritdoc}
      */
     public function get_description(): string {
-        return __('IA chinesa de alta qualidade com preços muito competitivos. Compatível com API OpenAI.', 'oraculo_tainacan');
+        return __('IA chinesa de alta qualidade com preços muito competitivos. Compatível com API OpenAI.', 'oraculo-tainacan');
     }
 
     /**
@@ -106,7 +106,7 @@ class DeepSeekProvider extends AbstractAIProvider {
         if (!$this->is_configured()) {
             return [
                 'success' => false,
-                'message' => __('Chave de API não configurada.', 'oraculo_tainacan'),
+                'message' => __('Chave de API não configurada.', 'oraculo-tainacan'),
                 'details' => [],
             ];
         }
@@ -129,7 +129,7 @@ class DeepSeekProvider extends AbstractAIProvider {
 
         return [
             'success' => true,
-            'message' => __('Conexão estabelecida com sucesso!', 'oraculo_tainacan'),
+            'message' => __('Conexão estabelecida com sucesso!', 'oraculo-tainacan'),
             'details' => [
                 'models_available' => count($response['data'] ?? []),
             ],
@@ -142,7 +142,7 @@ class DeepSeekProvider extends AbstractAIProvider {
     public function generate_embedding(string $text, ?string $model = null) {
         return new WP_Error(
             'not_supported',
-            __('DeepSeek não oferece API de embeddings. Use OpenAI ou Ollama para embeddings.', 'oraculo_tainacan')
+            __('DeepSeek não oferece API de embeddings. Use OpenAI ou Ollama para embeddings.', 'oraculo-tainacan')
         );
     }
 
@@ -152,7 +152,7 @@ class DeepSeekProvider extends AbstractAIProvider {
     public function generate_embeddings_batch(array $texts, ?string $model = null) {
         return new WP_Error(
             'not_supported',
-            __('DeepSeek não oferece API de embeddings. Use OpenAI ou Ollama para embeddings.', 'oraculo_tainacan')
+            __('DeepSeek não oferece API de embeddings. Use OpenAI ou Ollama para embeddings.', 'oraculo-tainacan')
         );
     }
 
@@ -168,7 +168,7 @@ class DeepSeekProvider extends AbstractAIProvider {
      */
     public function chat(array $messages, string $system_prompt = '', array $options = []) {
         if (!$this->is_configured()) {
-            return new WP_Error('not_configured', __('Provedor DeepSeek não configurado.', 'oraculo_tainacan'));
+            return new WP_Error('not_configured', __('Provedor DeepSeek não configurado.', 'oraculo-tainacan'));
         }
 
         $options = $this->prepare_options($options);
@@ -194,7 +194,7 @@ class DeepSeekProvider extends AbstractAIProvider {
         }
 
         if (!isset($response['choices'][0]['message']['content'])) {
-            return new WP_Error('invalid_response', __('Resposta inválida da API.', 'oraculo_tainacan'));
+            return new WP_Error('invalid_response', __('Resposta inválida da API.', 'oraculo-tainacan'));
         }
 
         $usage = $this->normalize_usage($response['usage'] ?? []);

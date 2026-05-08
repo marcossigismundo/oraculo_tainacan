@@ -447,7 +447,7 @@ class WebhooksManager {
         if ($email_enabled) {
             return $this->send_email_notification(
                 /* translators: %s: date of the daily report */
-                sprintf(__('Relatório Diário - %s', 'oraculo_tainacan'), $report['date']),
+                sprintf(__('Relatório Diário - %s', 'oraculo-tainacan'), $report['date']),
                 $message
             );
         }
