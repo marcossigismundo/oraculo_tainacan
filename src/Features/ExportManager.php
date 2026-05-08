@@ -153,19 +153,21 @@ class ExportManager {
     public function export_conversations(string $period = 'month', string $format = 'json'): string {
         global $wpdb;
 
-        $date_condition = $this->get_date_condition($period);
+        [$where_frag, $where_args] = $this->get_date_where($period);
 
-        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $wpdb->prefix + literal table names for oraculo_conversations and oraculo_messages; $date_condition is built from hardcoded date strings, not user input; table identifiers cannot be parameterized.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned tables; full export query, no WP API equivalent.
-        $conversations = $wpdb->get_results(
-            "SELECT c.*,
+        $sql = "SELECT c.*,
                     (SELECT COUNT(*) FROM {$wpdb->prefix}oraculo_messages WHERE conversation_id = c.id) as message_count
              FROM {$wpdb->prefix}oraculo_conversations c
-             WHERE {$date_condition}
-             ORDER BY c.created_at DESC",
-            ARRAY_A
-        );
-        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
+             WHERE {$where_frag}
+             ORDER BY c.created_at DESC";
+
+        if (empty($where_args)) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- table names are $wpdb->prefix . literal (plugin-owned, no user input); $where_frag is from get_date_where() literal-only branch (no %d placeholders here).
+            $conversations = $wpdb->get_results($sql, ARRAY_A);
+        } else {
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- table names are $wpdb->prefix . literal (plugin-owned); $where_frag from get_date_where() (class-defined whitelist); %d args bound via prepare below.
+            $conversations = $wpdb->get_results($wpdb->prepare($sql, ...$where_args), ARRAY_A);
+        }
 
         foreach ($conversations as &$conv) {
             // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; per-conversation message export.
@@ -476,23 +478,28 @@ class ExportManager {
     }
 
     /**
-     * Obtém condição de data
+     * Constrói o fragmento WHERE de data como SQL preparável.
      *
-     * @param string $period
-     * @return string
+     * Retorna [string $where_fragment, array $prepare_args]: o fragmento
+     * é selecionado por whitelist (switch); valores variáveis (dias)
+     * usam %d para serem bound via $wpdb->prepare(). Nenhum dos valores
+     * vem de input do usuário — todos são literais hardcoded.
+     *
+     * @param string $period 'today'|'week'|'month'|'year'|'all'
+     * @return array{0:string,1:array<int,int>}
      */
-    private function get_date_condition(string $period): string {
+    private function get_date_where(string $period): array {
         switch ($period) {
             case 'today':
-                return "DATE(created_at) = CURDATE()";
+                return ['DATE(created_at) = CURDATE()', []];
             case 'week':
-                return "created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
+                return ['created_at >= DATE_SUB(NOW(), INTERVAL %d DAY)', [7]];
             case 'month':
-                return "created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
+                return ['created_at >= DATE_SUB(NOW(), INTERVAL %d DAY)', [30]];
             case 'year':
-                return "created_at >= DATE_SUB(NOW(), INTERVAL 1 YEAR)";
+                return ['created_at >= DATE_SUB(NOW(), INTERVAL 1 YEAR)', []];
             default:
-                return "1=1";
+                return ['1=1', []];
         }
     }
 

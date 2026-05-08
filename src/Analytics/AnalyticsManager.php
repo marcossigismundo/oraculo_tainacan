@@ -95,59 +95,51 @@ class AnalyticsManager {
     public function get_stats(string $period = 'month'): array {
         global $wpdb;
 
-        $date_condition = $this->get_date_condition($period);
+        [$where_frag, $where_args] = $this->get_date_where($period);
 
-        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->logs_table is $wpdb->prefix . self::TABLE_LOGS (class constant; cannot receive user input); $date_condition is a hardcoded SQL literal returned by get_date_condition() (no user input); analytics stats are read-only aggregates, cached by caller if needed.
+        // Helper local: executa SELECT com $where_frag + (opcionalmente) condição extra hardcoded.
+        $run_count = function (string $select, string $extra_and = '') use ($wpdb, $where_frag, $where_args) {
+            $where = $extra_and === '' ? $where_frag : "{$extra_and} AND {$where_frag}";
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->logs_table is $wpdb->prefix . self::TABLE_LOGS (class constant); $where is built from get_date_where() (whitelist of class-defined fragments) plus a literal $extra_and from the caller (hardcoded); any %d in $where is bound below via prepare(); analytics aggregate, cached by caller.
+            $sql = "SELECT {$select} FROM {$this->logs_table} WHERE {$where}";
+            if (empty($where_args)) {
+                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- no %d placeholders in this branch (period maps to fully-literal fragment from get_date_where()); table from class constant.
+                return $wpdb->get_var($sql);
+            }
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $sql interpolation is class-constant table + class-defined where fragment; %d args from get_date_where() bound below.
+            return $wpdb->get_var($wpdb->prepare($sql, ...$where_args));
+        };
+
         // Total de buscas
-        $total_searches = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$this->logs_table} WHERE {$date_condition}"
-        );
+        $total_searches = (int) $run_count('COUNT(*)');
 
         // Buscas únicas (por query_hash)
-        $unique_searches = (int) $wpdb->get_var(
-            "SELECT COUNT(DISTINCT query_hash) FROM {$this->logs_table} WHERE {$date_condition}"
-        );
+        $unique_searches = (int) $run_count('COUNT(DISTINCT query_hash)');
 
         // Taxa de sucesso (buscas com resultados)
-        $successful_searches = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$this->logs_table} WHERE results_count > 0 AND {$date_condition}"
-        );
+        $successful_searches = (int) $run_count('COUNT(*)', 'results_count > 0');
         $success_rate = $total_searches > 0
             ? round(($successful_searches / $total_searches) * 100, 1)
             : 0;
 
         // Taxa de satisfação
-        $positive_feedback = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$this->logs_table} WHERE feedback = 'positive' AND {$date_condition}"
-        );
-        $total_feedback = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$this->logs_table} WHERE feedback IS NOT NULL AND {$date_condition}"
-        );
+        $positive_feedback = (int) $run_count('COUNT(*)', "feedback = 'positive'");
+        $total_feedback = (int) $run_count('COUNT(*)', 'feedback IS NOT NULL');
         $satisfaction_rate = $total_feedback > 0
             ? round(($positive_feedback / $total_feedback) * 100, 1)
             : 0;
 
         // Tokens utilizados
-        $total_tokens = (int) $wpdb->get_var(
-            "SELECT SUM(tokens_used) FROM {$this->logs_table} WHERE {$date_condition}"
-        );
+        $total_tokens = (int) $run_count('SUM(tokens_used)');
 
         // Tempo médio de resposta
-        $avg_response_time = (float) $wpdb->get_var(
-            "SELECT AVG(response_time_ms) FROM {$this->logs_table} WHERE {$date_condition}"
-        );
+        $avg_response_time = (float) $run_count('AVG(response_time_ms)');
 
         // Média de resultados por busca
-        $avg_results = (float) $wpdb->get_var(
-            "SELECT AVG(results_count) FROM {$this->logs_table} WHERE {$date_condition}"
-        );
+        $avg_results = (float) $run_count('AVG(results_count)');
 
         // Usuários únicos
-        $unique_users = (int) $wpdb->get_var(
-            "SELECT COUNT(DISTINCT COALESCE(NULLIF(user_id, 0), ip_address))
-             FROM {$this->logs_table} WHERE {$date_condition}"
-        );
-        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+        $unique_users = (int) $run_count('COUNT(DISTINCT COALESCE(NULLIF(user_id, 0), ip_address))');
 
         return [
             'total_searches' => $total_searches,
@@ -172,7 +164,7 @@ class AnalyticsManager {
     public function get_searches_timeline(string $period = 'month', string $granularity = 'day'): array {
         global $wpdb;
 
-        $date_condition = $this->get_date_condition($period);
+        [$where_frag, $where_args] = $this->get_date_where($period);
 
         switch ($granularity) {
             case 'hour':
@@ -188,20 +180,22 @@ class AnalyticsManager {
                 $date_format = '%Y-%m-%d';
         }
 
-        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $date_format is from hardcoded switch; $this->logs_table is $wpdb->prefix . self::TABLE_LOGS (class constant; cannot receive user input); table/format identifiers cannot be parameterized.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- timeline is period-specific and not worth caching.
-        $results = $wpdb->get_results(
-            "SELECT DATE_FORMAT(created_at, '{$date_format}') as date_bucket,
+        $sql = "SELECT DATE_FORMAT(created_at, '{$date_format}') as date_bucket,
                     COUNT(*) as searches,
                     SUM(CASE WHEN results_count > 0 THEN 1 ELSE 0 END) as successful,
                     AVG(response_time_ms) as avg_time
              FROM {$this->logs_table}
-             WHERE {$date_condition}
+             WHERE {$where_frag}
              GROUP BY date_bucket
-             ORDER BY date_bucket ASC",
-            ARRAY_A
-        );
-        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
+             ORDER BY date_bucket ASC";
+
+        if (empty($where_args)) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $date_format is from hardcoded switch; $this->logs_table is $wpdb->prefix . self::TABLE_LOGS (class constant); $where_frag is from get_date_where() literal-only branch (no %d placeholders here); table/format identifiers cannot be parameterized.
+            $results = $wpdb->get_results($sql, ARRAY_A);
+        } else {
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $date_format is from hardcoded switch; table from class constant; $where_frag is from get_date_where() (class-defined whitelist) and any %d args bound via prepare below.
+            $results = $wpdb->get_results($wpdb->prepare($sql, ...$where_args), ARRAY_A);
+        }
 
         return array_map(function($row) {
             return [
@@ -223,23 +217,22 @@ class AnalyticsManager {
     public function get_top_searches(string $period = 'month', int $limit = 10): array {
         global $wpdb;
 
-        $date_condition = $this->get_date_condition($period);
+        [$where_frag, $where_args] = $this->get_date_where($period);
 
-        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->logs_table is $wpdb->prefix . self::TABLE_LOGS (class constant; cannot receive user input); table identifier cannot be parameterized.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- analytics read; period-specific query.
-        return $wpdb->get_results($wpdb->prepare(
-            "SELECT query_text, COUNT(*) as count,
+        $sql = "SELECT query_text, COUNT(*) as count,
                     AVG(results_count) as avg_results,
                     SUM(CASE WHEN feedback = 'positive' THEN 1 ELSE 0 END) as positive,
                     SUM(CASE WHEN feedback = 'negative' THEN 1 ELSE 0 END) as negative
              FROM {$this->logs_table}
-             WHERE {$date_condition}
+             WHERE {$where_frag}
              GROUP BY query_hash
              ORDER BY count DESC
-             LIMIT %d",
-            $limit
-        ), ARRAY_A);
-        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
+             LIMIT %d";
+
+        $args = array_merge($where_args, [$limit]);
+
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->logs_table is $wpdb->prefix . self::TABLE_LOGS (class constant; cannot receive user input); $where_frag is from get_date_where() (class-defined whitelist); all %d args bound via prepare below.
+        return $wpdb->get_results($wpdb->prepare($sql, ...$args), ARRAY_A);
     }
 
     /**
@@ -252,20 +245,19 @@ class AnalyticsManager {
     public function get_failed_searches(string $period = 'month', int $limit = 10): array {
         global $wpdb;
 
-        $date_condition = $this->get_date_condition($period);
+        [$where_frag, $where_args] = $this->get_date_where($period);
 
-        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->logs_table is $wpdb->prefix . self::TABLE_LOGS (class constant; cannot receive user input); table identifier cannot be parameterized.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- analytics read; failed searches are period-specific.
-        return $wpdb->get_results($wpdb->prepare(
-            "SELECT query_text, COUNT(*) as count
+        $sql = "SELECT query_text, COUNT(*) as count
              FROM {$this->logs_table}
-             WHERE results_count = 0 AND {$date_condition}
+             WHERE results_count = 0 AND {$where_frag}
              GROUP BY query_hash
              ORDER BY count DESC
-             LIMIT %d",
-            $limit
-        ), ARRAY_A);
-        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
+             LIMIT %d";
+
+        $args = array_merge($where_args, [$limit]);
+
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->logs_table is $wpdb->prefix . self::TABLE_LOGS (class constant; cannot receive user input); $where_frag from get_date_where() (class-defined whitelist); all %d args bound via prepare below.
+        return $wpdb->get_results($wpdb->prepare($sql, ...$args), ARRAY_A);
     }
 
     /**
@@ -277,20 +269,22 @@ class AnalyticsManager {
     public function get_stats_by_collection(string $period = 'month'): array {
         global $wpdb;
 
-        $date_condition = $this->get_date_condition($period);
+        [$where_frag, $where_args] = $this->get_date_where($period);
+
+        $sql = "SELECT collection_ids, COUNT(*) as searches
+             FROM {$this->logs_table}
+             WHERE {$where_frag} AND collection_ids IS NOT NULL AND collection_ids != '[]'
+             GROUP BY collection_ids
+             ORDER BY searches DESC";
 
         // Buscar logs com collection_ids
-        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->logs_table is $wpdb->prefix . self::TABLE_LOGS (class constant; cannot receive user input); table identifier cannot be parameterized.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- analytics aggregation; period-specific query.
-        $results = $wpdb->get_results(
-            "SELECT collection_ids, COUNT(*) as searches
-             FROM {$this->logs_table}
-             WHERE {$date_condition} AND collection_ids IS NOT NULL AND collection_ids != '[]'
-             GROUP BY collection_ids
-             ORDER BY searches DESC",
-            ARRAY_A
-        );
-        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
+        if (empty($where_args)) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->logs_table is $wpdb->prefix . self::TABLE_LOGS (class constant; cannot receive user input); $where_frag is from get_date_where() literal-only branch (no %d placeholders here).
+            $results = $wpdb->get_results($sql, ARRAY_A);
+        } else {
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- table from class constant; $where_frag from get_date_where() (class-defined whitelist); %d args bound via prepare below.
+            $results = $wpdb->get_results($wpdb->prepare($sql, ...$where_args), ARRAY_A);
+        }
 
         // Agregar por coleção individual
         $by_collection = [];
@@ -333,19 +327,20 @@ class AnalyticsManager {
     public function get_model_usage(string $period = 'month'): array {
         global $wpdb;
 
-        $date_condition = $this->get_date_condition($period);
+        [$where_frag, $where_args] = $this->get_date_where($period);
 
-        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->logs_table is $wpdb->prefix . self::TABLE_LOGS (class constant; cannot receive user input); table identifier cannot be parameterized.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- analytics model usage; period-specific.
-        return $wpdb->get_results(
-            "SELECT model_used, COUNT(*) as count, SUM(tokens_used) as total_tokens
+        $sql = "SELECT model_used, COUNT(*) as count, SUM(tokens_used) as total_tokens
              FROM {$this->logs_table}
-             WHERE {$date_condition} AND model_used != ''
+             WHERE {$where_frag} AND model_used != ''
              GROUP BY model_used
-             ORDER BY count DESC",
-            ARRAY_A
-        );
-        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
+             ORDER BY count DESC";
+
+        if (empty($where_args)) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->logs_table is $wpdb->prefix . self::TABLE_LOGS (class constant; cannot receive user input); $where_frag from get_date_where() literal-only branch (no %d placeholders here).
+            return $wpdb->get_results($sql, ARRAY_A);
+        }
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- table from class constant; $where_frag from get_date_where() (class-defined whitelist); %d args bound via prepare below.
+        return $wpdb->get_results($wpdb->prepare($sql, ...$where_args), ARRAY_A);
     }
 
     /**
@@ -403,26 +398,36 @@ class AnalyticsManager {
     }
 
     /**
-     * Obtém condição de data SQL
+     * Constrói o fragmento WHERE de data como SQL preparável.
      *
-     * @param string $period
-     * @return string
+     * Retorna [string $where_fragment, array $prepare_args]:
+     *  - $where_fragment é uma string definida pela classe (whitelist via switch).
+     *    Se contiver %d, $prepare_args traz o valor a ser bound.
+     *  - $prepare_args é um array de inteiros para passar a $wpdb->prepare().
+     *    Vazio quando o fragmento não tem placeholders.
+     *
+     * Garantia estrutural: nenhum dos valores em $prepare_args ou
+     * fragmentos retornados pode vir de input do usuário — todos são
+     * literais hardcoded selecionados pelo whitelist do switch.
+     *
+     * @param string $period 'today'|'yesterday'|'week'|'month'|'year'|'all'
+     * @return array{0:string,1:array<int,int>}
      */
-    private function get_date_condition(string $period): string {
+    private function get_date_where(string $period): array {
         switch ($period) {
             case 'today':
-                return "DATE(created_at) = CURDATE()";
+                return ['DATE(created_at) = CURDATE()', []];
             case 'yesterday':
-                return "DATE(created_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)";
+                return ['DATE(created_at) = DATE_SUB(CURDATE(), INTERVAL %d DAY)', [1]];
             case 'week':
-                return "created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
+                return ['created_at >= DATE_SUB(NOW(), INTERVAL %d DAY)', [7]];
             case 'month':
-                return "created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
+                return ['created_at >= DATE_SUB(NOW(), INTERVAL %d DAY)', [30]];
             case 'year':
-                return "created_at >= DATE_SUB(NOW(), INTERVAL 1 YEAR)";
+                return ['created_at >= DATE_SUB(NOW(), INTERVAL 1 YEAR)', []];
             case 'all':
             default:
-                return "1=1";
+                return ['1=1', []];
         }
     }
 
