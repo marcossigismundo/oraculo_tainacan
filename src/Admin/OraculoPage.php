@@ -408,7 +408,6 @@ class Oraculo_Page extends \Tainacan\Pages {
         $collections_indexed = (int) $wpdb->get_var("SELECT COUNT(DISTINCT collection_id) FROM {$vectors_table}");
 
         if (!$logs_exists) {
-            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
             return [
                 'total_indexed' => $total_indexed,
                 'collections_indexed' => $collections_indexed,
