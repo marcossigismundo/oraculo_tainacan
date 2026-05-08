@@ -68,12 +68,12 @@ $recent_errors = get_option('oraculo_recent_errors', []);
 ?>
 
 <div class="wrap oraculo-admin oraculo-debug">
-    <h1><?php esc_html_e('Debug e Diagnóstico', 'oraculo-tainacan'); ?></h1>
+    <h1><?php esc_html_e('Debug e Diagnóstico', 'oraculo_tainacan'); ?></h1>
 
     <div class="oraculo-debug-grid">
         <!-- Informações do Ambiente -->
         <div class="oraculo-card">
-            <h2><?php esc_html_e('Informações do Ambiente', 'oraculo-tainacan'); ?></h2>
+            <h2><?php esc_html_e('Informações do Ambiente', 'oraculo_tainacan'); ?></h2>
             <table class="oraculo-debug-table">
                 <?php foreach ($env_info as $key => $value) : ?>
                     <tr>
@@ -86,13 +86,13 @@ $recent_errors = get_option('oraculo_recent_errors', []);
 
         <!-- Status das Tabelas -->
         <div class="oraculo-card">
-            <h2><?php esc_html_e('Tabelas do Banco de Dados', 'oraculo-tainacan'); ?></h2>
+            <h2><?php esc_html_e('Tabelas do Banco de Dados', 'oraculo_tainacan'); ?></h2>
             <table class="oraculo-debug-table">
                 <thead>
                     <tr>
-                        <th><?php esc_html_e('Tabela', 'oraculo-tainacan'); ?></th>
-                        <th><?php esc_html_e('Status', 'oraculo-tainacan'); ?></th>
-                        <th><?php esc_html_e('Registros', 'oraculo-tainacan'); ?></th>
+                        <th><?php esc_html_e('Tabela', 'oraculo_tainacan'); ?></th>
+                        <th><?php esc_html_e('Status', 'oraculo_tainacan'); ?></th>
+                        <th><?php esc_html_e('Registros', 'oraculo_tainacan'); ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -113,14 +113,14 @@ $recent_errors = get_option('oraculo_recent_errors', []);
             </table>
             <p>
                 <button type="button" class="button" id="oraculo-repair-tables">
-                    <?php esc_html_e('Reparar Tabelas', 'oraculo-tainacan'); ?>
+                    <?php esc_html_e('Reparar Tabelas', 'oraculo_tainacan'); ?>
                 </button>
             </p>
         </div>
 
         <!-- Status dos Provedores -->
         <div class="oraculo-card full-width">
-            <h2><?php esc_html_e('Status dos Provedores de IA', 'oraculo-tainacan'); ?></h2>
+            <h2><?php esc_html_e('Status dos Provedores de IA', 'oraculo_tainacan'); ?></h2>
             <div class="providers-grid">
                 <?php foreach ($providers as $provider) : ?>
                     <div class="provider-status-card">
@@ -128,7 +128,7 @@ $recent_errors = get_option('oraculo_recent_errors', []);
                         <p class="provider-id"><?php echo esc_html($provider['id']); ?></p>
                         <ul>
                             <li>
-                                <strong><?php esc_html_e('Configurado:', 'oraculo-tainacan'); ?></strong>
+                                <strong><?php esc_html_e('Configurado:', 'oraculo_tainacan'); ?></strong>
                                 <?php if ($provider['is_configured']) : ?>
                                     <span class="status-ok">Sim</span>
                                 <?php else : ?>
@@ -136,18 +136,18 @@ $recent_errors = get_option('oraculo_recent_errors', []);
                                 <?php endif; ?>
                             </li>
                             <li>
-                                <strong><?php esc_html_e('Embeddings:', 'oraculo-tainacan'); ?></strong>
+                                <strong><?php esc_html_e('Embeddings:', 'oraculo_tainacan'); ?></strong>
                                 <?php echo $provider['supports_embeddings'] ? 'Sim' : 'Não'; ?>
                             </li>
                             <li>
-                                <strong><?php esc_html_e('Streaming:', 'oraculo-tainacan'); ?></strong>
+                                <strong><?php esc_html_e('Streaming:', 'oraculo_tainacan'); ?></strong>
                                 <?php echo $provider['supports_streaming'] ? 'Sim' : 'Não'; ?>
                             </li>
                         </ul>
                         <?php if ($provider['is_configured']) : ?>
                             <button type="button" class="button button-small oraculo-test-provider"
                                     data-provider="<?php echo esc_attr($provider['id']); ?>">
-                                <?php esc_html_e('Testar', 'oraculo-tainacan'); ?>
+                                <?php esc_html_e('Testar', 'oraculo_tainacan'); ?>
                             </button>
                         <?php endif; ?>
                         <div class="test-result"></div>
@@ -158,17 +158,17 @@ $recent_errors = get_option('oraculo_recent_errors', []);
 
         <!-- Buscas Recentes -->
         <div class="oraculo-card">
-            <h2><?php esc_html_e('Buscas Recentes', 'oraculo-tainacan'); ?></h2>
+            <h2><?php esc_html_e('Buscas Recentes', 'oraculo_tainacan'); ?></h2>
             <?php if (empty($recent_searches)) : ?>
-                <p class="oraculo-empty"><?php esc_html_e('Nenhuma busca registrada.', 'oraculo-tainacan'); ?></p>
+                <p class="oraculo-empty"><?php esc_html_e('Nenhuma busca registrada.', 'oraculo_tainacan'); ?></p>
             <?php else : ?>
                 <table class="oraculo-debug-table">
                     <thead>
                         <tr>
-                            <th><?php esc_html_e('Busca', 'oraculo-tainacan'); ?></th>
-                            <th><?php esc_html_e('Resultados', 'oraculo-tainacan'); ?></th>
-                            <th><?php esc_html_e('Tempo', 'oraculo-tainacan'); ?></th>
-                            <th><?php esc_html_e('Data', 'oraculo-tainacan'); ?></th>
+                            <th><?php esc_html_e('Busca', 'oraculo_tainacan'); ?></th>
+                            <th><?php esc_html_e('Resultados', 'oraculo_tainacan'); ?></th>
+                            <th><?php esc_html_e('Tempo', 'oraculo_tainacan'); ?></th>
+                            <th><?php esc_html_e('Data', 'oraculo_tainacan'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -187,9 +187,9 @@ $recent_errors = get_option('oraculo_recent_errors', []);
 
         <!-- Erros Recentes -->
         <div class="oraculo-card">
-            <h2><?php esc_html_e('Erros Recentes', 'oraculo-tainacan'); ?></h2>
+            <h2><?php esc_html_e('Erros Recentes', 'oraculo_tainacan'); ?></h2>
             <?php if (empty($recent_errors)) : ?>
-                <p class="oraculo-empty"><?php esc_html_e('Nenhum erro registrado.', 'oraculo-tainacan'); ?></p>
+                <p class="oraculo-empty"><?php esc_html_e('Nenhum erro registrado.', 'oraculo_tainacan'); ?></p>
             <?php else : ?>
                 <div class="oraculo-errors-log">
                     <?php foreach ($recent_errors as $error) : ?>
@@ -202,7 +202,7 @@ $recent_errors = get_option('oraculo_recent_errors', []);
                 </div>
                 <p>
                     <button type="button" class="button" id="oraculo-clear-errors">
-                        <?php esc_html_e('Limpar Erros', 'oraculo-tainacan'); ?>
+                        <?php esc_html_e('Limpar Erros', 'oraculo_tainacan'); ?>
                     </button>
                 </p>
             <?php endif; ?>
@@ -210,22 +210,22 @@ $recent_errors = get_option('oraculo_recent_errors', []);
 
         <!-- Teste de Busca -->
         <div class="oraculo-card full-width">
-            <h2><?php esc_html_e('Teste de Busca', 'oraculo-tainacan'); ?></h2>
+            <h2><?php esc_html_e('Teste de Busca', 'oraculo_tainacan'); ?></h2>
             <form id="oraculo-test-search">
                 <p>
-                    <label for="test-query"><?php esc_html_e('Pergunta:', 'oraculo-tainacan'); ?></label>
+                    <label for="test-query"><?php esc_html_e('Pergunta:', 'oraculo_tainacan'); ?></label>
                     <input type="text" id="test-query" class="regular-text"
-                           placeholder="<?php esc_attr_e('Digite uma pergunta para testar...', 'oraculo-tainacan'); ?>">
+                           placeholder="<?php esc_attr_e('Digite uma pergunta para testar...', 'oraculo_tainacan'); ?>">
                 </p>
                 <p>
                     <label>
                         <input type="checkbox" id="test-semantic-only" value="1">
-                        <?php esc_html_e('Apenas busca semântica (sem IA)', 'oraculo-tainacan'); ?>
+                        <?php esc_html_e('Apenas busca semântica (sem IA)', 'oraculo_tainacan'); ?>
                     </label>
                 </p>
                 <p>
                     <button type="submit" class="button button-primary">
-                        <?php esc_html_e('Executar Teste', 'oraculo-tainacan'); ?>
+                        <?php esc_html_e('Executar Teste', 'oraculo_tainacan'); ?>
                     </button>
                 </p>
             </form>
@@ -234,22 +234,22 @@ $recent_errors = get_option('oraculo_recent_errors', []);
 
         <!-- Ações de Manutenção -->
         <div class="oraculo-card full-width">
-            <h2><?php esc_html_e('Ações de Manutenção', 'oraculo-tainacan'); ?></h2>
+            <h2><?php esc_html_e('Ações de Manutenção', 'oraculo_tainacan'); ?></h2>
             <div class="maintenance-actions">
                 <button type="button" class="button" id="oraculo-clear-cache">
-                    <?php esc_html_e('Limpar Cache', 'oraculo-tainacan'); ?>
+                    <?php esc_html_e('Limpar Cache', 'oraculo_tainacan'); ?>
                 </button>
                 <button type="button" class="button" id="oraculo-optimize-tables">
-                    <?php esc_html_e('Otimizar Tabelas', 'oraculo-tainacan'); ?>
+                    <?php esc_html_e('Otimizar Tabelas', 'oraculo_tainacan'); ?>
                 </button>
                 <button type="button" class="button" id="oraculo-cleanup-old">
-                    <?php esc_html_e('Limpar Dados Antigos (90 dias)', 'oraculo-tainacan'); ?>
+                    <?php esc_html_e('Limpar Dados Antigos (90 dias)', 'oraculo_tainacan'); ?>
                 </button>
                 <button type="button" class="button" id="oraculo-export-settings">
-                    <?php esc_html_e('Exportar Configurações', 'oraculo-tainacan'); ?>
+                    <?php esc_html_e('Exportar Configurações', 'oraculo_tainacan'); ?>
                 </button>
                 <button type="button" class="button button-danger" id="oraculo-reset-plugin">
-                    <?php esc_html_e('Resetar Plugin', 'oraculo-tainacan'); ?>
+                    <?php esc_html_e('Resetar Plugin', 'oraculo_tainacan'); ?>
                 </button>
             </div>
         </div>
@@ -452,7 +452,7 @@ jQuery(document).ready(function($) {
         var provider = btn.data('provider');
         var result = btn.siblings('.test-result');
 
-        btn.prop('disabled', true).text('<?php esc_html_e('Testando...', 'oraculo-tainacan'); ?>');
+        btn.prop('disabled', true).text('<?php esc_html_e('Testando...', 'oraculo_tainacan'); ?>');
 
         $.ajax({
             url: ajaxurl,
@@ -463,7 +463,7 @@ jQuery(document).ready(function($) {
                 provider: provider
             },
             success: function(response) {
-                btn.prop('disabled', false).text('<?php esc_html_e('Testar', 'oraculo-tainacan'); ?>');
+                btn.prop('disabled', false).text('<?php esc_html_e('Testar', 'oraculo_tainacan'); ?>');
                 if (response.success) {
                     result.html('<span class="status-ok">' + response.data.message + '</span>');
                 } else {
@@ -471,8 +471,8 @@ jQuery(document).ready(function($) {
                 }
             },
             error: function() {
-                btn.prop('disabled', false).text('<?php esc_html_e('Testar', 'oraculo-tainacan'); ?>');
-                result.html('<span class="status-error"><?php esc_html_e('Erro de conexão', 'oraculo-tainacan'); ?></span>');
+                btn.prop('disabled', false).text('<?php esc_html_e('Testar', 'oraculo_tainacan'); ?>');
+                result.html('<span class="status-error"><?php esc_html_e('Erro de conexão', 'oraculo_tainacan'); ?></span>');
             }
         });
     });
@@ -485,7 +485,7 @@ jQuery(document).ready(function($) {
         if (!query) return;
 
         var results = $('#oraculo-test-results');
-        results.html('<p><?php esc_html_e('Processando...', 'oraculo-tainacan'); ?></p>').addClass('show');
+        results.html('<p><?php esc_html_e('Processando...', 'oraculo_tainacan'); ?></p>').addClass('show');
 
         $.ajax({
             url: ajaxurl,
@@ -504,7 +504,7 @@ jQuery(document).ready(function($) {
                 }
             },
             error: function() {
-                results.html('<p style="color: red;"><?php esc_html_e('Erro de conexão', 'oraculo-tainacan'); ?></p>');
+                results.html('<p style="color: red;"><?php esc_html_e('Erro de conexão', 'oraculo_tainacan'); ?></p>');
             }
         });
     });
@@ -524,7 +524,7 @@ jQuery(document).ready(function($) {
             success: function(response) {
                 btn.prop('disabled', false);
                 if (response.success) {
-                    alert('<?php esc_html_e('Tabelas reparadas com sucesso!', 'oraculo-tainacan'); ?>');
+                    alert('<?php esc_html_e('Tabelas reparadas com sucesso!', 'oraculo_tainacan'); ?>');
                     location.reload();
                 } else {
                     alert(response.data.message);
@@ -544,7 +544,7 @@ jQuery(document).ready(function($) {
             },
             success: function(response) {
                 if (response.success) {
-                    alert('<?php esc_html_e('Cache limpo!', 'oraculo-tainacan'); ?>');
+                    alert('<?php esc_html_e('Cache limpo!', 'oraculo_tainacan'); ?>');
                 }
             }
         });
@@ -570,7 +570,7 @@ jQuery(document).ready(function($) {
     // Otimizar tabelas
     $('#oraculo-optimize-tables').on('click', function() {
         var btn = $(this);
-        btn.prop('disabled', true).text('<?php esc_html_e('Otimizando...', 'oraculo-tainacan'); ?>');
+        btn.prop('disabled', true).text('<?php esc_html_e('Otimizando...', 'oraculo_tainacan'); ?>');
 
         $.ajax({
             url: ajaxurl,
@@ -580,9 +580,9 @@ jQuery(document).ready(function($) {
                 nonce: '<?php echo esc_js( wp_create_nonce('oraculo_admin') ); ?>'
             },
             success: function(response) {
-                btn.prop('disabled', false).text('<?php esc_html_e('Otimizar Tabelas', 'oraculo-tainacan'); ?>');
+                btn.prop('disabled', false).text('<?php esc_html_e('Otimizar Tabelas', 'oraculo_tainacan'); ?>');
                 if (response.success) {
-                    alert('<?php esc_html_e('Tabelas otimizadas!', 'oraculo-tainacan'); ?>');
+                    alert('<?php esc_html_e('Tabelas otimizadas!', 'oraculo_tainacan'); ?>');
                 }
             }
         });
@@ -590,10 +590,10 @@ jQuery(document).ready(function($) {
 
     // Resetar plugin
     $('#oraculo-reset-plugin').on('click', function() {
-        if (!confirm('<?php esc_html_e('ATENÇÃO: Isso removerá TODOS os dados do plugin. Continuar?', 'oraculo-tainacan'); ?>')) {
+        if (!confirm('<?php esc_html_e('ATENÇÃO: Isso removerá TODOS os dados do plugin. Continuar?', 'oraculo_tainacan'); ?>')) {
             return;
         }
-        if (!confirm('<?php esc_html_e('Esta ação NÃO pode ser desfeita. Tem certeza absoluta?', 'oraculo-tainacan'); ?>')) {
+        if (!confirm('<?php esc_html_e('Esta ação NÃO pode ser desfeita. Tem certeza absoluta?', 'oraculo_tainacan'); ?>')) {
             return;
         }
 
@@ -606,7 +606,7 @@ jQuery(document).ready(function($) {
             },
             success: function(response) {
                 if (response.success) {
-                    alert('<?php esc_html_e('Plugin resetado com sucesso!', 'oraculo-tainacan'); ?>');
+                    alert('<?php esc_html_e('Plugin resetado com sucesso!', 'oraculo_tainacan'); ?>');
                     location.reload();
                 }
             }

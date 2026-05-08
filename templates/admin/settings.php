@@ -23,27 +23,27 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
         <div class="oraculo-settings-tabs">
             <nav class="oraculo-tabs-nav">
                 <button type="button" class="oraculo-tab-btn active" data-tab="providers">
-                    <?php esc_html_e('Provedores de IA', 'oraculo-tainacan'); ?>
+                    <?php esc_html_e('Provedores de IA', 'oraculo_tainacan'); ?>
                 </button>
                 <button type="button" class="oraculo-tab-btn" data-tab="general">
-                    <?php esc_html_e('Geral', 'oraculo-tainacan'); ?>
+                    <?php esc_html_e('Geral', 'oraculo_tainacan'); ?>
                 </button>
                 <button type="button" class="oraculo-tab-btn" data-tab="prompts">
-                    <?php esc_html_e('Prompts', 'oraculo-tainacan'); ?>
+                    <?php esc_html_e('Prompts', 'oraculo_tainacan'); ?>
                 </button>
                 <button type="button" class="oraculo-tab-btn" data-tab="appearance">
-                    <?php esc_html_e('Aparência', 'oraculo-tainacan'); ?>
+                    <?php esc_html_e('Aparência', 'oraculo_tainacan'); ?>
                 </button>
                 <button type="button" class="oraculo-tab-btn" data-tab="advanced">
-                    <?php esc_html_e('Avançado', 'oraculo-tainacan'); ?>
+                    <?php esc_html_e('Avançado', 'oraculo_tainacan'); ?>
                 </button>
             </nav>
 
             <!-- Tab: Provedores de IA -->
             <div class="oraculo-tab-content active" id="tab-providers">
-                <h2><?php esc_html_e('Provedores de IA', 'oraculo-tainacan'); ?></h2>
+                <h2><?php esc_html_e('Provedores de IA', 'oraculo_tainacan'); ?></h2>
                 <p class="description">
-                    <?php esc_html_e('Selecione e configure o provedor de IA para geração de respostas.', 'oraculo-tainacan'); ?>
+                    <?php esc_html_e('Selecione e configure o provedor de IA para geração de respostas.', 'oraculo_tainacan'); ?>
                 </p>
 
                 <div class="oraculo-providers-grid">
@@ -57,7 +57,7 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
                                    <?php checked($options['ai_provider'], $provider['id']); ?>>
                             <span class="oraculo-provider-name"><?php echo esc_html($provider['name']); ?></span>
                             <?php if ($provider['is_configured']): ?>
-                                <span class="oraculo-provider-badge configured"><?php esc_html_e('Configurado', 'oraculo-tainacan'); ?></span>
+                                <span class="oraculo-provider-badge configured"><?php esc_html_e('Configurado', 'oraculo_tainacan'); ?></span>
                             <?php endif; ?>
                         </label>
                         <p class="oraculo-provider-description"><?php echo esc_html($provider['description']); ?></p>
@@ -78,7 +78,7 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
                     <h3>OpenAI (ChatGPT)</h3>
                     <table class="form-table">
                         <tr>
-                            <th><?php esc_html_e('API Key', 'oraculo-tainacan'); ?></th>
+                            <th><?php esc_html_e('API Key', 'oraculo_tainacan'); ?></th>
                             <td>
                                 <input type="password"
                                        name="oraculo_tainacan_options[openai_api_key]"
@@ -86,17 +86,17 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
                                        class="regular-text"
                                        placeholder="sk-...">
                                 <button type="button" class="button oraculo-test-connection" data-provider="openai">
-                                    <?php esc_html_e('Testar Conexão', 'oraculo-tainacan'); ?>
+                                    <?php esc_html_e('Testar Conexão', 'oraculo_tainacan'); ?>
                                 </button>
                                 <p class="description">
                                     <a href="https://platform.openai.com/api-keys" target="_blank">
-                                        <?php esc_html_e('Obter API Key', 'oraculo-tainacan'); ?>
+                                        <?php esc_html_e('Obter API Key', 'oraculo_tainacan'); ?>
                                     </a>
                                 </p>
                             </td>
                         </tr>
                         <tr>
-                            <th><?php esc_html_e('Modelo de Chat', 'oraculo-tainacan'); ?></th>
+                            <th><?php esc_html_e('Modelo de Chat', 'oraculo_tainacan'); ?></th>
                             <td>
                                 <select name="oraculo_tainacan_options[openai_model]">
                                     <?php
@@ -119,7 +119,7 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
                             </td>
                         </tr>
                         <tr>
-                            <th><?php esc_html_e('Modelo de Embedding', 'oraculo-tainacan'); ?></th>
+                            <th><?php esc_html_e('Modelo de Embedding', 'oraculo_tainacan'); ?></th>
                             <td>
                                 <select name="oraculo_tainacan_options[openai_embedding_model]">
                                     <option value="text-embedding-ada-002" <?php selected($options['openai_embedding_model'] ?? '', 'text-embedding-ada-002'); ?>>Ada 002 (Padrão)</option>
@@ -135,24 +135,24 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
                     <h3>Google Gemini</h3>
                     <table class="form-table">
                         <tr>
-                            <th><?php esc_html_e('API Key', 'oraculo-tainacan'); ?></th>
+                            <th><?php esc_html_e('API Key', 'oraculo_tainacan'); ?></th>
                             <td>
                                 <input type="password"
                                        name="oraculo_tainacan_options[gemini_api_key]"
                                        value="<?php echo !empty($options['gemini_api_key']) ? '••••••••' : ''; ?>"
                                        class="regular-text">
                                 <button type="button" class="button oraculo-test-connection" data-provider="gemini">
-                                    <?php esc_html_e('Testar Conexão', 'oraculo-tainacan'); ?>
+                                    <?php esc_html_e('Testar Conexão', 'oraculo_tainacan'); ?>
                                 </button>
                                 <p class="description">
                                     <a href="https://aistudio.google.com/app/apikey" target="_blank">
-                                        <?php esc_html_e('Obter API Key', 'oraculo-tainacan'); ?>
+                                        <?php esc_html_e('Obter API Key', 'oraculo_tainacan'); ?>
                                     </a>
                                 </p>
                             </td>
                         </tr>
                         <tr>
-                            <th><?php esc_html_e('Modelo', 'oraculo-tainacan'); ?></th>
+                            <th><?php esc_html_e('Modelo', 'oraculo_tainacan'); ?></th>
                             <td>
                                 <select name="oraculo_tainacan_options[gemini_model]">
                                     <option value="gemini-2.0-flash-exp" <?php selected($options['gemini_model'] ?? '', 'gemini-2.0-flash-exp'); ?>>Gemini 2.0 Flash (Experimental)</option>
@@ -168,19 +168,19 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
                     <h3>Ollama (Local)</h3>
                     <table class="form-table">
                         <tr>
-                            <th><?php esc_html_e('URL do Servidor', 'oraculo-tainacan'); ?></th>
+                            <th><?php esc_html_e('URL do Servidor', 'oraculo_tainacan'); ?></th>
                             <td>
                                 <input type="url"
                                        name="oraculo_tainacan_options[ollama_url]"
                                        value="<?php echo esc_attr($options['ollama_url'] ?? 'http://localhost:11434'); ?>"
                                        class="regular-text">
                                 <button type="button" class="button oraculo-test-connection" data-provider="ollama">
-                                    <?php esc_html_e('Testar Conexão', 'oraculo-tainacan'); ?>
+                                    <?php esc_html_e('Testar Conexão', 'oraculo_tainacan'); ?>
                                 </button>
                             </td>
                         </tr>
                         <tr>
-                            <th><?php esc_html_e('Modelo de Chat', 'oraculo-tainacan'); ?></th>
+                            <th><?php esc_html_e('Modelo de Chat', 'oraculo_tainacan'); ?></th>
                             <td>
                                 <input type="text"
                                        name="oraculo_tainacan_options[ollama_model]"
@@ -190,7 +190,7 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
                             </td>
                         </tr>
                         <tr>
-                            <th><?php esc_html_e('Modelo de Embedding', 'oraculo-tainacan'); ?></th>
+                            <th><?php esc_html_e('Modelo de Embedding', 'oraculo_tainacan'); ?></th>
                             <td>
                                 <input type="text"
                                        name="oraculo_tainacan_options[ollama_embedding_model]"
@@ -207,11 +207,11 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
 
             <!-- Tab: Geral -->
             <div class="oraculo-tab-content" id="tab-general">
-                <h2><?php esc_html_e('Configurações Gerais', 'oraculo-tainacan'); ?></h2>
+                <h2><?php esc_html_e('Configurações Gerais', 'oraculo_tainacan'); ?></h2>
 
                 <table class="form-table">
                     <tr>
-                        <th><?php esc_html_e('Coleções Padrão', 'oraculo-tainacan'); ?></th>
+                        <th><?php esc_html_e('Coleções Padrão', 'oraculo_tainacan'); ?></th>
                         <td>
                             <select name="oraculo_tainacan_options[default_collections][]" multiple class="oraculo-multiselect">
                                 <?php foreach ($collections as $collection): ?>
@@ -221,11 +221,11 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
                                 </option>
                                 <?php endforeach; ?>
                             </select>
-                            <p class="description"><?php esc_html_e('Coleções usadas por padrão nas buscas.', 'oraculo-tainacan'); ?></p>
+                            <p class="description"><?php esc_html_e('Coleções usadas por padrão nas buscas.', 'oraculo_tainacan'); ?></p>
                         </td>
                     </tr>
                     <tr>
-                        <th><?php esc_html_e('Máximo de Tokens', 'oraculo-tainacan'); ?></th>
+                        <th><?php esc_html_e('Máximo de Tokens', 'oraculo_tainacan'); ?></th>
                         <td>
                             <input type="number"
                                    name="oraculo_tainacan_options[max_tokens]"
@@ -234,7 +234,7 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
                         </td>
                     </tr>
                     <tr>
-                        <th><?php esc_html_e('Temperatura', 'oraculo-tainacan'); ?></th>
+                        <th><?php esc_html_e('Temperatura', 'oraculo_tainacan'); ?></th>
                         <td>
                             <input type="range"
                                    name="oraculo_tainacan_options[temperature]"
@@ -242,11 +242,11 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
                                    min="0" max="2" step="0.1"
                                    id="temperature-slider">
                             <span id="temperature-value"><?php echo esc_html($options['temperature'] ?? 0.7); ?></span>
-                            <p class="description"><?php esc_html_e('0 = mais determinístico, 2 = mais criativo', 'oraculo-tainacan'); ?></p>
+                            <p class="description"><?php esc_html_e('0 = mais determinístico, 2 = mais criativo', 'oraculo_tainacan'); ?></p>
                         </td>
                     </tr>
                     <tr>
-                        <th><?php esc_html_e('Limiar de Similaridade', 'oraculo-tainacan'); ?></th>
+                        <th><?php esc_html_e('Limiar de Similaridade', 'oraculo_tainacan'); ?></th>
                         <td>
                             <input type="range"
                                    name="oraculo_tainacan_options[similarity_threshold]"
@@ -257,7 +257,7 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
                         </td>
                     </tr>
                     <tr>
-                        <th><?php esc_html_e('Máximo de Resultados', 'oraculo-tainacan'); ?></th>
+                        <th><?php esc_html_e('Máximo de Resultados', 'oraculo_tainacan'); ?></th>
                         <td>
                             <input type="number"
                                    name="oraculo_tainacan_options[max_results]"
@@ -266,27 +266,27 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
                         </td>
                     </tr>
                     <tr>
-                        <th><?php esc_html_e('Funcionalidades', 'oraculo-tainacan'); ?></th>
+                        <th><?php esc_html_e('Funcionalidades', 'oraculo_tainacan'); ?></th>
                         <td>
                             <label>
                                 <input type="checkbox" name="oraculo_tainacan_options[enable_chat]" value="1"
                                        <?php checked($options['enable_chat'] ?? true); ?>>
-                                <?php esc_html_e('Habilitar Chat', 'oraculo-tainacan'); ?>
+                                <?php esc_html_e('Habilitar Chat', 'oraculo_tainacan'); ?>
                             </label><br>
                             <label>
                                 <input type="checkbox" name="oraculo_tainacan_options[enable_search]" value="1"
                                        <?php checked($options['enable_search'] ?? true); ?>>
-                                <?php esc_html_e('Habilitar Busca', 'oraculo-tainacan'); ?>
+                                <?php esc_html_e('Habilitar Busca', 'oraculo_tainacan'); ?>
                             </label><br>
                             <label>
                                 <input type="checkbox" name="oraculo_tainacan_options[enable_analytics]" value="1"
                                        <?php checked($options['enable_analytics'] ?? true); ?>>
-                                <?php esc_html_e('Habilitar Analytics', 'oraculo-tainacan'); ?>
+                                <?php esc_html_e('Habilitar Analytics', 'oraculo_tainacan'); ?>
                             </label><br>
                             <label>
                                 <input type="checkbox" name="oraculo_tainacan_options[enable_feedback]" value="1"
                                        <?php checked($options['enable_feedback'] ?? true); ?>>
-                                <?php esc_html_e('Habilitar Feedback', 'oraculo-tainacan'); ?>
+                                <?php esc_html_e('Habilitar Feedback', 'oraculo_tainacan'); ?>
                             </label>
                         </td>
                     </tr>
@@ -295,26 +295,26 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
 
             <!-- Tab: Prompts -->
             <div class="oraculo-tab-content" id="tab-prompts">
-                <h2><?php esc_html_e('Prompts Personalizados', 'oraculo-tainacan'); ?></h2>
+                <h2><?php esc_html_e('Prompts Personalizados', 'oraculo_tainacan'); ?></h2>
 
                 <table class="form-table">
                     <tr>
-                        <th><?php esc_html_e('Prompt do Sistema', 'oraculo-tainacan'); ?></th>
+                        <th><?php esc_html_e('Prompt do Sistema', 'oraculo_tainacan'); ?></th>
                         <td>
                             <textarea name="oraculo_tainacan_options[system_prompt]"
                                       rows="8" class="large-text code"><?php echo esc_textarea($options['system_prompt'] ?? ''); ?></textarea>
-                            <p class="description"><?php esc_html_e('Instruções gerais para o assistente.', 'oraculo-tainacan'); ?></p>
+                            <p class="description"><?php esc_html_e('Instruções gerais para o assistente.', 'oraculo_tainacan'); ?></p>
                         </td>
                     </tr>
                     <tr>
-                        <th><?php esc_html_e('Mensagem de Boas-vindas', 'oraculo-tainacan'); ?></th>
+                        <th><?php esc_html_e('Mensagem de Boas-vindas', 'oraculo_tainacan'); ?></th>
                         <td>
                             <textarea name="oraculo_tainacan_options[welcome_message]"
                                       rows="3" class="large-text"><?php echo esc_textarea($options['welcome_message'] ?? ''); ?></textarea>
                         </td>
                     </tr>
                     <tr>
-                        <th><?php esc_html_e('Perguntas Sugeridas', 'oraculo-tainacan'); ?></th>
+                        <th><?php esc_html_e('Perguntas Sugeridas', 'oraculo_tainacan'); ?></th>
                         <td>
                             <div id="suggested-questions">
                                 <?php
@@ -331,7 +331,7 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
                                 <?php endforeach; ?>
                             </div>
                             <button type="button" class="button" id="add-question">
-                                <?php esc_html_e('Adicionar Pergunta', 'oraculo-tainacan'); ?>
+                                <?php esc_html_e('Adicionar Pergunta', 'oraculo_tainacan'); ?>
                             </button>
                         </td>
                     </tr>
@@ -340,11 +340,11 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
 
             <!-- Tab: Aparência -->
             <div class="oraculo-tab-content" id="tab-appearance">
-                <h2><?php esc_html_e('Aparência', 'oraculo-tainacan'); ?></h2>
+                <h2><?php esc_html_e('Aparência', 'oraculo_tainacan'); ?></h2>
 
                 <table class="form-table">
                     <tr>
-                        <th><?php esc_html_e('Cor Primária', 'oraculo-tainacan'); ?></th>
+                        <th><?php esc_html_e('Cor Primária', 'oraculo_tainacan'); ?></th>
                         <td>
                             <input type="color"
                                    name="oraculo_tainacan_options[appearance][primary_color]"
@@ -352,7 +352,7 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
                         </td>
                     </tr>
                     <tr>
-                        <th><?php esc_html_e('Cor de Destaque', 'oraculo-tainacan'); ?></th>
+                        <th><?php esc_html_e('Cor de Destaque', 'oraculo_tainacan'); ?></th>
                         <td>
                             <input type="color"
                                    name="oraculo_tainacan_options[appearance][accent_color]"
@@ -360,26 +360,26 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
                         </td>
                     </tr>
                     <tr>
-                        <th><?php esc_html_e('Posição do Chat', 'oraculo-tainacan'); ?></th>
+                        <th><?php esc_html_e('Posição do Chat', 'oraculo_tainacan'); ?></th>
                         <td>
                             <select name="oraculo_tainacan_options[appearance][chat_position]">
-                                <option value="bottom-right" <?php selected($options['appearance']['chat_position'] ?? '', 'bottom-right'); ?>><?php esc_html_e('Inferior Direito', 'oraculo-tainacan'); ?></option>
-                                <option value="bottom-left" <?php selected($options['appearance']['chat_position'] ?? '', 'bottom-left'); ?>><?php esc_html_e('Inferior Esquerdo', 'oraculo-tainacan'); ?></option>
+                                <option value="bottom-right" <?php selected($options['appearance']['chat_position'] ?? '', 'bottom-right'); ?>><?php esc_html_e('Inferior Direito', 'oraculo_tainacan'); ?></option>
+                                <option value="bottom-left" <?php selected($options['appearance']['chat_position'] ?? '', 'bottom-left'); ?>><?php esc_html_e('Inferior Esquerdo', 'oraculo_tainacan'); ?></option>
                             </select>
                         </td>
                     </tr>
                     <tr>
-                        <th><?php esc_html_e('Opções de Exibição', 'oraculo-tainacan'); ?></th>
+                        <th><?php esc_html_e('Opções de Exibição', 'oraculo_tainacan'); ?></th>
                         <td>
                             <label>
                                 <input type="checkbox" name="oraculo_tainacan_options[appearance][show_sources]" value="1"
                                        <?php checked($options['appearance']['show_sources'] ?? true); ?>>
-                                <?php esc_html_e('Mostrar fontes nas respostas', 'oraculo-tainacan'); ?>
+                                <?php esc_html_e('Mostrar fontes nas respostas', 'oraculo_tainacan'); ?>
                             </label><br>
                             <label>
                                 <input type="checkbox" name="oraculo_tainacan_options[appearance][show_similarity]" value="1"
                                        <?php checked($options['appearance']['show_similarity'] ?? false); ?>>
-                                <?php esc_html_e('Mostrar score de similaridade', 'oraculo-tainacan'); ?>
+                                <?php esc_html_e('Mostrar score de similaridade', 'oraculo_tainacan'); ?>
                             </label>
                         </td>
                     </tr>
@@ -388,41 +388,41 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
 
             <!-- Tab: Avançado -->
             <div class="oraculo-tab-content" id="tab-advanced">
-                <h2><?php esc_html_e('Configurações Avançadas', 'oraculo-tainacan'); ?></h2>
+                <h2><?php esc_html_e('Configurações Avançadas', 'oraculo_tainacan'); ?></h2>
 
                 <table class="form-table">
                     <tr>
-                        <th><?php esc_html_e('Tamanho do Batch', 'oraculo-tainacan'); ?></th>
+                        <th><?php esc_html_e('Tamanho do Batch', 'oraculo_tainacan'); ?></th>
                         <td>
                             <input type="number"
                                    name="oraculo_tainacan_options[batch_size]"
                                    value="<?php echo esc_attr($options['batch_size'] ?? 25); ?>"
                                    min="5" max="100">
-                            <p class="description"><?php esc_html_e('Itens processados por vez na indexação.', 'oraculo-tainacan'); ?></p>
+                            <p class="description"><?php esc_html_e('Itens processados por vez na indexação.', 'oraculo_tainacan'); ?></p>
                         </td>
                     </tr>
                     <tr>
-                        <th><?php esc_html_e('Timeout de Requisição', 'oraculo-tainacan'); ?></th>
+                        <th><?php esc_html_e('Timeout de Requisição', 'oraculo_tainacan'); ?></th>
                         <td>
                             <input type="number"
                                    name="oraculo_tainacan_options[request_timeout]"
                                    value="<?php echo esc_attr($options['request_timeout'] ?? 120); ?>"
                                    min="30" max="300">
-                            <span><?php esc_html_e('segundos', 'oraculo-tainacan'); ?></span>
+                            <span><?php esc_html_e('segundos', 'oraculo_tainacan'); ?></span>
                         </td>
                     </tr>
                     <tr>
-                        <th><?php esc_html_e('Duração do Cache', 'oraculo-tainacan'); ?></th>
+                        <th><?php esc_html_e('Duração do Cache', 'oraculo_tainacan'); ?></th>
                         <td>
                             <input type="number"
                                    name="oraculo_tainacan_options[cache_duration]"
                                    value="<?php echo esc_attr($options['cache_duration'] ?? 3600); ?>"
                                    min="0" max="86400">
-                            <span><?php esc_html_e('segundos (0 = desativado)', 'oraculo-tainacan'); ?></span>
+                            <span><?php esc_html_e('segundos (0 = desativado)', 'oraculo_tainacan'); ?></span>
                         </td>
                     </tr>
                     <tr>
-                        <th><?php esc_html_e('Campos para Indexar', 'oraculo-tainacan'); ?></th>
+                        <th><?php esc_html_e('Campos para Indexar', 'oraculo_tainacan'); ?></th>
                         <td>
                             <?php
                             $index_fields = $options['index_fields'] ?? ['title', 'description'];
@@ -440,33 +440,33 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
                         </td>
                     </tr>
                     <tr>
-                        <th><?php esc_html_e('Modo Debug', 'oraculo-tainacan'); ?></th>
+                        <th><?php esc_html_e('Modo Debug', 'oraculo_tainacan'); ?></th>
                         <td>
                             <label>
                                 <input type="checkbox" name="oraculo_tainacan_options[debug_mode]" value="1"
                                        <?php checked($options['debug_mode'] ?? false); ?>>
-                                <?php esc_html_e('Habilitar logs de debug', 'oraculo-tainacan'); ?>
+                                <?php esc_html_e('Habilitar logs de debug', 'oraculo_tainacan'); ?>
                             </label>
                         </td>
                     </tr>
                 </table>
 
-                <h3><?php esc_html_e('Manutenção', 'oraculo-tainacan'); ?></h3>
+                <h3><?php esc_html_e('Manutenção', 'oraculo_tainacan'); ?></h3>
                 <p>
                     <button type="button" class="button" id="clear-cache">
-                        <?php esc_html_e('Limpar Cache', 'oraculo-tainacan'); ?>
+                        <?php esc_html_e('Limpar Cache', 'oraculo_tainacan'); ?>
                     </button>
                     <button type="button" class="button" id="clear-vectors">
-                        <?php esc_html_e('Limpar Vetores', 'oraculo-tainacan'); ?>
+                        <?php esc_html_e('Limpar Vetores', 'oraculo_tainacan'); ?>
                     </button>
                     <button type="button" class="button" id="export-settings">
-                        <?php esc_html_e('Exportar Configurações', 'oraculo-tainacan'); ?>
+                        <?php esc_html_e('Exportar Configurações', 'oraculo_tainacan'); ?>
                     </button>
                 </p>
             </div>
         </div>
 
-        <?php submit_button(__('Salvar Configurações', 'oraculo-tainacan')); ?>
+        <?php submit_button(__('Salvar Configurações', 'oraculo_tainacan')); ?>
     </form>
 </div>
 
@@ -525,7 +525,7 @@ jQuery(document).ready(function($) {
         e.preventDefault();
         var button = $(this);
         var provider = button.data('provider');
-        button.prop('disabled', true).text('<?php esc_html_e('Testando...', 'oraculo-tainacan'); ?>');
+        button.prop('disabled', true).text('<?php esc_html_e('Testando...', 'oraculo_tainacan'); ?>');
 
         $.ajax({
             url: oraculoAjax.ajaxUrl,
@@ -537,16 +537,16 @@ jQuery(document).ready(function($) {
                 nonce: oraculoAjax.nonce
             },
             success: function(response) {
-                button.prop('disabled', false).text('<?php esc_html_e('Testar Conexão', 'oraculo-tainacan'); ?>');
+                button.prop('disabled', false).text('<?php esc_html_e('Testar Conexão', 'oraculo_tainacan'); ?>');
                 if (response && response.success) {
-                    alert('✅ ' + (response.data && response.data.message ? response.data.message : '<?php esc_html_e('Conexão OK!', 'oraculo-tainacan'); ?>'));
+                    alert('✅ ' + (response.data && response.data.message ? response.data.message : '<?php esc_html_e('Conexão OK!', 'oraculo_tainacan'); ?>'));
                 } else {
-                    alert('❌ ' + (response && response.data && response.data.message ? response.data.message : '<?php esc_html_e('Erro na conexão', 'oraculo-tainacan'); ?>'));
+                    alert('❌ ' + (response && response.data && response.data.message ? response.data.message : '<?php esc_html_e('Erro na conexão', 'oraculo_tainacan'); ?>'));
                 }
             },
             error: function(xhr, status, error) {
-                button.prop('disabled', false).text('<?php esc_html_e('Testar Conexão', 'oraculo-tainacan'); ?>');
-                alert('❌ <?php esc_html_e('Erro de conexão', 'oraculo-tainacan'); ?>: ' + error);
+                button.prop('disabled', false).text('<?php esc_html_e('Testar Conexão', 'oraculo_tainacan'); ?>');
+                alert('❌ <?php esc_html_e('Erro de conexão', 'oraculo_tainacan'); ?>: ' + error);
             }
         });
     });
@@ -554,7 +554,7 @@ jQuery(document).ready(function($) {
     // Clear cache
     $('#clear-cache').on('click', function() {
         var button = $(this);
-        button.prop('disabled', true).text('<?php esc_html_e('Limpando...', 'oraculo-tainacan'); ?>');
+        button.prop('disabled', true).text('<?php esc_html_e('Limpando...', 'oraculo_tainacan'); ?>');
 
         $.ajax({
             url: oraculoAjax.ajaxUrl,
@@ -565,28 +565,28 @@ jQuery(document).ready(function($) {
                 nonce: oraculoAjax.nonce
             },
             success: function(response) {
-                button.prop('disabled', false).text('<?php esc_html_e('Limpar Cache', 'oraculo-tainacan'); ?>');
+                button.prop('disabled', false).text('<?php esc_html_e('Limpar Cache', 'oraculo_tainacan'); ?>');
                 if (response && response.success) {
-                    alert('✅ <?php esc_html_e('Cache limpo com sucesso!', 'oraculo-tainacan'); ?>');
+                    alert('✅ <?php esc_html_e('Cache limpo com sucesso!', 'oraculo_tainacan'); ?>');
                 } else {
-                    alert('❌ ' + (response && response.data && response.data.message ? response.data.message : '<?php esc_html_e('Erro ao limpar cache', 'oraculo-tainacan'); ?>'));
+                    alert('❌ ' + (response && response.data && response.data.message ? response.data.message : '<?php esc_html_e('Erro ao limpar cache', 'oraculo_tainacan'); ?>'));
                 }
             },
             error: function(xhr, status, error) {
-                button.prop('disabled', false).text('<?php esc_html_e('Limpar Cache', 'oraculo-tainacan'); ?>');
-                alert('❌ <?php esc_html_e('Erro de conexão', 'oraculo-tainacan'); ?>: ' + error);
+                button.prop('disabled', false).text('<?php esc_html_e('Limpar Cache', 'oraculo_tainacan'); ?>');
+                alert('❌ <?php esc_html_e('Erro de conexão', 'oraculo_tainacan'); ?>: ' + error);
             }
         });
     });
 
     // Clear vectors
     $('#clear-vectors').on('click', function() {
-        if (!confirm('<?php esc_html_e('Tem certeza? Isso removerá todos os vetores indexados.', 'oraculo-tainacan'); ?>')) {
+        if (!confirm('<?php esc_html_e('Tem certeza? Isso removerá todos os vetores indexados.', 'oraculo_tainacan'); ?>')) {
             return;
         }
 
         var button = $(this);
-        button.prop('disabled', true).text('<?php esc_html_e('Limpando...', 'oraculo-tainacan'); ?>');
+        button.prop('disabled', true).text('<?php esc_html_e('Limpando...', 'oraculo_tainacan'); ?>');
 
         $.ajax({
             url: oraculoAjax.ajaxUrl,
@@ -597,16 +597,16 @@ jQuery(document).ready(function($) {
                 nonce: oraculoAjax.nonce
             },
             success: function(response) {
-                button.prop('disabled', false).text('<?php esc_html_e('Limpar Vetores', 'oraculo-tainacan'); ?>');
+                button.prop('disabled', false).text('<?php esc_html_e('Limpar Vetores', 'oraculo_tainacan'); ?>');
                 if (response && response.success) {
-                    alert('✅ <?php esc_html_e('Vetores limpos com sucesso!', 'oraculo-tainacan'); ?>');
+                    alert('✅ <?php esc_html_e('Vetores limpos com sucesso!', 'oraculo_tainacan'); ?>');
                 } else {
-                    alert('❌ ' + (response && response.data && response.data.message ? response.data.message : '<?php esc_html_e('Erro ao limpar vetores', 'oraculo-tainacan'); ?>'));
+                    alert('❌ ' + (response && response.data && response.data.message ? response.data.message : '<?php esc_html_e('Erro ao limpar vetores', 'oraculo_tainacan'); ?>'));
                 }
             },
             error: function(xhr, status, error) {
-                button.prop('disabled', false).text('<?php esc_html_e('Limpar Vetores', 'oraculo-tainacan'); ?>');
-                alert('❌ <?php esc_html_e('Erro de conexão', 'oraculo-tainacan'); ?>: ' + error);
+                button.prop('disabled', false).text('<?php esc_html_e('Limpar Vetores', 'oraculo_tainacan'); ?>');
+                alert('❌ <?php esc_html_e('Erro de conexão', 'oraculo_tainacan'); ?>: ' + error);
             }
         });
     });
@@ -620,7 +620,7 @@ jQuery(document).ready(function($) {
         var $notice = $('.oraculo-notice');
         var originalText = $button.val() || $button.text();
 
-        $button.prop('disabled', true).val('<?php esc_html_e('Salvando...', 'oraculo-tainacan'); ?>');
+        $button.prop('disabled', true).val('<?php esc_html_e('Salvando...', 'oraculo_tainacan'); ?>');
 
         $.ajax({
             url: oraculoAjax.ajaxUrl,
@@ -630,16 +630,16 @@ jQuery(document).ready(function($) {
             success: function(response) {
                 if (response && response.success) {
                     $notice.removeClass('notice-error').addClass('notice-success')
-                        .html('<p><?php esc_html_e('Configurações salvas com sucesso!', 'oraculo-tainacan'); ?></p>').show();
+                        .html('<p><?php esc_html_e('Configurações salvas com sucesso!', 'oraculo_tainacan'); ?></p>').show();
                 } else {
-                    var msg = (response && response.data && response.data.message) ? response.data.message : '<?php esc_html_e('Erro ao salvar', 'oraculo-tainacan'); ?>';
+                    var msg = (response && response.data && response.data.message) ? response.data.message : '<?php esc_html_e('Erro ao salvar', 'oraculo_tainacan'); ?>';
                     $notice.removeClass('notice-success').addClass('notice-error')
                         .html('<p>' + msg + '</p>').show();
                 }
             },
             error: function(xhr, status, error) {
                 $notice.removeClass('notice-success').addClass('notice-error')
-                    .html('<p><?php esc_html_e('Erro de conexão', 'oraculo-tainacan'); ?>: ' + error + '</p>').show();
+                    .html('<p><?php esc_html_e('Erro de conexão', 'oraculo_tainacan'); ?>: ' + error + '</p>').show();
             },
             complete: function() {
                 $button.prop('disabled', false).val(originalText);

@@ -62,9 +62,9 @@ class Oraculo_Page extends \Tainacan\Pages {
     public function add_admin_menu() {
         $page_suffix = add_submenu_page(
             $this->tainacan_root_menu_slug,
-            __('Oráculo IA', 'oraculo-tainacan'),
+            __('Oráculo IA', 'oraculo_tainacan'),
             '<span class="icon">' . $this->get_oraculo_icon() . '</span>' .
-            '<span class="menu-text">' . __('Oráculo IA', 'oraculo-tainacan') . '</span>',
+            '<span class="menu-text">' . __('Oráculo IA', 'oraculo_tainacan') . '</span>',
             'read',
             $this->get_page_slug(),
             array($this, 'render_page'),
@@ -215,8 +215,8 @@ class Oraculo_Page extends \Tainacan\Pages {
         if ( defined( 'ORACULO_TAINACAN_PATH' ) ) {
             \Oraculo_Tainacan\oraculo_tainacan_render_template( 'admin/dashboard.php' );
         } else {
-            echo '<div class="wrap"><h1>' . esc_html__('Oráculo IA - Dashboard', 'oraculo-tainacan') . '</h1>';
-            echo '<p>' . esc_html__('Página em construção.', 'oraculo-tainacan') . '</p></div>';
+            echo '<div class="wrap"><h1>' . esc_html__('Oráculo IA - Dashboard', 'oraculo_tainacan') . '</h1>';
+            echo '<p>' . esc_html__('Página em construção.', 'oraculo_tainacan') . '</p></div>';
         }
     }
 
@@ -227,7 +227,7 @@ class Oraculo_Page extends \Tainacan\Pages {
         if ( defined( 'ORACULO_TAINACAN_PATH' ) ) {
             \Oraculo_Tainacan\oraculo_tainacan_render_template( 'admin/indexing.php' );
         } else {
-            echo '<div class="wrap"><h1>' . esc_html__('Indexação', 'oraculo-tainacan') . '</h1></div>';
+            echo '<div class="wrap"><h1>' . esc_html__('Indexação', 'oraculo_tainacan') . '</h1></div>';
         }
     }
 
@@ -238,7 +238,7 @@ class Oraculo_Page extends \Tainacan\Pages {
         if ( defined( 'ORACULO_TAINACAN_PATH' ) ) {
             \Oraculo_Tainacan\oraculo_tainacan_render_template( 'admin/settings.php' );
         } else {
-            echo '<div class="wrap"><h1>' . esc_html__('Configurações', 'oraculo-tainacan') . '</h1></div>';
+            echo '<div class="wrap"><h1>' . esc_html__('Configurações', 'oraculo_tainacan') . '</h1></div>';
         }
     }
 
@@ -249,7 +249,7 @@ class Oraculo_Page extends \Tainacan\Pages {
         if ( defined( 'ORACULO_TAINACAN_PATH' ) ) {
             \Oraculo_Tainacan\oraculo_tainacan_render_template( 'admin/analytics.php' );
         } else {
-            echo '<div class="wrap"><h1>' . esc_html__('Analytics', 'oraculo-tainacan') . '</h1></div>';
+            echo '<div class="wrap"><h1>' . esc_html__('Analytics', 'oraculo_tainacan') . '</h1></div>';
         }
     }
 
@@ -260,7 +260,7 @@ class Oraculo_Page extends \Tainacan\Pages {
         if ( defined( 'ORACULO_TAINACAN_PATH' ) ) {
             \Oraculo_Tainacan\oraculo_tainacan_render_template( 'admin/debug.php' );
         } else {
-            echo '<div class="wrap"><h1>' . esc_html__('Debug', 'oraculo-tainacan') . '</h1></div>';
+            echo '<div class="wrap"><h1>' . esc_html__('Debug', 'oraculo_tainacan') . '</h1></div>';
         }
     }
 
@@ -275,19 +275,19 @@ class Oraculo_Page extends \Tainacan\Pages {
 
         $tabs = [
             'dashboard' => [
-                'label' => __('Dashboard', 'oraculo-tainacan'),
+                'label' => __('Dashboard', 'oraculo_tainacan'),
                 'icon' => 'dashicons-dashboard'
             ],
             'indexing' => [
-                'label' => __('Indexação', 'oraculo-tainacan'),
+                'label' => __('Indexação', 'oraculo_tainacan'),
                 'icon' => 'dashicons-database'
             ],
             'settings' => [
-                'label' => __('Configurações', 'oraculo-tainacan'),
+                'label' => __('Configurações', 'oraculo_tainacan'),
                 'icon' => 'dashicons-admin-settings'
             ],
             'analytics' => [
-                'label' => __('Analytics', 'oraculo-tainacan'),
+                'label' => __('Analytics', 'oraculo_tainacan'),
                 'icon' => 'dashicons-chart-area'
             ],
         ];
@@ -295,7 +295,7 @@ class Oraculo_Page extends \Tainacan\Pages {
         // Adicionar aba de debug se habilitado
         if (!empty($options['debug_mode'])) {
             $tabs['debug'] = [
-                'label' => __('Debug', 'oraculo-tainacan'),
+                'label' => __('Debug', 'oraculo_tainacan'),
                 'icon' => 'dashicons-code-standards'
             ];
         }
@@ -308,7 +308,7 @@ class Oraculo_Page extends \Tainacan\Pages {
         echo '<circle cx="12" cy="12" r="4" fill="currentColor"/>';
         echo '<path d="M12 2v4M12 18v4M2 12h4M18 12h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>';
         echo '</svg>';
-        echo esc_html__('Oráculo IA', 'oraculo-tainacan');
+        echo esc_html__('Oráculo IA', 'oraculo_tainacan');
         echo '<span class="oraculo-version">v' . esc_html($version) . '</span>';
         echo '</h1>';
         echo '</div>';
@@ -354,19 +354,19 @@ class Oraculo_Page extends \Tainacan\Pages {
      */
     private function get_js_strings(): array {
         return [
-            'confirmDelete' => __('Tem certeza que deseja excluir?', 'oraculo-tainacan'),
-            'confirmReindex' => __('Tem certeza que deseja reindexar esta coleção? Isso pode levar alguns minutos.', 'oraculo-tainacan'),
-            'indexing' => __('Indexando...', 'oraculo-tainacan'),
-            'processing' => __('Processando...', 'oraculo-tainacan'),
-            'completed' => __('Concluído!', 'oraculo-tainacan'),
-            'error' => __('Erro:', 'oraculo-tainacan'),
-            'testing' => __('Testando conexão...', 'oraculo-tainacan'),
-            'success' => __('Sucesso!', 'oraculo-tainacan'),
-            'saved' => __('Configurações salvas!', 'oraculo-tainacan'),
-            'items' => __('itens', 'oraculo-tainacan'),
-            'of' => __('de', 'oraculo-tainacan'),
-            'cancel' => __('Cancelar', 'oraculo-tainacan'),
-            'save' => __('Salvar', 'oraculo-tainacan'),
+            'confirmDelete' => __('Tem certeza que deseja excluir?', 'oraculo_tainacan'),
+            'confirmReindex' => __('Tem certeza que deseja reindexar esta coleção? Isso pode levar alguns minutos.', 'oraculo_tainacan'),
+            'indexing' => __('Indexando...', 'oraculo_tainacan'),
+            'processing' => __('Processando...', 'oraculo_tainacan'),
+            'completed' => __('Concluído!', 'oraculo_tainacan'),
+            'error' => __('Erro:', 'oraculo_tainacan'),
+            'testing' => __('Testando conexão...', 'oraculo_tainacan'),
+            'success' => __('Sucesso!', 'oraculo_tainacan'),
+            'saved' => __('Configurações salvas!', 'oraculo_tainacan'),
+            'items' => __('itens', 'oraculo_tainacan'),
+            'of' => __('de', 'oraculo_tainacan'),
+            'cancel' => __('Cancelar', 'oraculo_tainacan'),
+            'save' => __('Salvar', 'oraculo_tainacan'),
         ];
     }
 

@@ -61,7 +61,7 @@ class AdminPage {
         if ($parent_slug === self::TAINACAN_MENU_SLUG) {
             $this->page_hook = add_submenu_page(
                 $parent_slug,
-                __('Oráculo IA', 'oraculo-tainacan'),
+                __('Oráculo IA', 'oraculo_tainacan'),
                 $this->get_menu_title(),
                 'manage_options',
                 self::PAGE_SLUG,
@@ -71,8 +71,8 @@ class AdminPage {
         } else {
             // Menu separado se Tainacan não estiver ativo
             $this->page_hook = add_menu_page(
-                __('Oráculo Tainacan', 'oraculo-tainacan'),
-                __('Oráculo IA', 'oraculo-tainacan'),
+                __('Oráculo Tainacan', 'oraculo_tainacan'),
+                __('Oráculo IA', 'oraculo_tainacan'),
                 'manage_options',
                 self::PAGE_SLUG,
                 [$this, 'render_page'],
@@ -84,8 +84,8 @@ class AdminPage {
         // Subpáginas
         add_submenu_page(
             self::PAGE_SLUG,
-            __('Dashboard', 'oraculo-tainacan'),
-            __('Dashboard', 'oraculo-tainacan'),
+            __('Dashboard', 'oraculo_tainacan'),
+            __('Dashboard', 'oraculo_tainacan'),
             'manage_options',
             self::PAGE_SLUG,
             [$this, 'render_page']
@@ -93,8 +93,8 @@ class AdminPage {
 
         add_submenu_page(
             self::PAGE_SLUG,
-            __('Indexação', 'oraculo-tainacan'),
-            __('Indexação', 'oraculo-tainacan'),
+            __('Indexação', 'oraculo_tainacan'),
+            __('Indexação', 'oraculo_tainacan'),
             'manage_options',
             self::PAGE_SLUG . '-indexing',
             [$this, 'render_indexing_page']
@@ -102,8 +102,8 @@ class AdminPage {
 
         add_submenu_page(
             self::PAGE_SLUG,
-            __('Configurações', 'oraculo-tainacan'),
-            __('Configurações', 'oraculo-tainacan'),
+            __('Configurações', 'oraculo_tainacan'),
+            __('Configurações', 'oraculo_tainacan'),
             'manage_options',
             self::PAGE_SLUG . '-settings',
             [$this, 'render_settings_page']
@@ -111,8 +111,8 @@ class AdminPage {
 
         add_submenu_page(
             self::PAGE_SLUG,
-            __('Analytics', 'oraculo-tainacan'),
-            __('Analytics', 'oraculo-tainacan'),
+            __('Analytics', 'oraculo_tainacan'),
+            __('Analytics', 'oraculo_tainacan'),
             'manage_options',
             self::PAGE_SLUG . '-analytics',
             [$this, 'render_analytics_page']
@@ -123,8 +123,8 @@ class AdminPage {
         if (!empty($options['debug_mode'])) {
             add_submenu_page(
                 self::PAGE_SLUG,
-                __('Debug', 'oraculo-tainacan'),
-                __('Debug', 'oraculo-tainacan'),
+                __('Debug', 'oraculo_tainacan'),
+                __('Debug', 'oraculo_tainacan'),
                 'manage_options',
                 self::PAGE_SLUG . '-debug',
                 [$this, 'render_debug_page']
@@ -143,7 +143,7 @@ class AdminPage {
     private function get_menu_title(): string {
         $icon = $this->get_menu_icon_svg();
         return '<span class="oraculo-menu-icon">' . $icon . '</span>' .
-               '<span class="menu-text">' . __('Oráculo IA', 'oraculo-tainacan') . '</span>';
+               '<span class="menu-text">' . __('Oráculo IA', 'oraculo_tainacan') . '</span>';
     }
 
     /**
@@ -257,19 +257,19 @@ class AdminPage {
      */
     private function get_js_strings(): array {
         return [
-            'confirmDelete' => __('Tem certeza que deseja excluir?', 'oraculo-tainacan'),
-            'confirmReindex' => __('Tem certeza que deseja reindexar esta coleção? Isso pode levar alguns minutos.', 'oraculo-tainacan'),
-            'indexing' => __('Indexando...', 'oraculo-tainacan'),
-            'processing' => __('Processando...', 'oraculo-tainacan'),
-            'completed' => __('Concluído!', 'oraculo-tainacan'),
-            'error' => __('Erro:', 'oraculo-tainacan'),
-            'testing' => __('Testando conexão...', 'oraculo-tainacan'),
-            'success' => __('Sucesso!', 'oraculo-tainacan'),
-            'saved' => __('Configurações salvas!', 'oraculo-tainacan'),
-            'items' => __('itens', 'oraculo-tainacan'),
-            'of' => __('de', 'oraculo-tainacan'),
-            'cancel' => __('Cancelar', 'oraculo-tainacan'),
-            'save' => __('Salvar', 'oraculo-tainacan'),
+            'confirmDelete' => __('Tem certeza que deseja excluir?', 'oraculo_tainacan'),
+            'confirmReindex' => __('Tem certeza que deseja reindexar esta coleção? Isso pode levar alguns minutos.', 'oraculo_tainacan'),
+            'indexing' => __('Indexando...', 'oraculo_tainacan'),
+            'processing' => __('Processando...', 'oraculo_tainacan'),
+            'completed' => __('Concluído!', 'oraculo_tainacan'),
+            'error' => __('Erro:', 'oraculo_tainacan'),
+            'testing' => __('Testando conexão...', 'oraculo_tainacan'),
+            'success' => __('Sucesso!', 'oraculo_tainacan'),
+            'saved' => __('Configurações salvas!', 'oraculo_tainacan'),
+            'items' => __('itens', 'oraculo_tainacan'),
+            'of' => __('de', 'oraculo_tainacan'),
+            'cancel' => __('Cancelar', 'oraculo_tainacan'),
+            'save' => __('Salvar', 'oraculo_tainacan'),
         ];
     }
 

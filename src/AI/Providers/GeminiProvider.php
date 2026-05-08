@@ -72,7 +72,7 @@ class GeminiProvider extends AbstractAIProvider {
      * {@inheritdoc}
      */
     public function get_description(): string {
-        return __('IA do Google com contexto de até 2 milhões de tokens. Excelente para análise de documentos longos.', 'oraculo-tainacan');
+        return __('IA do Google com contexto de até 2 milhões de tokens. Excelente para análise de documentos longos.', 'oraculo_tainacan');
     }
 
     /**
@@ -119,7 +119,7 @@ class GeminiProvider extends AbstractAIProvider {
         if (!$this->is_configured()) {
             return [
                 'success' => false,
-                'message' => __('Chave de API não configurada.', 'oraculo-tainacan'),
+                'message' => __('Chave de API não configurada.', 'oraculo_tainacan'),
                 'details' => [],
             ];
         }
@@ -139,7 +139,7 @@ class GeminiProvider extends AbstractAIProvider {
 
         return [
             'success' => true,
-            'message' => __('Conexão estabelecida com sucesso!', 'oraculo-tainacan'),
+            'message' => __('Conexão estabelecida com sucesso!', 'oraculo_tainacan'),
             'details' => [
                 'model' => $response['name'] ?? $model,
                 'input_token_limit' => $response['inputTokenLimit'] ?? 0,
@@ -152,13 +152,13 @@ class GeminiProvider extends AbstractAIProvider {
      */
     public function generate_embedding(string $text, ?string $model = null) {
         if (!$this->is_configured()) {
-            return new WP_Error('not_configured', __('Provedor Gemini não configurado.', 'oraculo-tainacan'));
+            return new WP_Error('not_configured', __('Provedor Gemini não configurado.', 'oraculo_tainacan'));
         }
 
         $text = $this->validate_input($text);
 
         if (empty($text)) {
-            return new WP_Error('empty_input', __('Texto não pode estar vazio.', 'oraculo-tainacan'));
+            return new WP_Error('empty_input', __('Texto não pode estar vazio.', 'oraculo_tainacan'));
         }
 
         $model = $model ?? 'text-embedding-004';
@@ -178,7 +178,7 @@ class GeminiProvider extends AbstractAIProvider {
         }
 
         if (!isset($response['embedding']['values'])) {
-            return new WP_Error('invalid_response', __('Resposta inválida da API.', 'oraculo-tainacan'));
+            return new WP_Error('invalid_response', __('Resposta inválida da API.', 'oraculo_tainacan'));
         }
 
         return [
@@ -193,7 +193,7 @@ class GeminiProvider extends AbstractAIProvider {
      */
     public function generate_embeddings_batch(array $texts, ?string $model = null) {
         if (!$this->is_configured()) {
-            return new WP_Error('not_configured', __('Provedor Gemini não configurado.', 'oraculo-tainacan'));
+            return new WP_Error('not_configured', __('Provedor Gemini não configurado.', 'oraculo_tainacan'));
         }
 
         $embeddings = [];
@@ -232,7 +232,7 @@ class GeminiProvider extends AbstractAIProvider {
      */
     public function chat(array $messages, string $system_prompt = '', array $options = []) {
         if (!$this->is_configured()) {
-            return new WP_Error('not_configured', __('Provedor Gemini não configurado.', 'oraculo-tainacan'));
+            return new WP_Error('not_configured', __('Provedor Gemini não configurado.', 'oraculo_tainacan'));
         }
 
         $options = $this->prepare_options($options);
@@ -279,9 +279,9 @@ class GeminiProvider extends AbstractAIProvider {
             // Verificar se foi bloqueado por segurança
             if (isset($response['candidates'][0]['finishReason']) &&
                 $response['candidates'][0]['finishReason'] === 'SAFETY') {
-                return new WP_Error('safety_blocked', __('Resposta bloqueada por filtros de segurança.', 'oraculo-tainacan'));
+                return new WP_Error('safety_blocked', __('Resposta bloqueada por filtros de segurança.', 'oraculo_tainacan'));
             }
-            return new WP_Error('invalid_response', __('Resposta inválida da API.', 'oraculo-tainacan'));
+            return new WP_Error('invalid_response', __('Resposta inválida da API.', 'oraculo_tainacan'));
         }
 
         $usage = [
