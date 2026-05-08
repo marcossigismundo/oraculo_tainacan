@@ -229,7 +229,7 @@ class ConversationMemory {
                 continue;
             }
 
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table; REPLACE is appropriate for upsert of facts.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom plugin table (oraculo_memory_facts); REPLACE write operation; caching N/A.
             $wpdb->replace(
                 $this->facts_table,
                 [
@@ -424,7 +424,7 @@ class ConversationMemory {
         global $wpdb;
 
         // Atualizar memórias
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Plugin-owned table; session→user merge has no WP API equivalent.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table (oraculo_memories); session→user merge UPDATE; caching N/A for writes.
         $wpdb->update(
             $this->table_name,
             ['user_id' => $user_id],
@@ -435,7 +435,7 @@ class ConversationMemory {
         oraculo_tainacan_flush_cache();
 
         // Atualizar fatos
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Plugin-owned table; session→user merge has no WP API equivalent.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table (oraculo_memory_facts); session→user merge UPDATE; caching N/A for writes.
         $wpdb->update(
             $this->facts_table,
             ['user_id' => $user_id],

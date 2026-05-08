@@ -274,7 +274,7 @@ class ChatEngine {
     private function update_conversation(int $conversation_id): void {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table; no WP core API available.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom plugin table (oraculo_conversations); UPDATE write operation; caching N/A.
         $wpdb->update(
             $this->conversations_table,
             ['updated_at' => current_time('mysql')],
@@ -474,7 +474,7 @@ Quando citar itens do acervo, inclua os links quando disponíveis.', 'oraculo-ta
     public function end_conversation(string $session_id): bool {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table; no WP core API available.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom plugin table (oraculo_conversations); UPDATE write operation; caching N/A.
         $result = $wpdb->update(
             $this->conversations_table,
             ['status' => 'ended', 'updated_at' => current_time('mysql')],
@@ -502,7 +502,7 @@ Quando citar itens do acervo, inclua os links quando disponíveis.', 'oraculo-ta
             return false;
         }
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table; no WP core API available.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom plugin table (oraculo_messages); UPDATE write operation; caching N/A.
         $result = $wpdb->update(
             $this->messages_table,
             ['feedback' => $feedback],
@@ -543,7 +543,7 @@ Quando citar itens do acervo, inclua os links quando disponíveis.', 'oraculo-ta
         $title = \Oraculo_Tainacan\truncate_text($first_message, 50);
 
         // Atualizar título na conversa
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table; no WP core API available.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom plugin table (oraculo_conversations); UPDATE write operation; caching N/A.
         $wpdb->update(
             $this->conversations_table,
             ['title' => $title],

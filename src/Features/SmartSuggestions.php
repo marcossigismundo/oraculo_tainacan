@@ -347,7 +347,7 @@ class SmartSuggestions {
         } else {
             // Limpar todos — $wpdb->options is a WordPress core property; self::CACHE_PREFIX is a class constant.
             $cache_prefix = $wpdb->esc_like( '_transient_' . self::CACHE_PREFIX );
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery -- Query built with esc_like and prepare; bulk transient DELETE has no WP API equivalent.
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Query built with esc_like and prepare; bulk transient DELETE; write operation, caching N/A.
             $wpdb->query( $wpdb->prepare(
                 "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
                 $cache_prefix . '%'

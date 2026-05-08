@@ -533,7 +533,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
      */
     private function clear_all_transients(): void {
         global $wpdb;
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery -- Bulk transient DELETE by prefix; no WP API equivalent for pattern-based transient cleanup.
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bulk transient DELETE by prefix; no WP API equivalent; write operation, caching N/A.
         $wpdb->query(
             "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_oraculo_%' OR option_name LIKE '_transient_timeout_oraculo_%'"
         );

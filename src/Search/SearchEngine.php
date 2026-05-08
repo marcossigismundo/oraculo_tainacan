@@ -475,7 +475,7 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados. S
             return false;
         }
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table; no WP core API available.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom plugin table; no WP core API available.
         $result = $wpdb->update(
             $wpdb->prefix . 'oraculo_search_logs',
             ['feedback' => $feedback],
@@ -519,7 +519,7 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados. S
     public function clear_cache(): int {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery -- Deletes only plugin's own transient keys from options table; no WP API for bulk transient deletion by prefix.
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Deletes only plugin's own transient keys from options table; no WP API for bulk transient deletion by prefix.
         $count = $wpdb->query(
             "DELETE FROM {$wpdb->options}
              WHERE option_name LIKE '_transient_oraculo_search_%'

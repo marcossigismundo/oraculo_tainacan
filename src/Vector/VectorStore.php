@@ -75,7 +75,7 @@ class VectorStore {
 
         if ($existing) {
             $record['updated_at'] = current_time('mysql');
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table; no WP core API available.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom plugin table (oraculo_vectors); UPDATE write operation; caching N/A.
             $result = $wpdb->update(
                 $this->table_name,
                 $record,
@@ -309,7 +309,7 @@ class VectorStore {
     public function delete(int $item_id, int $collection_id): bool {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table; no WP core API available.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom plugin table (oraculo_vectors); DELETE write operation; caching N/A.
         $result = $wpdb->delete(
             $this->table_name,
             [
@@ -332,7 +332,7 @@ class VectorStore {
     public function delete_collection(int $collection_id): int {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table; no WP core API available.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom plugin table (oraculo_vectors); DELETE write operation; caching N/A.
         $result = $wpdb->delete(
             $this->table_name,
             ['collection_id' => $collection_id],
@@ -472,7 +472,7 @@ class VectorStore {
     public function optimize(): bool {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery -- $this->table_name is plugin-owned; OPTIMIZE TABLE maintenance operation.
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->table_name is plugin-owned (oraculo_vectors); OPTIMIZE TABLE maintenance; write operation, caching N/A.
         $result = $wpdb->query("OPTIMIZE TABLE {$this->table_name}");
         return $result !== false;
     }

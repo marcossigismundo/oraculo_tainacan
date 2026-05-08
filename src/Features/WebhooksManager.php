@@ -139,7 +139,7 @@ class WebhooksManager {
             return false;
         }
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table; no WP core API available.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom plugin table (oraculo_webhooks); UPDATE write operation; caching N/A.
         $result = $wpdb->update(
             $this->table_name,
             $update_data,
@@ -161,7 +161,7 @@ class WebhooksManager {
      */
     public function delete(int $id): bool {
         global $wpdb;
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table; no WP core API available.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom plugin table (oraculo_webhooks); DELETE write operation; caching N/A.
         $result = $wpdb->delete($this->table_name, ['id' => $id], ['%d']) !== false;
         if ( $result ) {
             \Oraculo_Tainacan\oraculo_tainacan_flush_cache();
@@ -324,7 +324,7 @@ class WebhooksManager {
     private function update_status(int $id, int $status): void {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table; status update; no WP core API.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom plugin table (oraculo_webhooks); status UPDATE write operation; caching N/A.
         $wpdb->update(
             $this->table_name,
             [

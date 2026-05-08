@@ -51,7 +51,7 @@ class AnalyticsManager {
 
         // Atualizar log de busca
         if (!empty($search_id)) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table; no WP core API available.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom plugin table (oraculo_search_logs); UPDATE write operation; caching N/A.
             $wpdb->update(
                 $this->logs_table,
                 ['feedback' => $feedback],
@@ -64,7 +64,7 @@ class AnalyticsManager {
 
         // Atualizar mensagem de chat
         if ($message_id > 0) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table; no WP core API available.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom plugin table (oraculo_messages); UPDATE write operation; caching N/A.
             $wpdb->update(
                 $this->messages_table,
                 ['feedback' => $feedback],
