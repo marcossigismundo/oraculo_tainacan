@@ -156,8 +156,9 @@ class VectorStore {
         // Buscar todos os vetores das coleções especificadas
         $where_clause = "";
         if (!empty($collection_ids)) {
+            $collection_ids = array_map('intval', $collection_ids);
             $placeholders = implode(',', array_fill(0, count($collection_ids), '%d'));
-            // phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $placeholders contains only %d entries built from array_fill; count matches $collection_ids spread; $where_clause is passed through $wpdb->prepare.
+            // phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $collection_ids is array_map('intval', ...)d above; type-safe to interpolate; $placeholders contains only %d entries built from array_fill; count matches spread; passed through $wpdb->prepare.
             $where_clause = $wpdb->prepare("WHERE collection_id IN ($placeholders)", $collection_ids);
             // phpcs:enable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
         }
@@ -232,6 +233,7 @@ class VectorStore {
         $where_parts = ['(' . implode(' OR ', $like_conditions) . ')'];
 
         if (!empty($collection_ids)) {
+            $collection_ids = array_map('intval', $collection_ids);
             $placeholders = implode(',', array_fill(0, count($collection_ids), '%d'));
             $where_parts[] = "collection_id IN ($placeholders)";
             $like_values = array_merge($like_values, $collection_ids);
@@ -239,7 +241,7 @@ class VectorStore {
 
         $where_clause = 'WHERE ' . implode(' AND ', $where_parts);
 
-        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->table_name is $wpdb->prefix . self::TABLE_VECTORS (class constant; cannot receive user input); $where_clause is built from %s/%d placeholders and esc_like values; table identifier cannot be parameterized.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->table_name is $wpdb->prefix . self::TABLE_VECTORS (class constant; cannot receive user input); $where_clause is built from %s/%d placeholders and esc_like values; $collection_ids is array_map('intval', ...)d above (type-safe); table identifier cannot be parameterized.
         $sql = $wpdb->prepare(
             "SELECT id, item_id, collection_id, collection_name,
                     content_text, item_url, item_title, metadata_json

@@ -586,10 +586,11 @@ Quando citar itens do acervo, inclua os links quando disponíveis.', 'oraculo_ta
             return 0;
         }
 
+        $old_conversations = array_map('intval', $old_conversations);
         $ids_placeholder = implode(',', array_fill(0, count($old_conversations), '%d'));
 
-        // Remover mensagens — $ids_placeholder contains only %d placeholders built from array_fill; count matches $old_conversations spread.
-        // phpcs:disable WordPress.DB.PreparedSQL.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $ids_placeholder constructed via array_fill('%d'); count matches args spread; bulk DELETE for oraculo_messages; caching N/A for writes.
+        // Remover mensagens — $old_conversations is array_map('intval', ...)d above; type-safe to interpolate.
+        // phpcs:disable WordPress.DB.PreparedSQL.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $old_conversations is array_map('intval', ...)d above; type-safe to interpolate; $ids_placeholder constructed via array_fill('%d'); count matches args spread; bulk DELETE for oraculo_messages; caching N/A for writes.
         $wpdb->query($wpdb->prepare(
             "DELETE FROM {$this->messages_table} WHERE conversation_id IN ($ids_placeholder)",
             $old_conversations
@@ -597,7 +598,7 @@ Quando citar itens do acervo, inclua os links quando disponíveis.', 'oraculo_ta
         // phpcs:enable WordPress.DB.PreparedSQL.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 
         // Remover conversas
-        // phpcs:disable WordPress.DB.PreparedSQL.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $ids_placeholder constructed via array_fill('%d'); count matches args spread; bulk DELETE for oraculo_conversations; caching N/A for writes.
+        // phpcs:disable WordPress.DB.PreparedSQL.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $old_conversations is array_map('intval', ...)d above; type-safe to interpolate; $ids_placeholder constructed via array_fill('%d'); count matches args spread; bulk DELETE for oraculo_conversations; caching N/A for writes.
         $deleted = $wpdb->query($wpdb->prepare(
             "DELETE FROM {$this->conversations_table} WHERE id IN ($ids_placeholder)",
             $old_conversations
