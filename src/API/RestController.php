@@ -37,7 +37,7 @@ class RestController extends WP_REST_Controller {
             [
                 'methods' => 'POST',
                 'callback' => [$this, 'search'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [$this, 'check_public_search'],
                 'args' => [
                     'query' => [
                         'required' => true,
@@ -47,10 +47,13 @@ class RestController extends WP_REST_Controller {
                     'collections' => [
                         'type' => 'array',
                         'default' => [],
+                        'items' => ['type' => 'integer'],
                     ],
                     'max_results' => [
                         'type' => 'integer',
                         'default' => 10,
+                        'minimum' => 1,
+                        'maximum' => 50,
                     ],
                 ],
             ],
@@ -61,7 +64,7 @@ class RestController extends WP_REST_Controller {
             [
                 'methods' => 'POST',
                 'callback' => [$this, 'chat'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [$this, 'check_public_chat'],
                 'args' => [
                     'message' => [
                         'required' => true,
@@ -71,10 +74,15 @@ class RestController extends WP_REST_Controller {
                     'session_id' => [
                         'type' => 'string',
                         'default' => '',
+                        'sanitize_callback' => 'sanitize_text_field',
+                        'validate_callback' => static function ($value) {
+                            return is_string($value) && preg_match('/^[a-zA-Z0-9-]{0,64}$/', $value);
+                        },
                     ],
                     'collections' => [
                         'type' => 'array',
                         'default' => [],
+                        'items' => ['type' => 'integer'],
                     ],
                 ],
             ],
@@ -98,12 +106,12 @@ class RestController extends WP_REST_Controller {
             ],
         ]);
 
-        // Encerrar conversa
+        // Encerrar conversa (mutação: exige nonce; posse do session_id + dono checado no handler)
         register_rest_route($this->namespace, '/conversations/(?P<session_id>[a-zA-Z0-9-]+)/end', [
             [
                 'methods' => 'POST',
                 'callback' => [$this, 'end_conversation'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [$this, 'check_rest_nonce'],
             ],
         ]);
 
@@ -112,9 +120,12 @@ class RestController extends WP_REST_Controller {
             [
                 'methods' => 'POST',
                 'callback' => [$this, 'record_feedback'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [$this, 'check_public_feedback'],
                 'args' => [
-                    'search_id' => ['type' => 'string'],
+                    'search_id' => [
+                        'type' => 'string',
+                        'sanitize_callback' => 'sanitize_text_field',
+                    ],
                     'message_id' => ['type' => 'integer'],
                     'feedback' => [
                         'required' => true,
@@ -191,8 +202,16 @@ class RestController extends WP_REST_Controller {
                 'callback' => [$this, 'get_analytics_timeline'],
                 'permission_callback' => [$this, 'check_admin'],
                 'args' => [
-                    'period' => ['type' => 'string', 'default' => 'month'],
-                    'granularity' => ['type' => 'string', 'default' => 'day'],
+                    'period' => [
+                        'type' => 'string',
+                        'default' => 'month',
+                        'enum' => ['today', 'week', 'month', 'year', 'all'],
+                    ],
+                    'granularity' => [
+                        'type' => 'string',
+                        'default' => 'day',
+                        'enum' => ['hour', 'day', 'week', 'month'],
+                    ],
                 ],
             ],
         ]);
@@ -203,8 +222,16 @@ class RestController extends WP_REST_Controller {
                 'callback' => [$this, 'export_analytics'],
                 'permission_callback' => [$this, 'check_admin'],
                 'args' => [
-                    'period' => ['type' => 'string', 'default' => 'month'],
-                    'format' => ['type' => 'string', 'default' => 'json'],
+                    'period' => [
+                        'type' => 'string',
+                        'default' => 'month',
+                        'enum' => ['today', 'week', 'month', 'year', 'all'],
+                    ],
+                    'format' => [
+                        'type' => 'string',
+                        'default' => 'json',
+                        'enum' => ['json', 'csv'],
+                    ],
                 ],
             ],
         ]);
@@ -214,7 +241,7 @@ class RestController extends WP_REST_Controller {
             [
                 'methods' => 'GET',
                 'callback' => [$this, 'get_collections'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [$this, 'check_search_enabled'],
             ],
         ]);
 
@@ -237,6 +264,7 @@ class RestController extends WP_REST_Controller {
                     'provider' => [
                         'required' => true,
                         'type' => 'string',
+                        'sanitize_callback' => 'sanitize_key',
                     ],
                 ],
             ],
@@ -270,16 +298,16 @@ class RestController extends WP_REST_Controller {
             [
                 'methods' => 'GET',
                 'callback' => [$this, 'get_suggestions'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [$this, 'check_search_enabled'],
             ],
         ]);
 
-        // Health check
+        // Health check (expõe versões/config — restrito a admin)
         register_rest_route($this->namespace, '/health', [
             [
                 'methods' => 'GET',
                 'callback' => [$this, 'health_check'],
-                'permission_callback' => '__return_true',
+                'permission_callback' => [$this, 'check_admin'],
             ],
         ]);
     }
@@ -296,6 +324,139 @@ class RestController extends WP_REST_Controller {
      */
     public function check_user_logged_in(): bool {
         return is_user_logged_in();
+    }
+
+    /**
+     * Verifica o nonce REST (X-WP-Nonce ou _wpnonce).
+     *
+     * Visitantes anônimos recebem o nonce via wp_localize_script (restNonce);
+     * para usuários logados o core já valida o cookie auth.
+     *
+     * @param WP_REST_Request $request
+     * @return true|WP_Error
+     */
+    public function check_rest_nonce(WP_REST_Request $request) {
+        $nonce = $request->get_header('X-WP-Nonce');
+        if (empty($nonce)) {
+            $nonce = (string) $request->get_param('_wpnonce');
+        }
+
+        if (empty($nonce) || !wp_verify_nonce($nonce, 'wp_rest')) {
+            return new WP_Error(
+                'oraculo_invalid_nonce',
+                __('Requisição não autorizada: nonce ausente ou inválido.', 'oraculo_tainacan'),
+                ['status' => 401]
+            );
+        }
+
+        return true;
+    }
+
+    /**
+     * Permission callback dos endpoints públicos de busca.
+     *
+     * @param WP_REST_Request $request
+     * @return true|WP_Error
+     */
+    public function check_public_search(WP_REST_Request $request) {
+        return $this->check_public_endpoint('search', $request);
+    }
+
+    /**
+     * Permission callback dos endpoints públicos de chat.
+     *
+     * @param WP_REST_Request $request
+     * @return true|WP_Error
+     */
+    public function check_public_chat(WP_REST_Request $request) {
+        return $this->check_public_endpoint('chat', $request);
+    }
+
+    /**
+     * Permission callback do endpoint público de feedback.
+     *
+     * @param WP_REST_Request $request
+     * @return true|WP_Error
+     */
+    public function check_public_feedback(WP_REST_Request $request) {
+        return $this->check_public_endpoint('feedback', $request);
+    }
+
+    /**
+     * Endpoints de leitura leve ligados à busca (coleções, sugestões).
+     *
+     * @return bool
+     */
+    public function check_search_enabled(): bool {
+        $options = \Oraculo_Tainacan\Oraculo_Tainacan::get_options();
+        return !empty($options['enable_search']);
+    }
+
+    /**
+     * Proteção compartilhada dos endpoints públicos que consomem IA/gravam dados:
+     * gate pela opção enable_<feature>, nonce do widget e rate-limit por IP.
+     *
+     * @param string          $feature search|chat|feedback
+     * @param WP_REST_Request $request
+     * @return true|WP_Error
+     */
+    private function check_public_endpoint(string $feature, WP_REST_Request $request) {
+        $options = \Oraculo_Tainacan\Oraculo_Tainacan::get_options();
+
+        if (empty($options['enable_' . $feature])) {
+            return new WP_Error(
+                'oraculo_feature_disabled',
+                __('Este recurso está desativado.', 'oraculo_tainacan'),
+                ['status' => 403]
+            );
+        }
+
+        $nonce_check = $this->check_rest_nonce($request);
+        if (is_wp_error($nonce_check)) {
+            return $nonce_check;
+        }
+
+        /**
+         * Filtra o máximo de requisições por minuto e por IP nos endpoints públicos.
+         *
+         * @param int    $max_per_minute Padrão 10.
+         * @param string $feature        search|chat|feedback.
+         */
+        $max_per_minute = (int) apply_filters('oraculo_tainacan_rest_rate_limit', 10, $feature);
+
+        if ($max_per_minute > 0 && !$this->check_rate_limit($feature, $max_per_minute)) {
+            return new WP_Error(
+                'oraculo_rate_limited',
+                __('Muitas requisições. Aguarde alguns instantes e tente novamente.', 'oraculo_tainacan'),
+                ['status' => 429]
+            );
+        }
+
+        return true;
+    }
+
+    /**
+     * Rate-limit simples por IP via transient (janela de 1 minuto).
+     *
+     * @param string $feature
+     * @param int    $max_per_minute
+     * @return bool
+     */
+    private function check_rate_limit(string $feature, int $max_per_minute): bool {
+        $ip = isset($_SERVER['REMOTE_ADDR'])
+            ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR']))
+            : '';
+
+        $key = 'oraculo_rl_' . $feature . '_' . md5($ip);
+        $count = (int) get_transient($key);
+
+        if ($count >= $max_per_minute) {
+            return false;
+        }
+
+        set_transient($key, $count + 1, MINUTE_IN_SECONDS);
+
+        return true;
     }
 
     /**
@@ -367,15 +528,7 @@ class RestController extends WP_REST_Controller {
      * Obtém mensagens de uma conversa
      */
     public function get_conversation_messages(WP_REST_Request $request): WP_REST_Response {
-        global $wpdb;
-
-        $session_id = $request->get_param('session_id');
-
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; per-request conversation lookup.
-        $conversation = $wpdb->get_row($wpdb->prepare(
-            "SELECT id FROM {$wpdb->prefix}oraculo_conversations WHERE session_id = %s",
-            $session_id
-        ));
+        $conversation = $this->get_conversation_by_session($request->get_param('session_id'));
 
         if (!$conversation) {
             return new WP_REST_Response([
@@ -384,8 +537,16 @@ class RestController extends WP_REST_Controller {
             ], 404);
         }
 
+        // Apenas o dono da conversa (ou admin) pode ler as mensagens.
+        if ((int) $conversation->user_id !== get_current_user_id() && !current_user_can('manage_options')) {
+            return new WP_REST_Response([
+                'success' => false,
+                'error' => __('Você não tem permissão para acessar esta conversa.', 'oraculo_tainacan'),
+            ], 403);
+        }
+
         $chat_engine = new ChatEngine();
-        $messages = $chat_engine->get_messages($conversation->id);
+        $messages = $chat_engine->get_messages((int) $conversation->id);
 
         return new WP_REST_Response([
             'success' => true,
@@ -397,12 +558,48 @@ class RestController extends WP_REST_Controller {
      * Encerra conversa
      */
     public function end_conversation(WP_REST_Request $request): WP_REST_Response {
+        $session_id = $request->get_param('session_id');
+        $conversation = $this->get_conversation_by_session($session_id);
+
+        if (!$conversation) {
+            return new WP_REST_Response([
+                'success' => false,
+                'error' => __('Conversa não encontrada.', 'oraculo_tainacan'),
+            ], 404);
+        }
+
+        // Conversa de usuário logado só pode ser encerrada pelo dono (ou admin);
+        // conversa anônima (user_id 0) usa a posse do session_id + nonce como credencial.
+        $owner_id = (int) $conversation->user_id;
+        if ($owner_id > 0 && $owner_id !== get_current_user_id() && !current_user_can('manage_options')) {
+            return new WP_REST_Response([
+                'success' => false,
+                'error' => __('Você não tem permissão para encerrar esta conversa.', 'oraculo_tainacan'),
+            ], 403);
+        }
+
         $chat_engine = new ChatEngine();
-        $result = $chat_engine->end_conversation($request->get_param('session_id'));
+        $result = $chat_engine->end_conversation($session_id);
 
         return new WP_REST_Response([
             'success' => $result,
         ]);
+    }
+
+    /**
+     * Busca conversa por session_id (tabela própria do plugin).
+     *
+     * @param string $session_id
+     * @return object|null
+     */
+    private function get_conversation_by_session(string $session_id) {
+        global $wpdb;
+
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; per-request conversation lookup for authorization.
+        return $wpdb->get_row($wpdb->prepare(
+            "SELECT id, user_id FROM {$wpdb->prefix}oraculo_conversations WHERE session_id = %s",
+            $session_id
+        ));
     }
 
     /**
@@ -626,6 +823,14 @@ class RestController extends WP_REST_Controller {
      */
     public function update_settings(WP_REST_Request $request): WP_REST_Response {
         $new_options = $request->get_json_params();
+
+        // Guard de schema: o corpo precisa ser um objeto JSON não vazio.
+        if (!is_array($new_options) || empty($new_options)) {
+            return new WP_REST_Response([
+                'success' => false,
+                'error' => __('Corpo da requisição inválido: esperado um objeto JSON de configurações.', 'oraculo_tainacan'),
+            ], 400);
+        }
 
         $admin = new \Oraculo_Tainacan\Admin\AdminPage();
         $sanitized = $admin->sanitize_settings($new_options);
