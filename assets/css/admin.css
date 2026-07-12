@@ -4,20 +4,23 @@
  * Estilos para o painel administrativo
  */
 
-/* Variables */
+/*
+ * Tokens espelhando as variáveis do tema Tainacan, com fallback
+ * (padrão §5 de TAINACAN_UI_PATTERNS.md).
+ */
 :root {
-    --oraculo-primary: #1f2f56;
-    --oraculo-secondary: #b5e0e3;
+    --oraculo-primary: var(--tainacan-blue5, #1f2f56);
+    --oraculo-secondary: var(--tainacan-turquoise1, #b5e0e3);
     --oraculo-accent: #2271b1;
-    --oraculo-success: #00a32a;
+    --oraculo-success: var(--tainacan-success, #00a32a);
     --oraculo-warning: #dba617;
     --oraculo-error: #d63638;
-    --oraculo-bg: #f0f0f1;
+    --oraculo-bg: var(--tainacan-gray1, #f0f0f1);
     --oraculo-card-bg: #ffffff;
     --oraculo-text: #1e1e1e;
     --oraculo-text-secondary: #646970;
-    --oraculo-border: #c3c4c7;
-    --oraculo-border-radius: 4px;
+    --oraculo-border: var(--tainacan-input-border-color, #c3c4c7);
+    --oraculo-border-radius: var(--tainacan-button-border-radius, 4px);
     --oraculo-shadow: 0 1px 1px rgba(0,0,0,0.04);
 }
 

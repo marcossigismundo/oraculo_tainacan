@@ -971,8 +971,7 @@ class RestController extends WP_REST_Controller {
 			);
 		}
 
-		$admin     = new \Oraculo_Tainacan\Admin\AdminPage();
-		$sanitized = $admin->sanitize_settings( $new_options );
+		$sanitized = \Oraculo_Tainacan\Admin\SettingsSanitizer::sanitize( $new_options );
 
 		update_option( 'oraculo_tainacan_options', $sanitized );
 

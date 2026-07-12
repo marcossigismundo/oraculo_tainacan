@@ -565,10 +565,9 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 	 * Inicializa página do Tainacan usando a API de Pages
 	 */
 	public function init_tainacan_page(): void {
-		// Verificar se a classe base do Tainacan existe
-		if ( class_exists( '\Tainacan\Pages' ) ) {
-			require_once ORACULO_TAINACAN_PATH . 'src/Admin/OraculoPage.php';
-			\Tainacan\Oraculo_Page::get_instance();
+		// Verificar se a classe base do Tainacan existe (classe carregada via autoloader do plugin)
+		if ( class_exists( '\Tainacan\Pages' ) && trait_exists( '\Tainacan\Traits\Singleton_Instance' ) ) {
+			Admin\OraculoPage::get_instance();
 		}
 	}
 

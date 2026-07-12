@@ -4,22 +4,20 @@
  */
 
 :root {
-    /* Paleta Tainacan Turquoise */
-    --tainacan-turquoise1: #e9f5f6;
-    --tainacan-turquoise2: #d9eced;
-    --tainacan-turquoise3: #76c6cc;
-    --tainacan-turquoise4: #31818c;
-    --tainacan-turquoise5: #187181;
-    --tainacan-turquoise6: #156075;
-
-    /* Cores Principais baseadas no Tainacan */
-    --oraculo-primary: #187181;
-    --oraculo-primary-light: #31818c;
-    --oraculo-primary-dark: #156075;
-    --oraculo-secondary: #76c6cc;
-    --oraculo-secondary-light: #d9eced;
-    --oraculo-accent: #76c6cc;
-    --oraculo-accent-light: #e9f5f6;
+    /*
+     * Tokens espelhando as variáveis do tema Tainacan, com fallback
+     * na paleta turquoise (padrão §5 de TAINACAN_UI_PATTERNS.md).
+     * Nunca redefinir --tainacan-* aqui: pertencem ao tema.
+     */
+    --oraculo-primary: var(--tainacan-turquoise5, #187181);
+    --oraculo-primary-light: var(--tainacan-turquoise4, #31818c);
+    --oraculo-primary-dark: var(--tainacan-turquoise6, #156075);
+    --oraculo-secondary: var(--tainacan-turquoise3, #76c6cc);
+    --oraculo-secondary-light: var(--tainacan-turquoise2, #d9eced);
+    --oraculo-accent: var(--tainacan-turquoise3, #76c6cc);
+    --oraculo-accent-light: var(--tainacan-turquoise1, #e9f5f6);
+    --oraculo-button-radius: var(--tainacan-button-border-radius, 6px);
+    --oraculo-input-radius: var(--tainacan-input-border-radius, 4px);
 
     /* Gradientes Tainacan */
     --oraculo-gradient-primary: linear-gradient(135deg, #187181 0%, #156075 100%);

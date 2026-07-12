@@ -2,54 +2,32 @@
 /**
  * Página do Oráculo integrada ao Tainacan 1.0+
  *
- * Segue a nova arquitetura de páginas do Tainacan
- * usando a classe abstrata \Tainacan\Pages
+ * Segue a arquitetura de páginas do Tainacan usando a classe
+ * abstrata \Tainacan\Pages + trait Singleton_Instance.
  *
  * @package Oraculo_Tainacan
  */
 
 declare( strict_types=1 );
 
-namespace Tainacan;
+namespace Oraculo_Tainacan\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// Verificar se classe base existe
-if ( ! class_exists( '\Tainacan\Pages' ) ) {
-	return;
-}
-
 /**
  * Página principal do Oráculo no menu do Tainacan
  */
-class Oraculo_Page extends \Tainacan\Pages {
+class OraculoPage extends \Tainacan\Pages {
+
+	use \Tainacan\Traits\Singleton_Instance;
 
 	/**
-	 * Instância singleton
-	 *
-	 * @var Oraculo_Page|null
+	 * Inicialização (chamada pelo trait Singleton_Instance)
 	 */
-	private static $instance = null;
-
-	/**
-	 * Obtém instância única
-	 *
-	 * @return Oraculo_Page
-	 */
-	public static function get_instance(): Oraculo_Page {
-		if ( null === self::$instance ) {
-			self::$instance = new self();
-		}
-		return self::$instance;
-	}
-
-	/**
-	 * Construtor - chama o construtor pai
-	 */
-	protected function __construct() {
-		parent::__construct();
+	public function init() {
+		parent::init();
 	}
 
 	/**
@@ -62,11 +40,11 @@ class Oraculo_Page extends \Tainacan\Pages {
 	}
 
 	/**
-	 * Adiciona item ao menu do Tainacan
+	 * Adiciona item ao menu "Mais" (other links) do Tainacan
 	 */
 	public function add_admin_menu() {
 		$page_suffix = add_submenu_page(
-			$this->tainacan_root_menu_slug,
+			$this->tainacan_other_links_slug,
 			__( 'Oráculo IA', 'oraculo-tainacan' ),
 			'<span class="icon">' . $this->get_oraculo_icon() . '</span>' .
 			'<span class="menu-text">' . __( 'Oráculo IA', 'oraculo-tainacan' ) . '</span>',

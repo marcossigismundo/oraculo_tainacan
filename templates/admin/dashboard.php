@@ -17,8 +17,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 $stats           = array();
 $indexing_status = array();
 
-if ( class_exists( '\Tainacan\Oraculo_Page' ) ) {
-	$admin = \Tainacan\Oraculo_Page::get_instance();
+if ( class_exists( '\Oraculo_Tainacan\Admin\OraculoPage' ) ) {
+	$admin = \Oraculo_Tainacan\Admin\OraculoPage::get_instance();
 	$stats = $admin->get_dashboard_stats();
 } else {
 	// Fallback para dados básicos

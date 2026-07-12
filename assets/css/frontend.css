@@ -4,21 +4,19 @@
  */
 
 :root {
-    /* Paleta Tainacan Turquoise */
-    --tainacan-turquoise1: #e9f5f6;
-    --tainacan-turquoise2: #d9eced;
-    --tainacan-turquoise3: #76c6cc;
-    --tainacan-turquoise4: #31818c;
-    --tainacan-turquoise5: #187181;
-    --tainacan-turquoise6: #156075;
-
-    /* Cores Principais baseadas no Tainacan */
-    --oraculo-primary: #187181;
-    --oraculo-primary-dark: #156075;
-    --oraculo-primary-light: #31818c;
-    --oraculo-accent: #76c6cc;
-    --oraculo-accent-light: #d9eced;
-    --oraculo-accent-lighter: #e9f5f6;
+    /*
+     * Tokens espelhando as variáveis do tema Tainacan, com fallback
+     * na paleta turquoise (padrão §5 de TAINACAN_UI_PATTERNS.md).
+     * Nunca redefinir --tainacan-* aqui: pertencem ao tema.
+     * Obs.: --oraculo-primary/--oraculo-accent podem ser sobrescritos
+     * pelo CSS inline gerado das opções de aparência do plugin.
+     */
+    --oraculo-primary: var(--tainacan-turquoise5, #187181);
+    --oraculo-primary-dark: var(--tainacan-turquoise6, #156075);
+    --oraculo-primary-light: var(--tainacan-turquoise4, #31818c);
+    --oraculo-accent: var(--tainacan-turquoise3, #76c6cc);
+    --oraculo-accent-light: var(--tainacan-turquoise2, #d9eced);
+    --oraculo-accent-lighter: var(--tainacan-turquoise1, #e9f5f6);
 
     /* Gradientes Tainacan */
     --oraculo-gradient-primary: linear-gradient(135deg, #187181 0%, #156075 100%);
