@@ -48,11 +48,16 @@ class RestController extends WP_REST_Controller {
 							'required'          => true,
 							'type'              => 'string',
 							'sanitize_callback' => 'sanitize_text_field',
+							'validate_callback' => static function ( $value ) {
+								// Cap de tamanho: cada caractere extra vira custo de token no provedor de IA.
+								return is_string( $value ) && '' !== trim( $value ) && mb_strlen( $value ) <= 500;
+							},
 						),
 						'collections' => array(
-							'type'    => 'array',
-							'default' => array(),
-							'items'   => array( 'type' => 'integer' ),
+							'type'     => 'array',
+							'default'  => array(),
+							'items'    => array( 'type' => 'integer' ),
+							'maxItems' => 20,
 						),
 						'max_results' => array(
 							'type'    => 'integer',
@@ -79,6 +84,10 @@ class RestController extends WP_REST_Controller {
 							'required'          => true,
 							'type'              => 'string',
 							'sanitize_callback' => 'sanitize_text_field',
+							'validate_callback' => static function ( $value ) {
+								// Cap de tamanho: cada caractere extra vira custo de token no provedor de IA.
+								return is_string( $value ) && '' !== trim( $value ) && mb_strlen( $value ) <= 2000;
+							},
 						),
 						'session_id'  => array(
 							'type'              => 'string',
@@ -89,9 +98,10 @@ class RestController extends WP_REST_Controller {
 							},
 						),
 						'collections' => array(
-							'type'    => 'array',
-							'default' => array(),
-							'items'   => array( 'type' => 'integer' ),
+							'type'     => 'array',
+							'default'  => array(),
+							'items'    => array( 'type' => 'integer' ),
+							'maxItems' => 20,
 						),
 					),
 				),
@@ -515,6 +525,32 @@ class RestController extends WP_REST_Controller {
 				__( 'Muitas requisições. Aguarde alguns instantes e tente novamente.', 'oraculo-tainacan' ),
 				array( 'status' => 429 )
 			);
+		}
+
+		// Teto global do site para chamadas que consomem IA (todos os IPs somados):
+		// o limite por IP não protege contra abuso distribuído (botnets/scrapers).
+		if ( in_array( $feature, array( 'search', 'chat' ), true ) ) {
+			/**
+			 * Filtra o máximo global de chamadas de IA por minuto (search + chat, site inteiro).
+			 *
+			 * @param int $global_max_per_minute Padrão 60. Zero desativa o teto.
+			 */
+			$global_max = (int) apply_filters( 'oraculo_tainacan_rest_global_rate_limit', 60 );
+
+			if ( $global_max > 0 ) {
+				$global_key   = 'oraculo_rl_global_ai';
+				$global_count = (int) get_transient( $global_key );
+
+				if ( $global_count >= $global_max ) {
+					return new WP_Error(
+						'oraculo_global_rate_limited',
+						__( 'O serviço está com alta demanda no momento. Tente novamente em instantes.', 'oraculo-tainacan' ),
+						array( 'status' => 503 )
+					);
+				}
+
+				set_transient( $global_key, $global_count + 1, MINUTE_IN_SECONDS );
+			}
 		}
 
 		return true;

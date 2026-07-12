@@ -187,6 +187,9 @@ final class Oraculo_Tainacan {
 		// Cron para indexação em background
 		add_action( 'oraculo_process_indexing_batch', array( $this, 'process_indexing_batch' ) );
 
+		// Cron de retenção: sem ele as tabelas de logs/conversas crescem sem limite (DoS de armazenamento)
+		add_action( 'oraculo_cleanup_old_data', array( $this, 'cleanup_old_data' ) );
+
 		// Tainacan hooks (a integração principal é feita via Tainacan Pages API)
 
 		// Shortcodes
@@ -1145,6 +1148,59 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 		if ( isset( $this->services['indexing'] ) ) {
 			$this->services['indexing']->process_next_batch();
 		}
+	}
+
+	/**
+	 * Cron diário de retenção de dados (agendado na ativação).
+	 *
+	 * Remove logs de busca, conversas/mensagens antigas e memória expirada.
+	 * Sem isso, tráfego de bots infla as tabelas indefinidamente.
+	 */
+	public function cleanup_old_data(): void {
+		global $wpdb;
+
+		/**
+		 * Filtra a retenção (em dias) dos logs de busca.
+		 *
+		 * @param int $days Padrão 90.
+		 */
+		$logs_days = max( 1, (int) apply_filters( 'oraculo_tainacan_retention_logs_days', 90 ) );
+
+		/**
+		 * Filtra a retenção (em dias) de conversas inativas e suas mensagens.
+		 *
+		 * @param int $days Padrão 30.
+		 */
+		$conversations_days = max( 1, (int) apply_filters( 'oraculo_tainacan_retention_conversations_days', 30 ) );
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Plugin's own tables ($wpdb->prefix + literal); retention DELETEs on cron path; caching N/A; intervals bound via %d placeholders.
+		$wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$wpdb->prefix}oraculo_search_logs WHERE created_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
+				$logs_days
+			)
+		);
+
+		$wpdb->query(
+			$wpdb->prepare(
+				"DELETE m FROM {$wpdb->prefix}oraculo_messages m
+				 INNER JOIN {$wpdb->prefix}oraculo_conversations c ON m.conversation_id = c.id
+				 WHERE c.updated_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
+				$conversations_days
+			)
+		);
+
+		$wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$wpdb->prefix}oraculo_conversations WHERE updated_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
+				$conversations_days
+			)
+		);
+
+		$wpdb->query(
+			"DELETE FROM {$wpdb->prefix}oraculo_memory WHERE expires_at IS NOT NULL AND expires_at < NOW()"
+		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 	}
 
 
