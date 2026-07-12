@@ -65,7 +65,7 @@ class Oraculo_Page extends \Tainacan\Pages {
             __('Oráculo IA', 'oraculo_tainacan'),
             '<span class="icon">' . $this->get_oraculo_icon() . '</span>' .
             '<span class="menu-text">' . __('Oráculo IA', 'oraculo_tainacan') . '</span>',
-            'read',
+            'manage_options',
             $this->get_page_slug(),
             array($this, 'render_page'),
             3

@@ -395,7 +395,14 @@ class MultimodalSearch {
 
         if ($image_data['type'] === 'url') {
             // Claude precisa do base64
-            $content = file_get_contents($image_data['url']);
+            $image_response = wp_remote_get($image_data['url'], ['timeout' => 30]);
+            if (is_wp_error($image_response)) {
+                return $image_response;
+            }
+            $content = wp_remote_retrieve_body($image_response);
+            if (empty($content)) {
+                return new WP_Error('image_download_failed', __('Não foi possível baixar a imagem informada.', 'oraculo_tainacan'));
+            }
             $image_source = [
                 'type' => 'base64',
                 'media_type' => 'image/jpeg',

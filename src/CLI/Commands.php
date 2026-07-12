@@ -261,7 +261,7 @@ class Commands extends WP_CLI_Command {
         }
 
         if ($format === 'json') {
-            WP_CLI::log(json_encode($items, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+            WP_CLI::log(wp_json_encode($items, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
         } else {
             $table_data = array_map(function($item) {
                 return [
@@ -402,7 +402,7 @@ class Commands extends WP_CLI_Command {
         $stats = $analytics->get_stats($period);
 
         if ($format === 'json') {
-            WP_CLI::log(json_encode($stats, JSON_PRETTY_PRINT));
+            WP_CLI::log(wp_json_encode($stats, JSON_PRETTY_PRINT));
             return;
         }
 
@@ -526,7 +526,7 @@ class Commands extends WP_CLI_Command {
                 break;
 
             case 'settings':
-                $data = json_encode(\Oraculo_Tainacan\Oraculo_Tainacan::get_options(), JSON_PRETTY_PRINT);
+                $data = wp_json_encode(\Oraculo_Tainacan\Oraculo_Tainacan::get_options(), JSON_PRETTY_PRINT);
                 break;
 
             case 'vectors':
