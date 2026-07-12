@@ -9,6 +9,18 @@
     window.OraculoTainacan = window.OraculoTainacan || {};
 
     /**
+     * Escapa conteúdo dinâmico antes de injetar em HTML (texto e atributos).
+     */
+    OraculoTainacan.escapeHtml = function(value) {
+        if (value === null || value === undefined) {
+            return '';
+        }
+        return String(value).replace(/[&<>"']/g, function(ch) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[ch];
+        });
+    };
+
+    /**
      * Search Widget
      */
     OraculoTainacan.Search = {
@@ -112,10 +124,11 @@
         },
 
         renderResults: function(data) {
+            var esc = OraculoTainacan.escapeHtml;
             var html = '';
 
             // Response
-            html += '<div class="oraculo-response" data-search-id="' + data.search_id + '">';
+            html += '<div class="oraculo-response" data-search-id="' + esc(data.search_id) + '">';
             html += '  <div class="oraculo-response-header">';
             html += '    <div class="oraculo-response-icon">🔮</div>';
             html += '    <span class="oraculo-response-label">Oráculo</span>';
@@ -125,17 +138,17 @@
             // Sources
             if (data.items && data.items.length > 0) {
                 html += '  <div class="oraculo-sources">';
-                html += '    <div class="oraculo-sources-title">' + OraculoFrontend.strings.sources + ' (' + data.items.length + ')</div>';
+                html += '    <div class="oraculo-sources-title">' + esc(OraculoFrontend.strings.sources) + ' (' + data.items.length + ')</div>';
 
                 data.items.forEach(function(item, index) {
                     html += '<div class="oraculo-source-item">';
                     html += '  <div class="oraculo-source-number">' + (index + 1) + '</div>';
                     html += '  <div class="oraculo-source-content">';
-                    html += '    <a href="' + item.url + '" class="oraculo-source-title" target="_blank">' + item.title + '</a>';
-                    html += '    <div class="oraculo-source-snippet">' + item.snippet + '</div>';
+                    html += '    <a href="' + esc(item.url) + '" class="oraculo-source-title" target="_blank" rel="noopener noreferrer">' + esc(item.title) + '</a>';
+                    html += '    <div class="oraculo-source-snippet">' + esc(item.snippet) + '</div>';
                     html += '    <div class="oraculo-source-meta">';
-                    html += '      <span class="oraculo-source-collection">' + item.collection_name + '</span>';
-                    html += '      <span class="oraculo-source-similarity">' + item.similarity + '% relevância</span>';
+                    html += '      <span class="oraculo-source-collection">' + esc(item.collection_name) + '</span>';
+                    html += '      <span class="oraculo-source-similarity">' + esc(item.similarity) + '% relevância</span>';
                     html += '    </div>';
                     html += '  </div>';
                     html += '</div>';
@@ -160,7 +173,8 @@
         },
 
         formatResponse: function(text) {
-            // Convert markdown-like formatting
+            // Escapar primeiro; a formatação markdown é aplicada sobre texto seguro.
+            text = OraculoTainacan.escapeHtml(text);
             text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
             text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
             text = text.replace(/\n/g, '<br>');
@@ -171,7 +185,7 @@
             this.results.html(
                 '<div class="oraculo-error">' +
                     '<span class="oraculo-error-icon">⚠️</span>' +
-                    '<span>' + message + '</span>' +
+                    '<span>' + OraculoTainacan.escapeHtml(message) + '</span>' +
                 '</div>'
             );
             this.button.prop('disabled', false);
@@ -205,7 +219,7 @@
             if (defaultSuggestions.length > 0) {
                 var html = '<div class="oraculo-suggestion-list">';
                 defaultSuggestions.forEach(function(suggestion) {
-                    html += '<button type="button" class="oraculo-suggestion-item">' + suggestion + '</button>';
+                    html += '<button type="button" class="oraculo-suggestion-item">' + OraculoTainacan.escapeHtml(suggestion) + '</button>';
                 });
                 html += '</div>';
                 this.suggestions.html(html);

@@ -5,6 +5,18 @@
 (function($) {
     'use strict';
 
+    /**
+     * Escapa conteúdo dinâmico antes de injetar em HTML (texto e atributos).
+     */
+    function escapeHtml(value) {
+        if (value === null || value === undefined) {
+            return '';
+        }
+        return String(value).replace(/[&<>"']/g, function(ch) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[ch];
+        });
+    }
+
     window.OraculoChat = {
         sessionId: null,
         isOpen: false,
@@ -56,7 +68,7 @@
                     <div class="oraculo-chat-input-container">
                         <form class="oraculo-chat-input-form" id="oraculo-chat-form">
                             <textarea class="oraculo-chat-input" id="oraculo-chat-input"
-                                placeholder="${OraculoFrontend.strings.placeholder}"
+                                placeholder="${escapeHtml(OraculoFrontend.strings.placeholder)}"
                                 rows="1"></textarea>
                             <button type="submit" class="oraculo-chat-send" id="oraculo-chat-send">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -86,9 +98,9 @@
             var html = `
                 <div class="oraculo-chat-welcome">
                     <div class="oraculo-chat-welcome-icon">👋</div>
-                    <div class="oraculo-chat-welcome-text">${welcomeMessage}</div>
+                    <div class="oraculo-chat-welcome-text">${escapeHtml(welcomeMessage)}</div>
                     ${suggestions.length > 0 ? '<div class="oraculo-chat-suggestions">' +
-                        suggestions.map(s => `<button type="button" class="oraculo-chat-suggestion">${s}</button>`).join('') +
+                        suggestions.map(s => `<button type="button" class="oraculo-chat-suggestion">${escapeHtml(s)}</button>`).join('') +
                     '</div>' : ''}
                 </div>
             `;
@@ -229,16 +241,16 @@
 
             var html = `
                 <div class="oraculo-chat-message ${role}"
-                     ${options.messageId ? 'data-message-id="' + options.messageId + '"' : ''}>
+                     ${options.messageId ? 'data-message-id="' + escapeHtml(options.messageId) + '"' : ''}>
                     <div class="oraculo-message-content">${this.formatMessage(content)}</div>
             `;
 
             // Sources
             if (options.sources && options.sources.length > 0) {
                 html += '<div class="oraculo-message-sources">';
-                html += '<div class="oraculo-message-sources-title">' + OraculoFrontend.strings.sources + '</div>';
+                html += '<div class="oraculo-message-sources-title">' + escapeHtml(OraculoFrontend.strings.sources) + '</div>';
                 options.sources.forEach(function(source) {
-                    html += '<a href="' + source.url + '" class="oraculo-message-source" target="_blank">📄 ' + source.title + '</a>';
+                    html += '<a href="' + escapeHtml(source.url) + '" class="oraculo-message-source" target="_blank" rel="noopener noreferrer">📄 ' + escapeHtml(source.title) + '</a>';
                 });
                 html += '</div>';
             }
@@ -260,13 +272,21 @@
         },
 
         formatMessage: function(text) {
+            // Escapar primeiro; a formatação markdown é aplicada sobre texto seguro.
+            text = escapeHtml(text);
+
             // Basic markdown
             text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
             text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
             text = text.replace(/\n/g, '<br>');
 
-            // Links
-            text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+            // Links — apenas esquemas seguros (http/https, relativo, âncora)
+            text = text.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, function(match, label, url) {
+                if (!/^(https?:\/\/|\/|#)/i.test(url)) {
+                    return match;
+                }
+                return '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + label + '</a>';
+            });
 
             return text;
         },

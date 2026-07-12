@@ -5,6 +5,18 @@
 (function($) {
     'use strict';
 
+    /**
+     * Escapa conteúdo dinâmico antes de injetar em HTML (texto e atributos).
+     */
+    function escapeHtml(value) {
+        if (value === null || value === undefined) {
+            return '';
+        }
+        return String(value).replace(/[&<>"']/g, function(ch) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[ch];
+        });
+    }
+
     window.OraculoAdmin = {
         ajaxUrl: ajaxurl,
         nonce: OraculoAdmin?.nonce || '',
@@ -137,9 +149,9 @@
                     }
 
                     if (response.success) {
-                        result.html('<span class="oraculo-status oraculo-status-success">✓ ' + response.data.message + '</span>');
+                        result.html('<span class="oraculo-status oraculo-status-success">✓ ' + escapeHtml(response.data.message) + '</span>');
                     } else {
-                        result.html('<span class="oraculo-status oraculo-status-error">✗ ' + response.data.message + '</span>');
+                        result.html('<span class="oraculo-status oraculo-status-error">✗ ' + escapeHtml(response.data.message) + '</span>');
                     }
                 },
                 error: function() {
@@ -347,8 +359,8 @@
             log.find('.oraculo-log-empty').remove();
 
             var time = new Date().toLocaleTimeString();
-            var entry = $('<div class="oraculo-log-entry ' + (type || '') + '">')
-                .html('<span class="oraculo-log-time">[' + time + ']</span> ' + message);
+            var entry = $('<div class="oraculo-log-entry ' + escapeHtml(type || '') + '">')
+                .html('<span class="oraculo-log-time">[' + escapeHtml(time) + ']</span> ' + escapeHtml(message));
 
             log.append(entry);
             log.scrollTop(log[0].scrollHeight);
@@ -362,8 +374,8 @@
                 'info': 'ℹ'
             }[type] || 'ℹ';
 
-            var notice = $('<div class="oraculo-alert oraculo-alert-' + type + ' oraculo-fade-in">')
-                .html('<span class="oraculo-alert-icon">' + icon + '</span><div class="oraculo-alert-content">' + message + '</div>');
+            var notice = $('<div class="oraculo-alert oraculo-alert-' + escapeHtml(type) + ' oraculo-fade-in">')
+                .html('<span class="oraculo-alert-icon">' + icon + '</span><div class="oraculo-alert-content">' + escapeHtml(message) + '</div>');
 
             // Remove existing notices
             $('.oraculo-admin .oraculo-alert').remove();
@@ -388,7 +400,7 @@
             var modal = $('<div class="oraculo-modal-overlay">')
                 .html('<div class="oraculo-modal oraculo-slide-up">' +
                     '<div class="oraculo-modal-header">' +
-                        '<h3>' + title + '</h3>' +
+                        '<h3>' + escapeHtml(title) + '</h3>' +
                         '<button class="oraculo-modal-close">&times;</button>' +
                     '</div>' +
                     '<div class="oraculo-modal-body">' + content + '</div>' +
@@ -430,7 +442,7 @@
         },
 
         confirm: function(message, callback) {
-            this.showModal('Confirmação', '<p>' + message + '</p>', [
+            this.showModal('Confirmação', '<p>' + escapeHtml(message) + '</p>', [
                 { label: 'Cancelar', close: true },
                 { label: 'Confirmar', primary: true, callback: callback }
             ]);

@@ -28,6 +28,18 @@
     window.OraculoTainacan = window.OraculoTainacan || {};
 
     /**
+     * Escapa conteúdo dinâmico antes de injetar em HTML (texto e atributos).
+     */
+    OraculoTainacan.escapeHtml = function(value) {
+        if (value === null || value === undefined) {
+            return '';
+        }
+        return String(value).replace(/[&<>"']/g, function(ch) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[ch];
+        });
+    };
+
+    /**
      * Inicialização
      */
     OraculoTainacan.init = function() {
@@ -81,16 +93,16 @@
             success: function(response) {
                 if (response.success) {
                     $result.removeClass('error').addClass('success')
-                        .html('<span class="dashicons dashicons-yes"></span> ' + OraculoAdmin.strings.success);
+                        .html('<span class="dashicons dashicons-yes"></span> ' + OraculoTainacan.escapeHtml(OraculoAdmin.strings.success));
                 } else {
                     $result.removeClass('success').addClass('error')
-                        .html('<span class="dashicons dashicons-no"></span> ' + response.data.message);
+                        .html('<span class="dashicons dashicons-no"></span> ' + OraculoTainacan.escapeHtml(response.data.message));
                 }
             },
             error: function(xhr, status, error) {
                 var errorMsg = (OraculoAdmin.strings.error || 'Erro') + (error ? ' ' + error : '');
                 $result.removeClass('success').addClass('error')
-                    .html('<span class="dashicons dashicons-no"></span> ' + errorMsg);
+                    .html('<span class="dashicons dashicons-no"></span> ' + OraculoTainacan.escapeHtml(errorMsg));
             },
             complete: function() {
                 $button.prop('disabled', false).text('Testar Conexão');
@@ -211,11 +223,11 @@
             success: function(response) {
                 if (response && response.success) {
                     $notice.removeClass('notice-error').addClass('notice-success')
-                        .html('<p>' + (OraculoAdmin.strings.success || 'Configurações salvas!') + '</p>').show();
+                        .html('<p>' + OraculoTainacan.escapeHtml(OraculoAdmin.strings.success || 'Configurações salvas!') + '</p>').show();
                 } else {
                     var msg = (response && response.data && response.data.message) ? response.data.message : 'Erro ao salvar';
                     $notice.removeClass('notice-success').addClass('notice-error')
-                        .html('<p>' + msg + '</p>').show();
+                        .html('<p>' + OraculoTainacan.escapeHtml(msg) + '</p>').show();
                 }
             },
             error: function(xhr, status, error) {
@@ -229,7 +241,7 @@
                     }
                 } catch(e) {}
                 $notice.removeClass('notice-success').addClass('notice-error')
-                    .html('<p>' + errorMsg + '</p>').show();
+                    .html('<p>' + OraculoTainacan.escapeHtml(errorMsg) + '</p>').show();
             },
             complete: function() {
                 $button.prop('disabled', false);
@@ -296,7 +308,7 @@
     OraculoTainacan.notify = function(message, type) {
         type = type || 'info';
 
-        var $notice = $('<div class="notice notice-' + type + ' is-dismissible"><p>' + message + '</p></div>');
+        var $notice = $('<div class="notice notice-' + OraculoTainacan.escapeHtml(type) + ' is-dismissible"><p>' + OraculoTainacan.escapeHtml(message) + '</p></div>');
 
         $('.oraculo-admin h1').after($notice);
 
