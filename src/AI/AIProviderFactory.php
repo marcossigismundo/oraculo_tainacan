@@ -19,274 +19,294 @@ use Oraculo_Tainacan\AI\Providers\ClaudeProvider;
  */
 class AIProviderFactory {
 
-    /**
-     * Mapa de provedores registrados
-     * @var array
-     */
-    private static array $providers = [
-        'openai' => OpenAIProvider::class,
-        'gemini' => GeminiProvider::class,
-        'deepseek' => DeepSeekProvider::class,
-        'ollama' => OllamaProvider::class,
-        'groq' => GroqProvider::class,
-        'claude' => ClaudeProvider::class,
-    ];
+	/**
+	 * Mapa de provedores registrados
+	 *
+	 * @var array
+	 */
+	private static array $providers = array(
+		'openai'   => OpenAIProvider::class,
+		'gemini'   => GeminiProvider::class,
+		'deepseek' => DeepSeekProvider::class,
+		'ollama'   => OllamaProvider::class,
+		'groq'     => GroqProvider::class,
+		'claude'   => ClaudeProvider::class,
+	);
 
-    /**
-     * Cache de instâncias
-     * @var array
-     */
-    private static array $instances = [];
+	/**
+	 * Cache de instâncias
+	 *
+	 * @var array
+	 */
+	private static array $instances = array();
 
-    /**
-     * Cria instância de provedor
-     *
-     * @param string $provider_id
-     * @param array $config Configuração específica (opcional)
-     * @return AIProviderInterface
-     * @throws \InvalidArgumentException
-     */
-    public function create(string $provider_id, array $config = []): AIProviderInterface {
-        if (!isset(self::$providers[$provider_id])) {
-            throw new \InvalidArgumentException(
-                /* translators: %s: AI provider identifier */
-                esc_html( sprintf( __( 'Provedor de IA "%s" não encontrado.', 'oraculo-tainacan' ), $provider_id ) )
-            );
-        }
+	/**
+	 * Cria instância de provedor
+	 *
+	 * @param string $provider_id
+	 * @param array  $config Configuração específica (opcional)
+	 * @return AIProviderInterface
+	 * @throws \InvalidArgumentException
+	 */
+	public function create( string $provider_id, array $config = array() ): AIProviderInterface {
+		if ( ! isset( self::$providers[ $provider_id ] ) ) {
+			throw new \InvalidArgumentException(
+				/* translators: %s: AI provider identifier */
+				esc_html( sprintf( __( 'Provedor de IA "%s" não encontrado.', 'oraculo-tainacan' ), $provider_id ) )
+			);
+		}
 
-        // Se não há configuração específica, usar cache
-        if (empty($config)) {
-            if (!isset(self::$instances[$provider_id])) {
-                $options = $this->get_provider_options($provider_id);
-                self::$instances[$provider_id] = new self::$providers[$provider_id]($options);
-            }
-            return self::$instances[$provider_id];
-        }
+		// Se não há configuração específica, usar cache
+		if ( empty( $config ) ) {
+			if ( ! isset( self::$instances[ $provider_id ] ) ) {
+				$options                         = $this->get_provider_options( $provider_id );
+				self::$instances[ $provider_id ] = new self::$providers[ $provider_id ]( $options );
+			}
+			return self::$instances[ $provider_id ];
+		}
 
-        // Criar nova instância com configuração específica
-        return new self::$providers[$provider_id]($config);
-    }
+		// Criar nova instância com configuração específica
+		return new self::$providers[ $provider_id ]( $config );
+	}
 
-    /**
-     * Cria provedor baseado nas opções do plugin
-     *
-     * @return AIProviderInterface
-     * @throws \InvalidArgumentException
-     */
-    public function create_from_options(): AIProviderInterface {
-        $options = \Oraculo_Tainacan\Oraculo_Tainacan::get_options();
-        $provider_id = $options['ai_provider'] ?? 'openai';
+	/**
+	 * Cria provedor baseado nas opções do plugin
+	 *
+	 * @return AIProviderInterface
+	 * @throws \InvalidArgumentException
+	 */
+	public function create_from_options(): AIProviderInterface {
+		$options     = \Oraculo_Tainacan\Oraculo_Tainacan::get_options();
+		$provider_id = $options['ai_provider'] ?? 'openai';
 
-        return $this->create($provider_id);
-    }
+		return $this->create( $provider_id );
+	}
 
-    /**
-     * Cria provedor para embeddings
-     *
-     * @return AIProviderInterface
-     * @throws \RuntimeException
-     */
-    public function create_for_embeddings(): AIProviderInterface {
-        $options = \Oraculo_Tainacan\Oraculo_Tainacan::get_options();
-        $provider_id = $options['ai_provider'] ?? 'openai';
+	/**
+	 * Cria provedor para embeddings
+	 *
+	 * @return AIProviderInterface
+	 * @throws \RuntimeException
+	 */
+	public function create_for_embeddings(): AIProviderInterface {
+		$options     = \Oraculo_Tainacan\Oraculo_Tainacan::get_options();
+		$provider_id = $options['ai_provider'] ?? 'openai';
 
-        // Provedores que suportam embeddings
-        $embedding_providers = ['openai', 'ollama'];
+		// Provedores que suportam embeddings
+		$embedding_providers = array( 'openai', 'ollama' );
 
-        if (!in_array($provider_id, $embedding_providers)) {
-            // Fallback para OpenAI se o provedor atual não suporta embeddings
-            if (!empty($options['openai_api_key'])) {
-                return $this->create('openai');
-            }
+		if ( ! in_array( $provider_id, $embedding_providers ) ) {
+			// Fallback para OpenAI se o provedor atual não suporta embeddings
+			if ( ! empty( $options['openai_api_key'] ) ) {
+				return $this->create( 'openai' );
+			}
 
-            // Fallback para Ollama local
-            if (!empty($options['ollama_url'])) {
-                return $this->create('ollama');
-            }
+			// Fallback para Ollama local
+			if ( ! empty( $options['ollama_url'] ) ) {
+				return $this->create( 'ollama' );
+			}
 
-            throw new \RuntimeException(
-                esc_html__( 'Nenhum provedor configurado suporta geração de embeddings. Configure OpenAI ou Ollama.', 'oraculo-tainacan' )
-            );
-        }
+			throw new \RuntimeException(
+				esc_html__( 'Nenhum provedor configurado suporta geração de embeddings. Configure OpenAI ou Ollama.', 'oraculo-tainacan' )
+			);
+		}
 
-        return $this->create($provider_id);
-    }
+		return $this->create( $provider_id );
+	}
 
-    /**
-     * Obtém opções de configuração para um provedor
-     *
-     * @param string $provider_id
-     * @return array
-     */
-    private function get_provider_options(string $provider_id): array {
-        $options = \Oraculo_Tainacan\Oraculo_Tainacan::get_options();
+	/**
+	 * Obtém opções de configuração para um provedor
+	 *
+	 * @param string $provider_id
+	 * @return array
+	 */
+	private function get_provider_options( string $provider_id ): array {
+		$options = \Oraculo_Tainacan\Oraculo_Tainacan::get_options();
 
-        $common = [
-            'timeout' => $options['request_timeout'] ?? 120,
-            'max_tokens' => $options['max_tokens'] ?? 2000,
-            'temperature' => $options['temperature'] ?? 0.7,
-        ];
+		$common = array(
+			'timeout'     => $options['request_timeout'] ?? 120,
+			'max_tokens'  => $options['max_tokens'] ?? 2000,
+			'temperature' => $options['temperature'] ?? 0.7,
+		);
 
-        switch ($provider_id) {
-            case 'openai':
-                $api_key = $options['openai_api_key'] ?? '';
-                if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+		switch ( $provider_id ) {
+			case 'openai':
+				$api_key = $options['openai_api_key'] ?? '';
+				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
                     // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Debug log gated by WP_DEBUG.
-                    error_log('[Oraculo Factory] Getting OpenAI options - api_key exists: ' . (!empty($api_key) ? 'yes' : 'no') . ', length: ' . strlen($api_key));
-                }
-                return array_merge($common, [
-                    'api_key' => $api_key,
-                    'model' => $options['openai_model'] ?? 'gpt-4o-mini',
-                    'embedding_model' => $options['openai_embedding_model'] ?? 'text-embedding-ada-002',
-                ]);
+					error_log( '[Oraculo Factory] Getting OpenAI options - api_key exists: ' . ( ! empty( $api_key ) ? 'yes' : 'no' ) . ', length: ' . strlen( $api_key ) );
+				}
+				return array_merge(
+					$common,
+					array(
+						'api_key'         => $api_key,
+						'model'           => $options['openai_model'] ?? 'gpt-4o-mini',
+						'embedding_model' => $options['openai_embedding_model'] ?? 'text-embedding-ada-002',
+					)
+				);
 
-            case 'gemini':
-                return array_merge($common, [
-                    'api_key' => $options['gemini_api_key'] ?? '',
-                    'model' => $options['gemini_model'] ?? 'gemini-1.5-pro',
-                ]);
+			case 'gemini':
+				return array_merge(
+					$common,
+					array(
+						'api_key' => $options['gemini_api_key'] ?? '',
+						'model'   => $options['gemini_model'] ?? 'gemini-1.5-pro',
+					)
+				);
 
-            case 'deepseek':
-                return array_merge($common, [
-                    'api_key' => $options['deepseek_api_key'] ?? '',
-                    'model' => $options['deepseek_model'] ?? 'deepseek-chat',
-                ]);
+			case 'deepseek':
+				return array_merge(
+					$common,
+					array(
+						'api_key' => $options['deepseek_api_key'] ?? '',
+						'model'   => $options['deepseek_model'] ?? 'deepseek-chat',
+					)
+				);
 
-            case 'ollama':
-                return array_merge($common, [
-                    'base_url' => $options['ollama_url'] ?? 'http://localhost:11434',
-                    'model' => $options['ollama_model'] ?? 'llama3.2',
-                    'embedding_model' => $options['ollama_embedding_model'] ?? 'nomic-embed-text',
-                ]);
+			case 'ollama':
+				return array_merge(
+					$common,
+					array(
+						'base_url'        => $options['ollama_url'] ?? 'http://localhost:11434',
+						'model'           => $options['ollama_model'] ?? 'llama3.2',
+						'embedding_model' => $options['ollama_embedding_model'] ?? 'nomic-embed-text',
+					)
+				);
 
-            case 'groq':
-                return array_merge($common, [
-                    'api_key' => $options['groq_api_key'] ?? '',
-                    'model' => $options['groq_model'] ?? 'llama-3.3-70b-versatile',
-                ]);
+			case 'groq':
+				return array_merge(
+					$common,
+					array(
+						'api_key' => $options['groq_api_key'] ?? '',
+						'model'   => $options['groq_model'] ?? 'llama-3.3-70b-versatile',
+					)
+				);
 
-            case 'claude':
-                return array_merge($common, [
-                    'api_key' => $options['claude_api_key'] ?? '',
-                    'model' => $options['claude_model'] ?? 'claude-3-5-sonnet-latest',
-                ]);
+			case 'claude':
+				return array_merge(
+					$common,
+					array(
+						'api_key' => $options['claude_api_key'] ?? '',
+						'model'   => $options['claude_model'] ?? 'claude-3-5-sonnet-latest',
+					)
+				);
 
-            default:
-                return $common;
-        }
-    }
+			default:
+				return $common;
+		}
+	}
 
-    /**
-     * Obtém lista de todos os provedores disponíveis
-     *
-     * @return array
-     */
-    public function get_available_providers(): array {
-        $providers = [];
+	/**
+	 * Obtém lista de todos os provedores disponíveis
+	 *
+	 * @return array
+	 */
+	public function get_available_providers(): array {
+		$providers = array();
 
-        foreach (self::$providers as $id => $class) {
-            try {
-                $instance = new $class([]);
-                $providers[] = [
-                    'id' => $instance->get_id(),
-                    'name' => $instance->get_name(),
-                    'description' => $instance->get_description(),
-                    'is_configured' => $this->is_provider_configured($id),
-                    'supports_embeddings' => $instance->supports_embeddings(),
-                    'supports_streaming' => $instance->supports_streaming(),
-                    'models' => $instance->get_available_models(),
-                    'embedding_models' => $instance->get_embedding_models(),
-                ];
-            } catch (\Exception $e) {
-                continue;
-            }
-        }
+		foreach ( self::$providers as $id => $class ) {
+			try {
+				$instance    = new $class( array() );
+				$providers[] = array(
+					'id'                  => $instance->get_id(),
+					'name'                => $instance->get_name(),
+					'description'         => $instance->get_description(),
+					'is_configured'       => $this->is_provider_configured( $id ),
+					'supports_embeddings' => $instance->supports_embeddings(),
+					'supports_streaming'  => $instance->supports_streaming(),
+					'models'              => $instance->get_available_models(),
+					'embedding_models'    => $instance->get_embedding_models(),
+				);
+			} catch ( \Exception $e ) {
+				continue;
+			}
+		}
 
-        return $providers;
-    }
+		return $providers;
+	}
 
-    /**
-     * Verifica se um provedor está configurado
-     *
-     * @param string $provider_id
-     * @return bool
-     */
-    public function is_provider_configured(string $provider_id): bool {
-        $options = \Oraculo_Tainacan\Oraculo_Tainacan::get_options();
+	/**
+	 * Verifica se um provedor está configurado
+	 *
+	 * @param string $provider_id
+	 * @return bool
+	 */
+	public function is_provider_configured( string $provider_id ): bool {
+		$options = \Oraculo_Tainacan\Oraculo_Tainacan::get_options();
 
-        switch ($provider_id) {
-            case 'openai':
-                return !empty($options['openai_api_key']);
-            case 'gemini':
-                return !empty($options['gemini_api_key']);
-            case 'deepseek':
-                return !empty($options['deepseek_api_key']);
-            case 'ollama':
-                return !empty($options['ollama_url']);
-            case 'groq':
-                return !empty($options['groq_api_key']);
-            case 'claude':
-                return !empty($options['claude_api_key']);
-            default:
-                return false;
-        }
-    }
+		switch ( $provider_id ) {
+			case 'openai':
+				return ! empty( $options['openai_api_key'] );
+			case 'gemini':
+				return ! empty( $options['gemini_api_key'] );
+			case 'deepseek':
+				return ! empty( $options['deepseek_api_key'] );
+			case 'ollama':
+				return ! empty( $options['ollama_url'] );
+			case 'groq':
+				return ! empty( $options['groq_api_key'] );
+			case 'claude':
+				return ! empty( $options['claude_api_key'] );
+			default:
+				return false;
+		}
+	}
 
-    /**
-     * Registra um novo provedor
-     *
-     * @param string $id
-     * @param string $class
-     */
-    public static function register_provider(string $id, string $class): void {
-        if (!is_subclass_of($class, AIProviderInterface::class)) {
-            throw new \InvalidArgumentException(
-                /* translators: %s: PHP class name */
-                esc_html( sprintf( __( 'Classe %s deve implementar AIProviderInterface.', 'oraculo-tainacan' ), $class ) )
-            );
-        }
+	/**
+	 * Registra um novo provedor
+	 *
+	 * @param string $id
+	 * @param string $class
+	 */
+	public static function register_provider( string $id, string $class ): void {
+		if ( ! is_subclass_of( $class, AIProviderInterface::class ) ) {
+			throw new \InvalidArgumentException(
+				/* translators: %s: PHP class name */
+				esc_html( sprintf( __( 'Classe %s deve implementar AIProviderInterface.', 'oraculo-tainacan' ), $class ) )
+			);
+		}
 
-        self::$providers[$id] = $class;
-    }
+		self::$providers[ $id ] = $class;
+	}
 
-    /**
-     * Remove provedor do registro
-     *
-     * @param string $id
-     */
-    public static function unregister_provider(string $id): void {
-        unset(self::$providers[$id]);
-        unset(self::$instances[$id]);
-    }
+	/**
+	 * Remove provedor do registro
+	 *
+	 * @param string $id
+	 */
+	public static function unregister_provider( string $id ): void {
+		unset( self::$providers[ $id ] );
+		unset( self::$instances[ $id ] );
+	}
 
-    /**
-     * Limpa cache de instâncias
-     */
-    public static function clear_cache(): void {
-        self::$instances = [];
-    }
+	/**
+	 * Limpa cache de instâncias
+	 */
+	public static function clear_cache(): void {
+		self::$instances = array();
+	}
 
-    /**
-     * Obtém o provedor configurado atualmente
-     *
-     * @return string
-     */
-    public function get_current_provider(): string {
-        $options = \Oraculo_Tainacan\Oraculo_Tainacan::get_options();
-        return $options['ai_provider'] ?? 'openai';
-    }
+	/**
+	 * Obtém o provedor configurado atualmente
+	 *
+	 * @return string
+	 */
+	public function get_current_provider(): string {
+		$options = \Oraculo_Tainacan\Oraculo_Tainacan::get_options();
+		return $options['ai_provider'] ?? 'openai';
+	}
 
-    /**
-     * Verifica se pelo menos um provedor está configurado
-     *
-     * @return bool
-     */
-    public function has_any_configured(): bool {
-        foreach (array_keys(self::$providers) as $provider_id) {
-            if ($this->is_provider_configured($provider_id)) {
-                return true;
-            }
-        }
-        return false;
-    }
+	/**
+	 * Verifica se pelo menos um provedor está configurado
+	 *
+	 * @return bool
+	 */
+	public function has_any_configured(): bool {
+		foreach ( array_keys( self::$providers ) as $provider_id ) {
+			if ( $this->is_provider_configured( $provider_id ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
 }

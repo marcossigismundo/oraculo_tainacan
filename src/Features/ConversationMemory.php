@@ -17,55 +17,56 @@ use Oraculo_Tainacan\AI\AIProviderFactory;
  */
 class ConversationMemory {
 
-    /**
-     * Suffixes das tabelas (sem prefixo do WordPress).
-     * Constantes de classe: garantem que os nomes das tabelas
-     * nunca podem vir de input do usuário em tempo de execução.
-     */
-    private const TABLE_MEMORY = 'oraculo_memory';
-    private const TABLE_FACTS  = 'oraculo_facts';
+	/**
+	 * Suffixes das tabelas (sem prefixo do WordPress).
+	 * Constantes de classe: garantem que os nomes das tabelas
+	 * nunca podem vir de input do usuário em tempo de execução.
+	 */
+	private const TABLE_MEMORY = 'oraculo_memory';
+	private const TABLE_FACTS  = 'oraculo_facts';
 
-    /**
-     * @var string Tabela de memórias
-     */
-    private string $table_name;
+	/**
+	 * @var string Tabela de memórias
+	 */
+	private string $table_name;
 
-    /**
-     * @var string Tabela de fatos
-     */
-    private string $facts_table;
+	/**
+	 * @var string Tabela de fatos
+	 */
+	private string $facts_table;
 
-    /**
-     * @var AIProviderFactory
-     */
-    private AIProviderFactory $factory;
+	/**
+	 * @var AIProviderFactory
+	 */
+	private AIProviderFactory $factory;
 
-    /**
-     * Número máximo de mensagens antes de resumir
-     * @var int
-     */
-    private int $max_messages = 20;
+	/**
+	 * Número máximo de mensagens antes de resumir
+	 *
+	 * @var int
+	 */
+	private int $max_messages = 20;
 
-    /**
-     * Construtor
-     */
-    public function __construct() {
-        global $wpdb;
-        $this->table_name = $wpdb->prefix . self::TABLE_MEMORY;
-        $this->facts_table = $wpdb->prefix . self::TABLE_FACTS;
-        $this->factory = new AIProviderFactory();
-    }
+	/**
+	 * Construtor
+	 */
+	public function __construct() {
+		global $wpdb;
+		$this->table_name  = $wpdb->prefix . self::TABLE_MEMORY;
+		$this->facts_table = $wpdb->prefix . self::TABLE_FACTS;
+		$this->factory     = new AIProviderFactory();
+	}
 
-    /**
-     * Cria tabelas de memória
-     */
-    public static function create_tables(): void {
-        global $wpdb;
+	/**
+	 * Cria tabelas de memória
+	 */
+	public static function create_tables(): void {
+		global $wpdb;
 
-        $charset_collate = $wpdb->get_charset_collate();
+		$charset_collate = $wpdb->get_charset_collate();
 
-        // Tabela de memórias/resumos
-        $sql1 = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}oraculo_memory (
+		// Tabela de memórias/resumos
+		$sql1 = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}oraculo_memory (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             session_id VARCHAR(64) NOT NULL,
             user_id BIGINT UNSIGNED DEFAULT 0,
@@ -81,8 +82,8 @@ class ConversationMemory {
             KEY memory_type (memory_type)
         ) {$charset_collate};";
 
-        // Tabela de fatos extraídos
-        $sql2 = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}oraculo_facts (
+		// Tabela de fatos extraídos
+		$sql2 = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}oraculo_facts (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             session_id VARCHAR(64) NOT NULL,
             user_id BIGINT UNSIGNED DEFAULT 0,
@@ -99,358 +100,372 @@ class ConversationMemory {
             KEY fact_type (fact_type)
         ) {$charset_collate};";
 
-        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-        dbDelta($sql1);
-        dbDelta($sql2);
-    }
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql1 );
+		dbDelta( $sql2 );
+	}
 
-    /**
-     * Adiciona memória de uma conversa
-     *
-     * @param string $session_id
-     * @param array $messages Mensagens da conversa
-     * @return bool
-     */
-    public function process_conversation(string $session_id, array $messages): bool {
-        if (count($messages) < 3) {
-            return false;
-        }
+	/**
+	 * Adiciona memória de uma conversa
+	 *
+	 * @param string $session_id
+	 * @param array  $messages Mensagens da conversa
+	 * @return bool
+	 */
+	public function process_conversation( string $session_id, array $messages ): bool {
+		if ( count( $messages ) < 3 ) {
+			return false;
+		}
 
-        // Verificar se precisa resumir
-        if (count($messages) >= $this->max_messages) {
-            $this->create_summary($session_id, $messages);
-        }
+		// Verificar se precisa resumir
+		if ( count( $messages ) >= $this->max_messages ) {
+			$this->create_summary( $session_id, $messages );
+		}
 
-        // Extrair fatos importantes
-        $this->extract_facts($session_id, $messages);
+		// Extrair fatos importantes
+		$this->extract_facts( $session_id, $messages );
 
-        return true;
-    }
+		return true;
+	}
 
-    /**
-     * Cria resumo da conversa
-     *
-     * @param string $session_id
-     * @param array $messages
-     * @return string|null
-     */
-    public function create_summary(string $session_id, array $messages): ?string {
-        global $wpdb;
+	/**
+	 * Cria resumo da conversa
+	 *
+	 * @param string $session_id
+	 * @param array  $messages
+	 * @return string|null
+	 */
+	public function create_summary( string $session_id, array $messages ): ?string {
+		global $wpdb;
 
-        $provider = $this->factory->create();
-        if (is_wp_error($provider)) {
-            return null;
-        }
+		$provider = $this->factory->create();
+		if ( is_wp_error( $provider ) ) {
+			return null;
+		}
 
-        // Formatar mensagens para resumo
-        $conversation_text = $this->format_messages_for_summary($messages);
+		// Formatar mensagens para resumo
+		$conversation_text = $this->format_messages_for_summary( $messages );
 
-        $prompt = "Analise a seguinte conversa e crie um resumo conciso dos pontos principais discutidos. ";
-        $prompt .= "Inclua: tópicos abordados, perguntas feitas, informações fornecidas e preferências demonstradas pelo usuário.\n\n";
-        $prompt .= "Conversa:\n" . $conversation_text . "\n\n";
-        $prompt .= "Resumo:";
+		$prompt  = 'Analise a seguinte conversa e crie um resumo conciso dos pontos principais discutidos. ';
+		$prompt .= "Inclua: tópicos abordados, perguntas feitas, informações fornecidas e preferências demonstradas pelo usuário.\n\n";
+		$prompt .= "Conversa:\n" . $conversation_text . "\n\n";
+		$prompt .= 'Resumo:';
 
-        $result = $provider->generate_response($prompt, '', ['max_tokens' => 500]);
+		$result = $provider->generate_response( $prompt, '', array( 'max_tokens' => 500 ) );
 
-        if (is_wp_error($result)) {
-            return null;
-        }
+		if ( is_wp_error( $result ) ) {
+			return null;
+		}
 
-        $summary = $result['response'];
+		$summary = $result['response'];
 
-        // Salvar resumo
+		// Salvar resumo
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom plugin table; no WP core API available.
-        $wpdb->insert(
-            $this->table_name,
-            [
-                'session_id' => $session_id,
-                'user_id' => get_current_user_id(),
-                'memory_type' => 'summary',
-                'content' => $summary,
-                'message_range' => '1-' . count($messages),
-                'importance_score' => 0.8,
-                'created_at' => current_time('mysql'),
-            ],
-            ['%s', '%d', '%s', '%s', '%s', '%f', '%s']
-        );
+		$wpdb->insert(
+			$this->table_name,
+			array(
+				'session_id'       => $session_id,
+				'user_id'          => get_current_user_id(),
+				'memory_type'      => 'summary',
+				'content'          => $summary,
+				'message_range'    => '1-' . count( $messages ),
+				'importance_score' => 0.8,
+				'created_at'       => current_time( 'mysql' ),
+			),
+			array( '%s', '%d', '%s', '%s', '%s', '%f', '%s' )
+		);
 
-        return $summary;
-    }
+		return $summary;
+	}
 
-    /**
-     * Extrai fatos importantes da conversa
-     *
-     * @param string $session_id
-     * @param array $messages
-     * @return array
-     */
-    public function extract_facts(string $session_id, array $messages): array {
-        global $wpdb;
+	/**
+	 * Extrai fatos importantes da conversa
+	 *
+	 * @param string $session_id
+	 * @param array  $messages
+	 * @return array
+	 */
+	public function extract_facts( string $session_id, array $messages ): array {
+		global $wpdb;
 
-        $provider = $this->factory->create();
-        if (is_wp_error($provider)) {
-            return [];
-        }
+		$provider = $this->factory->create();
+		if ( is_wp_error( $provider ) ) {
+			return array();
+		}
 
-        // Pegar últimas mensagens
-        $recent = array_slice($messages, -6);
-        $text = $this->format_messages_for_summary($recent);
+		// Pegar últimas mensagens
+		$recent = array_slice( $messages, -6 );
+		$text   = $this->format_messages_for_summary( $recent );
 
-        $prompt = 'Analise a conversa abaixo e extraia fatos importantes em formato JSON.' . "\n"
-            . 'Tipos de fatos a extrair:' . "\n"
-            . '- preference: preferências do usuário (ex: "prefere documentos em PDF")' . "\n"
-            . '- interest: áreas de interesse (ex: "interessado em história do Brasil")' . "\n"
-            . '- context: contexto relevante (ex: "está pesquisando para TCC")' . "\n"
-            . '- feedback: feedback sobre o sistema (ex: "achou a resposta útil")' . "\n"
-            . "\n"
-            . 'Responda APENAS com um array JSON válido no formato:' . "\n"
-            . '[{"type": "preference", "key": "formato_preferido", "value": "PDF", "confidence": 0.9}]' . "\n"
-            . "\n"
-            . 'Se não houver fatos relevantes, responda: []' . "\n"
-            . "\n"
-            . 'Conversa:' . "\n"
-            . $text;
+		$prompt = 'Analise a conversa abaixo e extraia fatos importantes em formato JSON.' . "\n"
+			. 'Tipos de fatos a extrair:' . "\n"
+			. '- preference: preferências do usuário (ex: "prefere documentos em PDF")' . "\n"
+			. '- interest: áreas de interesse (ex: "interessado em história do Brasil")' . "\n"
+			. '- context: contexto relevante (ex: "está pesquisando para TCC")' . "\n"
+			. '- feedback: feedback sobre o sistema (ex: "achou a resposta útil")' . "\n"
+			. "\n"
+			. 'Responda APENAS com um array JSON válido no formato:' . "\n"
+			. '[{"type": "preference", "key": "formato_preferido", "value": "PDF", "confidence": 0.9}]' . "\n"
+			. "\n"
+			. 'Se não houver fatos relevantes, responda: []' . "\n"
+			. "\n"
+			. 'Conversa:' . "\n"
+			. $text;
 
-        $result = $provider->generate_response($prompt, '', ['max_tokens' => 500]);
+		$result = $provider->generate_response( $prompt, '', array( 'max_tokens' => 500 ) );
 
-        if (is_wp_error($result)) {
-            return [];
-        }
+		if ( is_wp_error( $result ) ) {
+			return array();
+		}
 
-        // Extrair JSON da resposta
-        $response = $result['response'];
-        preg_match('/\[.*\]/s', $response, $matches);
+		// Extrair JSON da resposta
+		$response = $result['response'];
+		preg_match( '/\[.*\]/s', $response, $matches );
 
-        if (empty($matches[0])) {
-            return [];
-        }
+		if ( empty( $matches[0] ) ) {
+			return array();
+		}
 
-        $facts = json_decode($matches[0], true);
+		$facts = json_decode( $matches[0], true );
 
-        if (!is_array($facts)) {
-            return [];
-        }
+		if ( ! is_array( $facts ) ) {
+			return array();
+		}
 
-        // Salvar fatos
-        foreach ($facts as $fact) {
-            if (empty($fact['key']) || empty($fact['value'])) {
-                continue;
-            }
+		// Salvar fatos
+		foreach ( $facts as $fact ) {
+			if ( empty( $fact['key'] ) || empty( $fact['value'] ) ) {
+				continue;
+			}
 
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom plugin table (oraculo_memory_facts); REPLACE write operation; caching N/A.
-            $wpdb->replace(
-                $this->facts_table,
-                [
-                    'session_id' => $session_id,
-                    'user_id' => get_current_user_id(),
-                    'fact_type' => $fact['type'] ?? 'general',
-                    'fact_key' => $fact['key'],
-                    'fact_value' => $fact['value'],
-                    'confidence' => $fact['confidence'] ?? 1.0,
-                    'updated_at' => current_time('mysql'),
-                ],
-                ['%s', '%d', '%s', '%s', '%s', '%f', '%s']
-            );
-        }
+			$wpdb->replace(
+				$this->facts_table,
+				array(
+					'session_id' => $session_id,
+					'user_id'    => get_current_user_id(),
+					'fact_type'  => $fact['type'] ?? 'general',
+					'fact_key'   => $fact['key'],
+					'fact_value' => $fact['value'],
+					'confidence' => $fact['confidence'] ?? 1.0,
+					'updated_at' => current_time( 'mysql' ),
+				),
+				array( '%s', '%d', '%s', '%s', '%s', '%f', '%s' )
+			);
+		}
 
-        return $facts;
-    }
+		return $facts;
+	}
 
-    /**
-     * Obtém contexto de memória para uma sessão
-     *
-     * @param string $session_id
-     * @return array
-     */
-    public function get_memory_context(string $session_id): array {
-        global $wpdb;
+	/**
+	 * Obtém contexto de memória para uma sessão
+	 *
+	 * @param string $session_id
+	 * @return array
+	 */
+	public function get_memory_context( string $session_id ): array {
+		global $wpdb;
 
         // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->table_name and $this->facts_table are $wpdb->prefix . self::TABLE_MEMORY / self::TABLE_FACTS (class constants; cannot receive user input); table identifiers cannot be parameterized.
 
-        // Obter resumos
+		// Obter resumos
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned tables; memory context fetched per session during chat.
-        $summaries = $wpdb->get_col($wpdb->prepare(
-            "SELECT content FROM {$this->table_name}
+		$summaries = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT content FROM {$this->table_name}
              WHERE session_id = %s AND memory_type = 'summary'
              ORDER BY created_at DESC
              LIMIT 3",
-            $session_id
-        ));
+				$session_id
+			)
+		);
 
-        // Obter fatos
+		// Obter fatos
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; facts fetched per session during chat.
-        $facts = $wpdb->get_results($wpdb->prepare(
-            "SELECT fact_type, fact_key, fact_value, confidence
+		$facts = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT fact_type, fact_key, fact_value, confidence
              FROM {$this->facts_table}
              WHERE session_id = %s
              ORDER BY confidence DESC, updated_at DESC
              LIMIT 10",
-            $session_id
-        ), ARRAY_A);
+				$session_id
+			),
+			ARRAY_A
+		);
 
         // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 
-        return [
-            'summaries' => $summaries,
-            'facts' => $facts,
-        ];
-    }
+		return array(
+			'summaries' => $summaries,
+			'facts'     => $facts,
+		);
+	}
 
-    /**
-     * Formata contexto de memória como texto para o prompt
-     *
-     * @param string $session_id
-     * @return string
-     */
-    public function format_memory_for_prompt(string $session_id): string {
-        $context = $this->get_memory_context($session_id);
+	/**
+	 * Formata contexto de memória como texto para o prompt
+	 *
+	 * @param string $session_id
+	 * @return string
+	 */
+	public function format_memory_for_prompt( string $session_id ): string {
+		$context = $this->get_memory_context( $session_id );
 
-        if (empty($context['summaries']) && empty($context['facts'])) {
-            return '';
-        }
+		if ( empty( $context['summaries'] ) && empty( $context['facts'] ) ) {
+			return '';
+		}
 
-        $parts = [];
+		$parts = array();
 
-        if (!empty($context['summaries'])) {
-            $parts[] = "Resumo da conversa anterior:\n" . $context['summaries'][0];
-        }
+		if ( ! empty( $context['summaries'] ) ) {
+			$parts[] = "Resumo da conversa anterior:\n" . $context['summaries'][0];
+		}
 
-        if (!empty($context['facts'])) {
-            $facts_text = [];
-            foreach ($context['facts'] as $fact) {
-                $facts_text[] = "- {$fact['fact_key']}: {$fact['fact_value']}";
-            }
-            $parts[] = "Informações conhecidas sobre o usuário:\n" . implode("\n", $facts_text);
-        }
+		if ( ! empty( $context['facts'] ) ) {
+			$facts_text = array();
+			foreach ( $context['facts'] as $fact ) {
+				$facts_text[] = "- {$fact['fact_key']}: {$fact['fact_value']}";
+			}
+			$parts[] = "Informações conhecidas sobre o usuário:\n" . implode( "\n", $facts_text );
+		}
 
-        return implode("\n\n", $parts);
-    }
+		return implode( "\n\n", $parts );
+	}
 
-    /**
-     * Obtém preferências do usuário
-     *
-     * @param string $session_id
-     * @return array
-     */
-    public function get_user_preferences(string $session_id): array {
-        global $wpdb;
+	/**
+	 * Obtém preferências do usuário
+	 *
+	 * @param string $session_id
+	 * @return array
+	 */
+	public function get_user_preferences( string $session_id ): array {
+		global $wpdb;
 
         // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->facts_table is $wpdb->prefix . self::TABLE_FACTS (class constant; cannot receive user input); table identifier cannot be parameterized.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; user preferences per session.
-        return $wpdb->get_results($wpdb->prepare(
-            "SELECT fact_key, fact_value
+		return $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT fact_key, fact_value
              FROM {$this->facts_table}
              WHERE session_id = %s AND fact_type = 'preference'
              ORDER BY confidence DESC",
-            $session_id
-        ), ARRAY_A) ?: [];
+				$session_id
+			),
+			ARRAY_A
+		) ?: array();
         // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
-    }
+	}
 
-    /**
-     * Obtém interesses do usuário
-     *
-     * @param string $session_id
-     * @return array
-     */
-    public function get_user_interests(string $session_id): array {
-        global $wpdb;
+	/**
+	 * Obtém interesses do usuário
+	 *
+	 * @param string $session_id
+	 * @return array
+	 */
+	public function get_user_interests( string $session_id ): array {
+		global $wpdb;
 
         // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->facts_table is $wpdb->prefix . self::TABLE_FACTS (class constant; cannot receive user input); table identifier cannot be parameterized.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; user interests per session.
-        return $wpdb->get_col($wpdb->prepare(
-            "SELECT fact_value
+		return $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT fact_value
              FROM {$this->facts_table}
              WHERE session_id = %s AND fact_type = 'interest'
              ORDER BY confidence DESC",
-            $session_id
-        )) ?: [];
+				$session_id
+			)
+		) ?: array();
         // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
-    }
+	}
 
-    /**
-     * Limpa memórias antigas
-     *
-     * @param int $days_old
-     * @return int
-     */
-    public function cleanup_old_memories(int $days_old = 30): int {
-        global $wpdb;
+	/**
+	 * Limpa memórias antigas
+	 *
+	 * @param int $days_old
+	 * @return int
+	 */
+	public function cleanup_old_memories( int $days_old = 30 ): int {
+		global $wpdb;
 
         // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->table_name and $this->facts_table are $wpdb->prefix . self::TABLE_MEMORY / self::TABLE_FACTS (class constants; cannot receive user input); table identifiers cannot be parameterized.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; bulk DELETE by age; caching N/A for writes.
-        $deleted_memories = $wpdb->query($wpdb->prepare(
-            "DELETE FROM {$this->table_name}
+		$deleted_memories = $wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$this->table_name}
              WHERE created_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
-            $days_old
-        ));
-        oraculo_tainacan_flush_cache();
+				$days_old
+			)
+		);
+		oraculo_tainacan_flush_cache();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; bulk DELETE by age; caching N/A for writes.
-        $deleted_facts = $wpdb->query($wpdb->prepare(
-            "DELETE FROM {$this->facts_table}
+		$deleted_facts = $wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$this->facts_table}
              WHERE updated_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
-            $days_old * 2
-        ));
+				$days_old * 2
+			)
+		);
         // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
-        oraculo_tainacan_flush_cache();
+		oraculo_tainacan_flush_cache();
 
-        return $deleted_memories + $deleted_facts;
-    }
+		return $deleted_memories + $deleted_facts;
+	}
 
-    /**
-     * Formata mensagens para criação de resumo
-     *
-     * @param array $messages
-     * @return string
-     */
-    private function format_messages_for_summary(array $messages): string {
-        $lines = [];
+	/**
+	 * Formata mensagens para criação de resumo
+	 *
+	 * @param array $messages
+	 * @return string
+	 */
+	private function format_messages_for_summary( array $messages ): string {
+		$lines = array();
 
-        foreach ($messages as $message) {
-            $role = $message['role'] === 'user' ? 'Usuário' : 'Assistente';
-            $content = $message['content'];
+		foreach ( $messages as $message ) {
+			$role    = $message['role'] === 'user' ? 'Usuário' : 'Assistente';
+			$content = $message['content'];
 
-            // Truncar mensagens muito longas
-            if (strlen($content) > 500) {
-                $content = substr($content, 0, 500) . '...';
-            }
+			// Truncar mensagens muito longas
+			if ( strlen( $content ) > 500 ) {
+				$content = substr( $content, 0, 500 ) . '...';
+			}
 
-            $lines[] = "{$role}: {$content}";
-        }
+			$lines[] = "{$role}: {$content}";
+		}
 
-        return implode("\n\n", $lines);
-    }
+		return implode( "\n\n", $lines );
+	}
 
-    /**
-     * Mescla memórias de sessão para usuário logado
-     *
-     * @param string $session_id
-     * @param int $user_id
-     */
-    public function merge_session_to_user(string $session_id, int $user_id): void {
-        global $wpdb;
+	/**
+	 * Mescla memórias de sessão para usuário logado
+	 *
+	 * @param string $session_id
+	 * @param int    $user_id
+	 */
+	public function merge_session_to_user( string $session_id, int $user_id ): void {
+		global $wpdb;
 
-        // Atualizar memórias
+		// Atualizar memórias
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table (oraculo_memories); session→user merge UPDATE; caching N/A for writes.
-        $wpdb->update(
-            $this->table_name,
-            ['user_id' => $user_id],
-            ['session_id' => $session_id],
-            ['%d'],
-            ['%s']
-        );
-        oraculo_tainacan_flush_cache();
+		$wpdb->update(
+			$this->table_name,
+			array( 'user_id' => $user_id ),
+			array( 'session_id' => $session_id ),
+			array( '%d' ),
+			array( '%s' )
+		);
+		oraculo_tainacan_flush_cache();
 
-        // Atualizar fatos
+		// Atualizar fatos
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table (oraculo_memory_facts); session→user merge UPDATE; caching N/A for writes.
-        $wpdb->update(
-            $this->facts_table,
-            ['user_id' => $user_id],
-            ['session_id' => $session_id],
-            ['%d'],
-            ['%s']
-        );
-        oraculo_tainacan_flush_cache();
-    }
+		$wpdb->update(
+			$this->facts_table,
+			array( 'user_id' => $user_id ),
+			array( 'session_id' => $session_id ),
+			array( '%d' ),
+			array( '%s' )
+		);
+		oraculo_tainacan_flush_cache();
+	}
 }
