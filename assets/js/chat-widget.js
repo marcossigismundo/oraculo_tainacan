@@ -205,14 +205,14 @@
             var self = this;
 
             $.ajax({
-                url: OraculoFrontend.ajaxUrl,
+                url: OraculoFrontend.restUrl + 'chat',
                 type: 'POST',
-                data: {
-                    action: 'oraculo_chat',
-                    nonce: OraculoFrontend.nonce,
+                contentType: 'application/json',
+                headers: { 'X-WP-Nonce': OraculoFrontend.restNonce },
+                data: JSON.stringify({
                     message: message,
                     session_id: this.sessionId || ''
-                },
+                }),
                 success: function(response) {
                     self.hideTyping();
 
@@ -224,14 +224,17 @@
                             sources: response.data.sources
                         });
                     } else {
-                        self.addMessage(response.data.message || OraculoFrontend.strings.error, 'assistant', {
-                            isError: true
-                        });
+                        var msg = response.error || (response.data && response.data.message) || OraculoFrontend.strings.error;
+                        self.addMessage(msg, 'assistant', { isError: true });
                     }
                 },
-                error: function() {
+                error: function(xhr) {
                     self.hideTyping();
-                    self.addMessage(OraculoFrontend.strings.error, 'assistant', { isError: true });
+                    var msg = OraculoFrontend.strings.error;
+                    if (xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) {
+                        msg = xhr.responseJSON.message || xhr.responseJSON.error;
+                    }
+                    self.addMessage(msg, 'assistant', { isError: true });
                 }
             });
         },
@@ -321,14 +324,14 @@
             var container = btn.closest('.oraculo-message-feedback');
 
             $.ajax({
-                url: OraculoFrontend.ajaxUrl,
+                url: OraculoFrontend.restUrl + 'feedback',
                 type: 'POST',
-                data: {
-                    action: 'oraculo_feedback',
-                    nonce: OraculoFrontend.nonce,
+                contentType: 'application/json',
+                headers: { 'X-WP-Nonce': OraculoFrontend.restNonce },
+                data: JSON.stringify({
                     message_id: messageId,
                     feedback: feedback
-                },
+                }),
                 success: function() {
                     container.find('button').removeClass('selected');
                     btn.addClass('selected');

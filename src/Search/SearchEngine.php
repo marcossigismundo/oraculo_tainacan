@@ -374,7 +374,7 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados. S
 				'collection_id'   => $item['collection_id'],
 				'collection_name' => $item['collection_name'] ?? '',
 				'similarity'      => round( ( $item['similarity'] ?? 0 ) * 100, 1 ),
-				'metadata'        => json_decode( $item['metadata_json'] ?? '{}', true ),
+				'metadata'        => (array) json_decode( $item['metadata_json'] ?? '{}', true ),
 			);
 		}
 

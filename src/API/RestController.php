@@ -494,13 +494,20 @@ class RestController extends WP_REST_Controller {
 			return $nonce_check;
 		}
 
+		// Defaults por feature: chat conversacional tolera mais requisições/min.
+		$defaults = array(
+			'search'   => 10,
+			'chat'     => 20,
+			'feedback' => 30,
+		);
+
 		/**
 		 * Filtra o máximo de requisições por minuto e por IP nos endpoints públicos.
 		 *
-		 * @param int    $max_per_minute Padrão 10.
+		 * @param int    $max_per_minute Padrão: search 10, chat 20, feedback 30.
 		 * @param string $feature        search|chat|feedback.
 		 */
-		$max_per_minute = (int) apply_filters( 'oraculo_tainacan_rest_rate_limit', 10, $feature );
+		$max_per_minute = (int) apply_filters( 'oraculo_tainacan_rest_rate_limit', $defaults[ $feature ] ?? 10, $feature );
 
 		if ( $max_per_minute > 0 && ! $this->check_rate_limit( $feature, $max_per_minute ) ) {
 			return new WP_Error(
@@ -852,7 +859,9 @@ class RestController extends WP_REST_Controller {
 			exit;
 		}
 
-		return new WP_REST_Response( json_decode( $data, true ) );
+		$decoded = json_decode( $data, true );
+
+		return new WP_REST_Response( is_array( $decoded ) ? $decoded : array() );
 	}
 
 	/**

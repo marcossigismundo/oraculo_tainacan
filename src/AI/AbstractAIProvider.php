@@ -174,6 +174,16 @@ abstract class AbstractAIProvider implements AIProviderInterface {
 			);
 		}
 
+		// Schema: resposta da API precisa ser um objeto JSON decodificável.
+		if ( ! is_array( $data ) ) {
+			$this->set_error( __( 'Resposta inválida da API (JSON malformado).', 'oraculo-tainacan' ) );
+			return new WP_Error(
+				'api_invalid_response',
+				__( 'Resposta inválida da API (JSON malformado).', 'oraculo-tainacan' ),
+				array( 'status' => $code )
+			);
+		}
+
 		return $data;
 	}
 

@@ -214,8 +214,11 @@ class WebhooksManager {
         // phpcs:enable PluginCheck.Security.DirectDB.UnescapedDBParameter
 
 		foreach ( $webhooks as &$webhook ) {
-			$webhook['events']  = json_decode( $webhook['events'], true );
-			$webhook['headers'] = json_decode( $webhook['headers'], true );
+			// Schema: events é lista de strings; headers é mapa — fallback para vazio se malformado.
+			$events             = json_decode( (string) $webhook['events'], true );
+			$headers            = json_decode( (string) $webhook['headers'], true );
+			$webhook['events']  = is_array( $events ) ? $events : array();
+			$webhook['headers'] = is_array( $headers ) ? $headers : array();
 		}
 
 		return $webhooks;
@@ -516,8 +519,11 @@ class WebhooksManager {
 			);
 		}
 
-		$webhook['events']  = json_decode( $webhook['events'], true );
-		$webhook['headers'] = json_decode( $webhook['headers'], true );
+		// Schema: events é lista de strings; headers é mapa — fallback para vazio se malformado.
+		$events             = json_decode( (string) $webhook['events'], true );
+		$headers            = json_decode( (string) $webhook['headers'], true );
+		$webhook['events']  = is_array( $events ) ? $events : array();
+		$webhook['headers'] = is_array( $headers ) ? $headers : array();
 
 		return $this->send_webhook(
 			$webhook,

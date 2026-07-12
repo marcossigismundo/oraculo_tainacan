@@ -109,7 +109,7 @@ class ExportManager {
 		if ( ! $include_embeddings ) {
 			foreach ( $data as &$row ) {
 				if ( isset( $row['metadata_json'] ) ) {
-					$row['metadata'] = json_decode( $row['metadata_json'], true );
+					$row['metadata'] = (array) json_decode( (string) $row['metadata_json'], true );
 					unset( $row['metadata_json'] );
 				}
 			}
@@ -207,7 +207,8 @@ class ExportManager {
 	public function import_settings( string $content ) {
 		$data = json_decode( $content, true );
 
-		if ( ! $data || ! isset( $data['settings'] ) ) {
+		// Schema: objeto com chave settings contendo um mapa chave=>valor.
+		if ( ! is_array( $data ) || ! isset( $data['settings'] ) || ! is_array( $data['settings'] ) ) {
 			return array( 'error' => __( 'Formato de arquivo inválido.', 'oraculo-tainacan' ) );
 		}
 
@@ -278,7 +279,8 @@ class ExportManager {
 		$content = file_get_contents( $filepath );
 		$data    = json_decode( $content, true );
 
-		if ( ! $data ) {
+		// Schema: backup é um objeto JSON (settings/vectors/analytics opcionais, validados adiante).
+		if ( ! is_array( $data ) ) {
 			return array(
 				'success' => false,
 				'error'   => __( 'Arquivo de backup inválido.', 'oraculo-tainacan' ),

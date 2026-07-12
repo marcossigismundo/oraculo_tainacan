@@ -173,14 +173,9 @@ final class Oraculo_Tainacan {
 		// REST API
 		add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
 
-		// AJAX
-		add_action( 'wp_ajax_oraculo_search', array( $this, 'ajax_search' ) );
-		add_action( 'wp_ajax_nopriv_oraculo_search', array( $this, 'ajax_search' ) );
-		add_action( 'wp_ajax_oraculo_chat', array( $this, 'ajax_chat' ) );
-		add_action( 'wp_ajax_nopriv_oraculo_chat', array( $this, 'ajax_chat' ) );
+		// AJAX (somente admin — a superfície pública de busca/chat/feedback vive no REST oraculo/v1)
 		add_action( 'wp_ajax_oraculo_index_collection', array( $this, 'ajax_index_collection' ) );
 		add_action( 'wp_ajax_oraculo_get_indexing_status', array( $this, 'ajax_get_indexing_status' ) );
-		add_action( 'wp_ajax_oraculo_feedback', array( $this, 'ajax_feedback' ) );
 		add_action( 'wp_ajax_oraculo_test_connection', array( $this, 'ajax_test_connection' ) );
 		add_action( 'wp_ajax_oraculo_clear_vectors', array( $this, 'ajax_clear_vectors' ) );
 		add_action( 'wp_ajax_oraculo_clear_all_vectors', array( $this, 'ajax_clear_all_vectors' ) );
@@ -853,49 +848,6 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 	}
 
 	/**
-	 * Handler AJAX de busca
-	 */
-	public function ajax_search(): void {
-		check_ajax_referer( 'oraculo_frontend', 'nonce' );
-
-		$query       = sanitize_text_field( wp_unslash( $_POST['query'] ?? '' ) );
-		$collections = array_map( 'absint', (array) ( $_POST['collections'] ?? array() ) );
-
-		if ( empty( $query ) ) {
-			wp_send_json_error( array( 'message' => __( 'Pergunta não pode estar vazia.', 'oraculo-tainacan' ) ) );
-		}
-
-		try {
-			$result = $this->services['search']->search( $query, $collections );
-			wp_send_json_success( $result );
-		} catch ( \Exception $e ) {
-			wp_send_json_error( array( 'message' => $e->getMessage() ) );
-		}
-	}
-
-	/**
-	 * Handler AJAX de chat
-	 */
-	public function ajax_chat(): void {
-		check_ajax_referer( 'oraculo_frontend', 'nonce' );
-
-		$message     = sanitize_text_field( wp_unslash( $_POST['message'] ?? '' ) );
-		$session_id  = sanitize_text_field( wp_unslash( $_POST['session_id'] ?? '' ) );
-		$collections = array_map( 'absint', (array) ( $_POST['collections'] ?? array() ) );
-
-		if ( empty( $message ) ) {
-			wp_send_json_error( array( 'message' => __( 'Mensagem não pode estar vazia.', 'oraculo-tainacan' ) ) );
-		}
-
-		try {
-			$result = $this->services['chat']->chat( $message, $session_id, $collections );
-			wp_send_json_success( $result );
-		} catch ( \Exception $e ) {
-			wp_send_json_error( array( 'message' => $e->getMessage() ) );
-		}
-	}
-
-	/**
 	 * Handler AJAX para iniciar indexação (síncrona)
 	 */
 	public function ajax_index_collection(): void {
@@ -969,24 +921,6 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 			}
 			$status = $this->services['indexing']->get_status( $collection_id );
 			wp_send_json_success( $status );
-		} catch ( \Exception $e ) {
-			wp_send_json_error( array( 'message' => $e->getMessage() ) );
-		}
-	}
-
-	/**
-	 * Handler AJAX para feedback
-	 */
-	public function ajax_feedback(): void {
-		check_ajax_referer( 'oraculo_frontend', 'nonce' );
-
-		$search_id  = sanitize_text_field( wp_unslash( $_POST['search_id'] ?? '' ) );
-		$feedback   = sanitize_text_field( wp_unslash( $_POST['feedback'] ?? '' ) );
-		$message_id = absint( $_POST['message_id'] ?? 0 );
-
-		try {
-			$this->services['analytics']->record_feedback( $search_id, $feedback, $message_id );
-			wp_send_json_success( array( 'message' => __( 'Obrigado pelo feedback!', 'oraculo-tainacan' ) ) );
 		} catch ( \Exception $e ) {
 			wp_send_json_error( array( 'message' => $e->getMessage() ) );
 		}
