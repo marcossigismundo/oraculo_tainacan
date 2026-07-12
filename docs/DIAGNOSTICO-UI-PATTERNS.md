@@ -6,6 +6,37 @@
 
 ---
 
+## STATUS PÓS-REFATORAÇÃO (2026-07-12, v2.1.0)
+
+Os Passos 1, 2, 4, 5 e 6 do playbook foram executados nesta branch.
+**Fechados:** S1–S7 (segurança), A2, A3, A4 (superfície pública), A5 (widgets),
+A6, A7, A9 (sites críticos), C1, T1, T2, T3, T4.
+
+**Pendências remanescentes (dívida documentada):**
+
+- **A1 (bootstrap gordo):** `oraculo-tainacan.php` ainda concentra tabelas,
+  opções, enqueue e 9 handlers AJAX admin — extração para `includes/Plugin.php`
+  fica para uma fase própria.
+- **A4 (restante):** os 9 handlers admin-ajax (indexação, cache, settings)
+  seguem em uso pelos JS por aba; são nonce+cap-protected. Consolidar em
+  rotas REST `oraculo/v1` (faltam rotas p/ cache/clear e vectors/truncate).
+- **A8:** CSV export ainda usa `header()`+`echo`+`exit` dentro do callback REST
+  (agora consumido via fetch+blob no admin).
+- **Aba debug:** 5 ações AJAX referenciadas nunca existiram no backend
+  (`oraculo_test_provider`, `oraculo_test_search`, `oraculo_repair_tables`,
+  `oraculo_clear_errors`, `oraculo_reset_plugin`) — implementar ou remover os botões.
+- **POST /settings com payload parcial zera booleans** (`enable_*`): o
+  sanitizador espera o formulário completo. Documentar ou tratar chaves ausentes
+  como "manter valor atual".
+- **Layout da tela admin:** ainda usa abas próprias (funcionais, visual Tainacan);
+  conversão para cards colapsáveis + sidebar + actions-bar do skeleton pendente
+  de validação visual.
+- **phpcs residual:** 1.013 erros / 58 warnings (docblocks, naming, escaping
+  annotations em templates) — de 23.708/1.395 no baseline.
+- **Inline `<style>`** permanece em templates (menor prioridade que scripts).
+
+---
+
 ## 1. Escopo do padrão neste plugin
 
 O Oráculo Tainacan **tem tela admin integrada ao Tainacan** (via Pages API) e

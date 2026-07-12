@@ -4,7 +4,7 @@ Tags: tainacan, ai, search, rag, openai
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 2.0.3
+Stable tag: 2.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -111,6 +111,16 @@ OpenAI is the most tested option. Ollama is recommended for fully local, private
 Only the text content of your archived items is sent to the AI provider you configure. When using Ollama, everything stays local.
 
 == Changelog ==
+
+= 2.1.0 =
+* Security: escape all dynamic content injected into HTML by the widgets (AI responses, item titles/snippets, error messages); markdown links restricted to safe URL schemes
+* Security: REST endpoints hardened — nonce + per-IP rate limit on public search/chat/feedback, conversation ownership checks, admin-only health endpoint, argument schemas everywhere
+* Security: admin page menu requires manage_options; remote image download via WordPress HTTP API
+* Refactor: Tainacan Pages integration moved to the plugin's own namespace with the core Singleton_Instance trait, registered under the Tainacan "More" menu; dead legacy admin page removed
+* Refactor: all inline template scripts extracted to enqueued files; assets load only where used (plugin admin page, shortcode pages, floating chat)
+* Refactor: public widgets now use the oraculo/v1 REST API exclusively; nopriv admin-ajax handlers removed
+* Dev: strict phpcs ruleset (WordPress-Core/Docs/Extra + Security + PHPCompatibilityWP) with composer tooling; declare(strict_types=1) across the codebase; text domain migrated to oraculo-tainacan
+* Fix: OraculoAdminPage localized data now attaches after script registration; duplicate/broken admin action handlers removed (double-fired searches and indexing)
 
 = 2.0.3 =
 * Harden chat textarea color/background against theme resets

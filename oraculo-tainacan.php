@@ -3,7 +3,7 @@
  * Plugin Name: Oráculo Tainacan
  * Plugin URI: https://github.com/tainacan/oraculo-tainacan
  * Description: Sistema avançado de busca em linguagem natural com IA para acervos Tainacan. Integra RAG (Retrieval-Augmented Generation) com múltiplos provedores de IA.
- * Version: 2.0.3
+ * Version: 2.1.0
  * Author: Tainacan Community
  * Author URI: https://tainacan.org
  * License: GPL-2.0+
@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Constantes do plugin
-define( 'ORACULO_TAINACAN_VERSION', '2.0.3' );
+define( 'ORACULO_TAINACAN_VERSION', '2.1.0' );
 define( 'ORACULO_TAINACAN_FILE', __FILE__ );
 define( 'ORACULO_TAINACAN_PATH', plugin_dir_path( __FILE__ ) );
 define( 'ORACULO_TAINACAN_URL', plugin_dir_url( __FILE__ ) );
