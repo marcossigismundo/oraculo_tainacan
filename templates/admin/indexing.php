@@ -21,39 +21,39 @@ $vector_stats = $vector_store->get_stats();
     <div class="oraculo-stats-grid">
         <div class="oraculo-stat-card">
             <span class="stat-value"><?php echo number_format($vector_stats['total_vectors']); ?></span>
-            <span class="stat-label"><?php esc_html_e('Vetores Totais', 'oraculo_tainacan'); ?></span>
+            <span class="stat-label"><?php esc_html_e('Vetores Totais', 'oraculo-tainacan'); ?></span>
         </div>
         <div class="oraculo-stat-card">
             <span class="stat-value"><?php echo count($vector_stats['by_collection']); ?></span>
-            <span class="stat-label"><?php esc_html_e('Coleções Indexadas', 'oraculo_tainacan'); ?></span>
+            <span class="stat-label"><?php esc_html_e('Coleções Indexadas', 'oraculo-tainacan'); ?></span>
         </div>
         <div class="oraculo-stat-card">
             <span class="stat-value"><?php echo number_format($vector_stats['total_tokens']); ?></span>
-            <span class="stat-label"><?php esc_html_e('Tokens Armazenados', 'oraculo_tainacan'); ?></span>
+            <span class="stat-label"><?php esc_html_e('Tokens Armazenados', 'oraculo-tainacan'); ?></span>
         </div>
         <div class="oraculo-stat-card">
             <span class="stat-value"><?php echo esc_html( implode(', ', $vector_stats['models_used'] ?: ['-']) ); ?></span>
-            <span class="stat-label"><?php esc_html_e('Modelos Utilizados', 'oraculo_tainacan'); ?></span>
+            <span class="stat-label"><?php esc_html_e('Modelos Utilizados', 'oraculo-tainacan'); ?></span>
         </div>
     </div>
 
     <!-- Lista de Coleções -->
     <div class="oraculo-card">
-        <h2><?php esc_html_e('Coleções Tainacan', 'oraculo_tainacan'); ?></h2>
+        <h2><?php esc_html_e('Coleções Tainacan', 'oraculo-tainacan'); ?></h2>
 
         <?php if (empty($collections)) : ?>
-            <p class="oraculo-empty"><?php esc_html_e('Nenhuma coleção encontrada no Tainacan.', 'oraculo_tainacan'); ?></p>
+            <p class="oraculo-empty"><?php esc_html_e('Nenhuma coleção encontrada no Tainacan.', 'oraculo-tainacan'); ?></p>
         <?php else : ?>
             <table class="wp-list-table widefat fixed striped">
                 <thead>
                     <tr>
-                        <th scope="col" class="column-id"><?php esc_html_e('ID', 'oraculo_tainacan'); ?></th>
-                        <th scope="col" class="column-name"><?php esc_html_e('Coleção', 'oraculo_tainacan'); ?></th>
-                        <th scope="col" class="column-total"><?php esc_html_e('Total Itens', 'oraculo_tainacan'); ?></th>
-                        <th scope="col" class="column-indexed"><?php esc_html_e('Indexados', 'oraculo_tainacan'); ?></th>
-                        <th scope="col" class="column-progress"><?php esc_html_e('Progresso', 'oraculo_tainacan'); ?></th>
-                        <th scope="col" class="column-status"><?php esc_html_e('Status', 'oraculo_tainacan'); ?></th>
-                        <th scope="col" class="column-actions"><?php esc_html_e('Ações', 'oraculo_tainacan'); ?></th>
+                        <th scope="col" class="column-id"><?php esc_html_e('ID', 'oraculo-tainacan'); ?></th>
+                        <th scope="col" class="column-name"><?php esc_html_e('Coleção', 'oraculo-tainacan'); ?></th>
+                        <th scope="col" class="column-total"><?php esc_html_e('Total Itens', 'oraculo-tainacan'); ?></th>
+                        <th scope="col" class="column-indexed"><?php esc_html_e('Indexados', 'oraculo-tainacan'); ?></th>
+                        <th scope="col" class="column-progress"><?php esc_html_e('Progresso', 'oraculo-tainacan'); ?></th>
+                        <th scope="col" class="column-status"><?php esc_html_e('Status', 'oraculo-tainacan'); ?></th>
+                        <th scope="col" class="column-actions"><?php esc_html_e('Ações', 'oraculo-tainacan'); ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -83,11 +83,11 @@ $vector_stats = $vector_store->get_stats();
                         <td class="column-status">
                             <?php
                             $status_labels = [
-                                'idle' => __('Não indexado', 'oraculo_tainacan'),
-                                'pending' => __('Pendente', 'oraculo_tainacan'),
-                                'processing' => __('Processando', 'oraculo_tainacan'),
-                                'completed' => __('Concluído', 'oraculo_tainacan'),
-                                'error' => __('Erro', 'oraculo_tainacan'),
+                                'idle' => __('Não indexado', 'oraculo-tainacan'),
+                                'pending' => __('Pendente', 'oraculo-tainacan'),
+                                'processing' => __('Processando', 'oraculo-tainacan'),
+                                'completed' => __('Concluído', 'oraculo-tainacan'),
+                                'error' => __('Erro', 'oraculo-tainacan'),
                             ];
                             $status_label = $status_labels[$status['status']] ?? $status['status'];
                             ?>
@@ -101,18 +101,18 @@ $vector_stats = $vector_store->get_stats();
                                     <?php echo $status['status'] === 'processing' ? 'disabled' : ''; ?>>
                                 <?php
                                 if ($status['status'] === 'processing') {
-                                    esc_html_e('Indexando...', 'oraculo_tainacan');
+                                    esc_html_e('Indexando...', 'oraculo-tainacan');
                                 } elseif ($indexed > 0) {
-                                    esc_html_e('Reindexar', 'oraculo_tainacan');
+                                    esc_html_e('Reindexar', 'oraculo-tainacan');
                                 } else {
-                                    esc_html_e('Indexar', 'oraculo_tainacan');
+                                    esc_html_e('Indexar', 'oraculo-tainacan');
                                 }
                                 ?>
                             </button>
                             <?php if ($indexed > 0) : ?>
                                 <button type="button" class="button oraculo-btn-clear"
                                         data-collection="<?php echo esc_attr($collection['id']); ?>">
-                                    <?php esc_html_e('Limpar', 'oraculo_tainacan'); ?>
+                                    <?php esc_html_e('Limpar', 'oraculo-tainacan'); ?>
                                 </button>
                             <?php endif; ?>
                         </td>
@@ -125,46 +125,46 @@ $vector_stats = $vector_store->get_stats();
 
     <!-- Ações em Massa -->
     <div class="oraculo-card">
-        <h2><?php esc_html_e('Ações em Massa', 'oraculo_tainacan'); ?></h2>
+        <h2><?php esc_html_e('Ações em Massa', 'oraculo-tainacan'); ?></h2>
         <div class="oraculo-bulk-actions">
             <button type="button" class="button button-primary" id="oraculo-index-all">
-                <?php esc_html_e('Indexar Todas as Coleções', 'oraculo_tainacan'); ?>
+                <?php esc_html_e('Indexar Todas as Coleções', 'oraculo-tainacan'); ?>
             </button>
             <button type="button" class="button" id="oraculo-clear-all">
-                <?php esc_html_e('Limpar Todos os Vetores', 'oraculo_tainacan'); ?>
+                <?php esc_html_e('Limpar Todos os Vetores', 'oraculo-tainacan'); ?>
             </button>
             <button type="button" class="button" id="oraculo-optimize-db">
-                <?php esc_html_e('Otimizar Banco de Dados', 'oraculo_tainacan'); ?>
+                <?php esc_html_e('Otimizar Banco de Dados', 'oraculo-tainacan'); ?>
             </button>
         </div>
     </div>
 
     <!-- Log de Indexação -->
     <div class="oraculo-card">
-        <h2><?php esc_html_e('Log de Atividades', 'oraculo_tainacan'); ?></h2>
+        <h2><?php esc_html_e('Log de Atividades', 'oraculo-tainacan'); ?></h2>
         <div id="oraculo-indexing-log" class="oraculo-log">
-            <p class="oraculo-log-empty"><?php esc_html_e('Nenhuma atividade recente.', 'oraculo_tainacan'); ?></p>
+            <p class="oraculo-log-empty"><?php esc_html_e('Nenhuma atividade recente.', 'oraculo-tainacan'); ?></p>
         </div>
     </div>
 
     <!-- Configurações de Indexação -->
     <div class="oraculo-card">
-        <h2><?php esc_html_e('Configurações de Indexação', 'oraculo_tainacan'); ?></h2>
+        <h2><?php esc_html_e('Configurações de Indexação', 'oraculo-tainacan'); ?></h2>
         <form id="oraculo-indexing-settings">
             <table class="form-table">
                 <tr>
-                    <th scope="row"><?php esc_html_e('Tamanho do Batch', 'oraculo_tainacan'); ?></th>
+                    <th scope="row"><?php esc_html_e('Tamanho do Batch', 'oraculo-tainacan'); ?></th>
                     <td>
                         <input type="number" name="batch_size"
                                value="<?php echo esc_attr(get_option('oraculo_batch_size', 10)); ?>"
                                min="1" max="100" class="small-text">
                         <p class="description">
-                            <?php esc_html_e('Número de itens processados por vez. Valores menores são mais seguros para servidores limitados.', 'oraculo_tainacan'); ?>
+                            <?php esc_html_e('Número de itens processados por vez. Valores menores são mais seguros para servidores limitados.', 'oraculo-tainacan'); ?>
                         </p>
                     </td>
                 </tr>
                 <tr>
-                    <th scope="row"><?php esc_html_e('Provedor de Embeddings', 'oraculo_tainacan'); ?></th>
+                    <th scope="row"><?php esc_html_e('Provedor de Embeddings', 'oraculo-tainacan'); ?></th>
                     <td>
                         <?php
                         $factory = new \Oraculo_Tainacan\AI\AIProviderFactory();
@@ -185,44 +185,44 @@ $vector_stats = $vector_store->get_stats();
                     </td>
                 </tr>
                 <tr>
-                    <th scope="row"><?php esc_html_e('Indexação Automática', 'oraculo_tainacan'); ?></th>
+                    <th scope="row"><?php esc_html_e('Indexação Automática', 'oraculo-tainacan'); ?></th>
                     <td>
                         <label>
                             <input type="checkbox" name="auto_index" value="1"
                                    <?php checked(get_option('oraculo_auto_index', true)); ?>>
-                            <?php esc_html_e('Indexar automaticamente quando itens são criados ou atualizados', 'oraculo_tainacan'); ?>
+                            <?php esc_html_e('Indexar automaticamente quando itens são criados ou atualizados', 'oraculo-tainacan'); ?>
                         </label>
                     </td>
                 </tr>
                 <tr>
-                    <th scope="row"><?php esc_html_e('Campos para Indexar', 'oraculo_tainacan'); ?></th>
+                    <th scope="row"><?php esc_html_e('Campos para Indexar', 'oraculo-tainacan'); ?></th>
                     <td>
                         <label>
                             <input type="checkbox" name="index_title" value="1"
                                    <?php checked(get_option('oraculo_index_title', true)); ?>>
-                            <?php esc_html_e('Título', 'oraculo_tainacan'); ?>
+                            <?php esc_html_e('Título', 'oraculo-tainacan'); ?>
                         </label><br>
                         <label>
                             <input type="checkbox" name="index_description" value="1"
                                    <?php checked(get_option('oraculo_index_description', true)); ?>>
-                            <?php esc_html_e('Descrição', 'oraculo_tainacan'); ?>
+                            <?php esc_html_e('Descrição', 'oraculo-tainacan'); ?>
                         </label><br>
                         <label>
                             <input type="checkbox" name="index_metadata" value="1"
                                    <?php checked(get_option('oraculo_index_metadata', true)); ?>>
-                            <?php esc_html_e('Metadados', 'oraculo_tainacan'); ?>
+                            <?php esc_html_e('Metadados', 'oraculo-tainacan'); ?>
                         </label><br>
                         <label>
                             <input type="checkbox" name="index_document" value="1"
                                    <?php checked(get_option('oraculo_index_document', false)); ?>>
-                            <?php esc_html_e('Documento (OCR quando disponível)', 'oraculo_tainacan'); ?>
+                            <?php esc_html_e('Documento (OCR quando disponível)', 'oraculo-tainacan'); ?>
                         </label>
                     </td>
                 </tr>
             </table>
             <p class="submit">
                 <button type="submit" class="button button-primary">
-                    <?php esc_html_e('Salvar Configurações', 'oraculo_tainacan'); ?>
+                    <?php esc_html_e('Salvar Configurações', 'oraculo-tainacan'); ?>
                 </button>
             </p>
         </form>
@@ -364,8 +364,8 @@ jQuery(document).ready(function($) {
         var collectionId = btn.data('collection');
         var row = btn.closest('tr');
 
-        btn.prop('disabled', true).text('<?php esc_html_e('Indexando...', 'oraculo_tainacan'); ?>');
-        row.find('.oraculo-status').removeClass().addClass('oraculo-status oraculo-status-processing').text('<?php esc_html_e('Processando', 'oraculo_tainacan'); ?>');
+        btn.prop('disabled', true).text('<?php esc_html_e('Indexando...', 'oraculo-tainacan'); ?>');
+        row.find('.oraculo-status').removeClass().addClass('oraculo-status oraculo-status-processing').text('<?php esc_html_e('Processando', 'oraculo-tainacan'); ?>');
 
         addLog('Iniciando indexação da coleção #' + collectionId + '...', 'info');
         addLog('Aguarde, este processo é síncrono e pode levar alguns segundos...', 'info');
@@ -390,7 +390,7 @@ jQuery(document).ready(function($) {
                     row.find('.indexed-count').text(indexedItems.toLocaleString ? indexedItems.toLocaleString() : indexedItems);
                     row.find('.oraculo-progress-fill').css('width', percentage + '%');
                     row.find('.oraculo-progress-text').text(percentage + '%');
-                    row.find('.oraculo-status').removeClass().addClass('oraculo-status oraculo-status-completed').text('<?php esc_html_e('Concluído', 'oraculo_tainacan'); ?>');
+                    row.find('.oraculo-status').removeClass().addClass('oraculo-status oraculo-status-completed').text('<?php esc_html_e('Concluído', 'oraculo-tainacan'); ?>');
 
                     addLog('✅ ' + (data.message || 'Indexação concluída!'), 'success');
 
@@ -408,11 +408,11 @@ jQuery(document).ready(function($) {
                         }
                     }
 
-                    btn.prop('disabled', false).text('<?php esc_html_e('Reindexar', 'oraculo_tainacan'); ?>');
+                    btn.prop('disabled', false).text('<?php esc_html_e('Reindexar', 'oraculo-tainacan'); ?>');
 
                     // Mostrar botão de limpar se não existir
                     if (row.find('.oraculo-btn-clear').length === 0 && indexedItems > 0) {
-                        btn.after('<button type="button" class="button oraculo-btn-clear" data-collection="' + collectionId + '"><?php esc_html_e('Limpar', 'oraculo_tainacan'); ?></button>');
+                        btn.after('<button type="button" class="button oraculo-btn-clear" data-collection="' + collectionId + '"><?php esc_html_e('Limpar', 'oraculo-tainacan'); ?></button>');
                     }
                 } else {
                     var errorMsg = response.data ? response.data.message : 'Erro desconhecido';
@@ -420,22 +420,22 @@ jQuery(document).ready(function($) {
                         errorMsg += ' (' + response.data.file + ':' + response.data.line + ')';
                     }
                     addLog('❌ Erro: ' + errorMsg, 'error');
-                    row.find('.oraculo-status').removeClass().addClass('oraculo-status oraculo-status-error').text('<?php esc_html_e('Erro', 'oraculo_tainacan'); ?>');
-                    btn.prop('disabled', false).text('<?php esc_html_e('Indexar', 'oraculo_tainacan'); ?>');
+                    row.find('.oraculo-status').removeClass().addClass('oraculo-status oraculo-status-error').text('<?php esc_html_e('Erro', 'oraculo-tainacan'); ?>');
+                    btn.prop('disabled', false).text('<?php esc_html_e('Indexar', 'oraculo-tainacan'); ?>');
                 }
             },
             error: function(xhr, status, error) {
                 addLog('❌ Erro de conexão: ' + error + ' (Status: ' + status + ')', 'error');
                 console.log('AJAX Error:', xhr.responseText);
-                row.find('.oraculo-status').removeClass().addClass('oraculo-status oraculo-status-error').text('<?php esc_html_e('Erro', 'oraculo_tainacan'); ?>');
-                btn.prop('disabled', false).text('<?php esc_html_e('Indexar', 'oraculo_tainacan'); ?>');
+                row.find('.oraculo-status').removeClass().addClass('oraculo-status oraculo-status-error').text('<?php esc_html_e('Erro', 'oraculo-tainacan'); ?>');
+                btn.prop('disabled', false).text('<?php esc_html_e('Indexar', 'oraculo-tainacan'); ?>');
             }
         });
     });
 
     // Limpar vetores
     $('.oraculo-btn-clear').on('click', function() {
-        if (!confirm('<?php esc_html_e('Tem certeza que deseja limpar os vetores desta coleção?', 'oraculo_tainacan'); ?>')) {
+        if (!confirm('<?php esc_html_e('Tem certeza que deseja limpar os vetores desta coleção?', 'oraculo-tainacan'); ?>')) {
             return;
         }
 
@@ -457,7 +457,7 @@ jQuery(document).ready(function($) {
                     row.find('.indexed-count').text('0');
                     row.find('.oraculo-progress-fill').css('width', '0%');
                     row.find('.oraculo-progress-text').text('0%');
-                    row.find('.oraculo-status').removeClass().addClass('oraculo-status oraculo-status-idle').text('<?php esc_html_e('Não indexado', 'oraculo_tainacan'); ?>');
+                    row.find('.oraculo-status').removeClass().addClass('oraculo-status oraculo-status-idle').text('<?php esc_html_e('Não indexado', 'oraculo-tainacan'); ?>');
                     btn.remove();
                 } else {
                     addLog('Erro ao limpar: ' + response.data.message, 'error');
@@ -468,7 +468,7 @@ jQuery(document).ready(function($) {
 
     // Indexar todas
     $('#oraculo-index-all').on('click', function() {
-        if (!confirm('<?php esc_html_e('Indexar todas as coleções? Isso pode demorar.', 'oraculo_tainacan'); ?>')) {
+        if (!confirm('<?php esc_html_e('Indexar todas as coleções? Isso pode demorar.', 'oraculo-tainacan'); ?>')) {
             return;
         }
 
@@ -483,7 +483,7 @@ jQuery(document).ready(function($) {
 
     // Limpar todos
     $('#oraculo-clear-all').on('click', function() {
-        if (!confirm('<?php esc_html_e('ATENÇÃO: Isso removerá TODOS os vetores. Continuar?', 'oraculo_tainacan'); ?>')) {
+        if (!confirm('<?php esc_html_e('ATENÇÃO: Isso removerá TODOS os vetores. Continuar?', 'oraculo-tainacan'); ?>')) {
             return;
         }
 
@@ -508,7 +508,7 @@ jQuery(document).ready(function($) {
     // Otimizar banco
     $('#oraculo-optimize-db').on('click', function() {
         var btn = $(this);
-        btn.prop('disabled', true).text('<?php esc_html_e('Otimizando...', 'oraculo_tainacan'); ?>');
+        btn.prop('disabled', true).text('<?php esc_html_e('Otimizando...', 'oraculo-tainacan'); ?>');
 
         $.ajax({
             url: ajaxurl,
@@ -518,7 +518,7 @@ jQuery(document).ready(function($) {
                 nonce: '<?php echo esc_js( wp_create_nonce('oraculo_admin') ); ?>'
             },
             success: function(response) {
-                btn.prop('disabled', false).text('<?php esc_html_e('Otimizar Banco de Dados', 'oraculo_tainacan'); ?>');
+                btn.prop('disabled', false).text('<?php esc_html_e('Otimizar Banco de Dados', 'oraculo-tainacan'); ?>');
                 if (response.success) {
                     addLog('Banco de dados otimizado com sucesso!', 'success');
                 } else {

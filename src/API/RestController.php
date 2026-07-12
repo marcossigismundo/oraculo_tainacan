@@ -344,7 +344,7 @@ class RestController extends WP_REST_Controller {
         if (empty($nonce) || !wp_verify_nonce($nonce, 'wp_rest')) {
             return new WP_Error(
                 'oraculo_invalid_nonce',
-                __('Requisição não autorizada: nonce ausente ou inválido.', 'oraculo_tainacan'),
+                __('Requisição não autorizada: nonce ausente ou inválido.', 'oraculo-tainacan'),
                 ['status' => 401]
             );
         }
@@ -406,7 +406,7 @@ class RestController extends WP_REST_Controller {
         if (empty($options['enable_' . $feature])) {
             return new WP_Error(
                 'oraculo_feature_disabled',
-                __('Este recurso está desativado.', 'oraculo_tainacan'),
+                __('Este recurso está desativado.', 'oraculo-tainacan'),
                 ['status' => 403]
             );
         }
@@ -427,7 +427,7 @@ class RestController extends WP_REST_Controller {
         if ($max_per_minute > 0 && !$this->check_rate_limit($feature, $max_per_minute)) {
             return new WP_Error(
                 'oraculo_rate_limited',
-                __('Muitas requisições. Aguarde alguns instantes e tente novamente.', 'oraculo_tainacan'),
+                __('Muitas requisições. Aguarde alguns instantes e tente novamente.', 'oraculo-tainacan'),
                 ['status' => 429]
             );
         }
@@ -533,7 +533,7 @@ class RestController extends WP_REST_Controller {
         if (!$conversation) {
             return new WP_REST_Response([
                 'success' => false,
-                'error' => __('Conversa não encontrada.', 'oraculo_tainacan'),
+                'error' => __('Conversa não encontrada.', 'oraculo-tainacan'),
             ], 404);
         }
 
@@ -541,7 +541,7 @@ class RestController extends WP_REST_Controller {
         if ((int) $conversation->user_id !== get_current_user_id() && !current_user_can('manage_options')) {
             return new WP_REST_Response([
                 'success' => false,
-                'error' => __('Você não tem permissão para acessar esta conversa.', 'oraculo_tainacan'),
+                'error' => __('Você não tem permissão para acessar esta conversa.', 'oraculo-tainacan'),
             ], 403);
         }
 
@@ -564,7 +564,7 @@ class RestController extends WP_REST_Controller {
         if (!$conversation) {
             return new WP_REST_Response([
                 'success' => false,
-                'error' => __('Conversa não encontrada.', 'oraculo_tainacan'),
+                'error' => __('Conversa não encontrada.', 'oraculo-tainacan'),
             ], 404);
         }
 
@@ -574,7 +574,7 @@ class RestController extends WP_REST_Controller {
         if ($owner_id > 0 && $owner_id !== get_current_user_id() && !current_user_can('manage_options')) {
             return new WP_REST_Response([
                 'success' => false,
-                'error' => __('Você não tem permissão para encerrar esta conversa.', 'oraculo_tainacan'),
+                'error' => __('Você não tem permissão para encerrar esta conversa.', 'oraculo-tainacan'),
             ], 403);
         }
 
@@ -617,8 +617,8 @@ class RestController extends WP_REST_Controller {
         return new WP_REST_Response([
             'success' => $result,
             'message' => $result
-                ? __('Obrigado pelo feedback!', 'oraculo_tainacan')
-                : __('Erro ao registrar feedback.', 'oraculo_tainacan'),
+                ? __('Obrigado pelo feedback!', 'oraculo-tainacan')
+                : __('Erro ao registrar feedback.', 'oraculo-tainacan'),
         ]);
     }
 
@@ -828,7 +828,7 @@ class RestController extends WP_REST_Controller {
         if (!is_array($new_options) || empty($new_options)) {
             return new WP_REST_Response([
                 'success' => false,
-                'error' => __('Corpo da requisição inválido: esperado um objeto JSON de configurações.', 'oraculo_tainacan'),
+                'error' => __('Corpo da requisição inválido: esperado um objeto JSON de configurações.', 'oraculo-tainacan'),
             ], 400);
         }
 
@@ -839,7 +839,7 @@ class RestController extends WP_REST_Controller {
 
         return new WP_REST_Response([
             'success' => true,
-            'message' => __('Configurações salvas com sucesso.', 'oraculo_tainacan'),
+            'message' => __('Configurações salvas com sucesso.', 'oraculo-tainacan'),
         ]);
     }
 

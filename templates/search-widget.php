@@ -14,17 +14,17 @@ $options = \Oraculo_Tainacan\Oraculo_Tainacan::get_options();
 $collections = \Oraculo_Tainacan\get_tainacan_collections();
 $widget_id = 'oraculo-search-' . uniqid();
 $show_collection_filter = !empty($atts['show_collections']);
-$placeholder = $atts['placeholder'] ?? __('Faça uma pergunta sobre o acervo em linguagem natural...', 'oraculo_tainacan');
-$button_text = $atts['button_text'] ?? __('Buscar', 'oraculo_tainacan');
+$placeholder = $atts['placeholder'] ?? __('Faça uma pergunta sobre o acervo em linguagem natural...', 'oraculo-tainacan');
+$button_text = $atts['button_text'] ?? __('Buscar', 'oraculo-tainacan');
 $suggested_questions = $options['suggested_questions'] ?? [];
 
 // Exemplos padrão se não houver perguntas configuradas
 if (empty($suggested_questions)) {
     $suggested_questions = [
-        __('Quais documentos falam sobre preservação digital?', 'oraculo_tainacan'),
-        __('Encontre itens relacionados a arquivos históricos', 'oraculo_tainacan'),
-        __('O que há no acervo sobre fotografia do século XX?', 'oraculo_tainacan'),
-        __('Liste obras de arte em cerâmica', 'oraculo_tainacan'),
+        __('Quais documentos falam sobre preservação digital?', 'oraculo-tainacan'),
+        __('Encontre itens relacionados a arquivos históricos', 'oraculo-tainacan'),
+        __('O que há no acervo sobre fotografia do século XX?', 'oraculo-tainacan'),
+        __('Liste obras de arte em cerâmica', 'oraculo-tainacan'),
     ];
 }
 ?>
@@ -39,15 +39,15 @@ if (empty($suggested_questions)) {
                     <path d="M2 17l10 5 10-5"/>
                     <path d="M2 12l10 5 10-5"/>
                 </svg>
-                <span><?php esc_html_e('Busca Inteligente com IA', 'oraculo_tainacan'); ?></span>
+                <span><?php esc_html_e('Busca Inteligente com IA', 'oraculo-tainacan'); ?></span>
             </div>
 
             <h1 class="oraculo-hero-title">
-                <?php esc_html_e('Explore o Acervo com Linguagem Natural', 'oraculo_tainacan'); ?>
+                <?php esc_html_e('Explore o Acervo com Linguagem Natural', 'oraculo-tainacan'); ?>
             </h1>
 
             <p class="oraculo-hero-subtitle">
-                <?php esc_html_e('Faça perguntas como se estivesse conversando com um especialista. Nossa inteligência artificial compreende o contexto e encontra as informações mais relevantes para você.', 'oraculo_tainacan'); ?>
+                <?php esc_html_e('Faça perguntas como se estivesse conversando com um especialista. Nossa inteligência artificial compreende o contexto e encontra as informações mais relevantes para você.', 'oraculo-tainacan'); ?>
             </p>
         </div>
     </section>
@@ -61,7 +61,7 @@ if (empty($suggested_questions)) {
                            class="oraculo-search-input"
                            name="oraculo_query"
                            placeholder="<?php echo esc_attr($placeholder); ?>"
-                           aria-label="<?php esc_attr_e('Buscar no acervo', 'oraculo_tainacan'); ?>"
+                           aria-label="<?php esc_attr_e('Buscar no acervo', 'oraculo-tainacan'); ?>"
                            autocomplete="off">
                     <button type="submit" class="oraculo-search-button">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -78,14 +78,14 @@ if (empty($suggested_questions)) {
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                                 <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
                             </svg>
-                            <?php esc_html_e('Filtrar por coleção:', 'oraculo_tainacan'); ?>
+                            <?php esc_html_e('Filtrar por coleção:', 'oraculo-tainacan'); ?>
                         </label>
                         <select name="oraculo_collection" id="oraculo-collection-filter-<?php echo esc_attr($widget_id); ?>">
-                            <option value=""><?php esc_html_e('Todas as coleções', 'oraculo_tainacan'); ?></option>
+                            <option value=""><?php esc_html_e('Todas as coleções', 'oraculo-tainacan'); ?></option>
                             <?php foreach ($collections as $collection) : ?>
                                 <option value="<?php echo esc_attr($collection['id']); ?>">
                                     <?php echo esc_html($collection['name']); ?>
-                                    (<?php echo number_format($collection['items_count']); ?> <?php esc_html_e('itens', 'oraculo_tainacan'); ?>)
+                                    (<?php echo number_format($collection['items_count']); ?> <?php esc_html_e('itens', 'oraculo-tainacan'); ?>)
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -97,8 +97,8 @@ if (empty($suggested_questions)) {
 
     <!-- Features Section -->
     <section class="oraculo-features-section">
-        <h2 class="oraculo-features-title"><?php esc_html_e('Como Funciona', 'oraculo_tainacan'); ?></h2>
-        <p class="oraculo-features-subtitle"><?php esc_html_e('Três passos simples para encontrar o que você procura', 'oraculo_tainacan'); ?></p>
+        <h2 class="oraculo-features-title"><?php esc_html_e('Como Funciona', 'oraculo-tainacan'); ?></h2>
+        <p class="oraculo-features-subtitle"><?php esc_html_e('Três passos simples para encontrar o que você procura', 'oraculo-tainacan'); ?></p>
 
         <div class="oraculo-features-grid">
             <div class="oraculo-feature-card oraculo-animate-in">
@@ -107,9 +107,9 @@ if (empty($suggested_questions)) {
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                     </svg>
                 </div>
-                <h3 class="oraculo-feature-title"><?php esc_html_e('Pergunte Naturalmente', 'oraculo_tainacan'); ?></h3>
+                <h3 class="oraculo-feature-title"><?php esc_html_e('Pergunte Naturalmente', 'oraculo-tainacan'); ?></h3>
                 <p class="oraculo-feature-description">
-                    <?php esc_html_e('Digite sua pergunta como se estivesse conversando. Use suas próprias palavras, sem precisar de termos técnicos ou filtros complexos.', 'oraculo_tainacan'); ?>
+                    <?php esc_html_e('Digite sua pergunta como se estivesse conversando. Use suas próprias palavras, sem precisar de termos técnicos ou filtros complexos.', 'oraculo-tainacan'); ?>
                 </p>
             </div>
 
@@ -121,9 +121,9 @@ if (empty($suggested_questions)) {
                         <line x1="12" y1="17" x2="12.01" y2="17"/>
                     </svg>
                 </div>
-                <h3 class="oraculo-feature-title"><?php esc_html_e('IA Compreende o Contexto', 'oraculo_tainacan'); ?></h3>
+                <h3 class="oraculo-feature-title"><?php esc_html_e('IA Compreende o Contexto', 'oraculo-tainacan'); ?></h3>
                 <p class="oraculo-feature-description">
-                    <?php esc_html_e('Nossa inteligência artificial analisa sua pergunta, entende o que você realmente procura e busca nos documentos do acervo.', 'oraculo_tainacan'); ?>
+                    <?php esc_html_e('Nossa inteligência artificial analisa sua pergunta, entende o que você realmente procura e busca nos documentos do acervo.', 'oraculo-tainacan'); ?>
                 </p>
             </div>
 
@@ -137,9 +137,9 @@ if (empty($suggested_questions)) {
                         <polyline points="10 9 9 9 8 9"/>
                     </svg>
                 </div>
-                <h3 class="oraculo-feature-title"><?php esc_html_e('Receba Respostas Completas', 'oraculo_tainacan'); ?></h3>
+                <h3 class="oraculo-feature-title"><?php esc_html_e('Receba Respostas Completas', 'oraculo-tainacan'); ?></h3>
                 <p class="oraculo-feature-description">
-                    <?php esc_html_e('Você recebe uma resposta elaborada com as informações encontradas, junto com links diretos para os itens do acervo.', 'oraculo_tainacan'); ?>
+                    <?php esc_html_e('Você recebe uma resposta elaborada com as informações encontradas, junto com links diretos para os itens do acervo.', 'oraculo-tainacan'); ?>
                 </p>
             </div>
         </div>
@@ -152,9 +152,9 @@ if (empty($suggested_questions)) {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                 </svg>
-                <?php esc_html_e('Exemplos de Perguntas', 'oraculo_tainacan'); ?>
+                <?php esc_html_e('Exemplos de Perguntas', 'oraculo-tainacan'); ?>
             </h3>
-            <p class="oraculo-examples-subtitle"><?php esc_html_e('Clique em uma sugestão para experimentar', 'oraculo_tainacan'); ?></p>
+            <p class="oraculo-examples-subtitle"><?php esc_html_e('Clique em uma sugestão para experimentar', 'oraculo-tainacan'); ?></p>
 
             <div class="oraculo-examples-grid">
                 <?php
@@ -181,7 +181,7 @@ if (empty($suggested_questions)) {
     <!-- Loading State -->
     <div class="oraculo-search-loading" style="display: none;">
         <div class="oraculo-loading-spinner"></div>
-        <span><?php esc_html_e('Consultando o acervo com inteligência artificial...', 'oraculo_tainacan'); ?></span>
+        <span><?php esc_html_e('Consultando o acervo com inteligência artificial...', 'oraculo-tainacan'); ?></span>
         <div class="oraculo-loading-dots">
             <span></span>
             <span></span>
@@ -203,12 +203,12 @@ if (empty($suggested_questions)) {
                 </svg>
             </div>
             <div class="oraculo-tips-content">
-                <h4><?php esc_html_e('Dicas para melhores resultados', 'oraculo_tainacan'); ?></h4>
+                <h4><?php esc_html_e('Dicas para melhores resultados', 'oraculo-tainacan'); ?></h4>
                 <ul class="oraculo-tips-list">
-                    <li><?php esc_html_e('Seja específico sobre o que procura - quanto mais detalhes, melhor a resposta', 'oraculo_tainacan'); ?></li>
-                    <li><?php esc_html_e('Use palavras-chave relacionadas ao tema como datas, nomes ou lugares', 'oraculo_tainacan'); ?></li>
-                    <li><?php esc_html_e('Faça perguntas completas como "Quais são..." ou "O que existe sobre..."', 'oraculo_tainacan'); ?></li>
-                    <li><?php esc_html_e('Se não encontrar resultados, tente reformular sua pergunta com sinônimos', 'oraculo_tainacan'); ?></li>
+                    <li><?php esc_html_e('Seja específico sobre o que procura - quanto mais detalhes, melhor a resposta', 'oraculo-tainacan'); ?></li>
+                    <li><?php esc_html_e('Use palavras-chave relacionadas ao tema como datas, nomes ou lugares', 'oraculo-tainacan'); ?></li>
+                    <li><?php esc_html_e('Faça perguntas completas como "Quais são..." ou "O que existe sobre..."', 'oraculo-tainacan'); ?></li>
+                    <li><?php esc_html_e('Se não encontrar resultados, tente reformular sua pergunta com sinônimos', 'oraculo-tainacan'); ?></li>
                 </ul>
             </div>
         </div>
@@ -222,7 +222,7 @@ if (empty($suggested_questions)) {
                 <path d="M2 17l10 5 10-5"/>
                 <path d="M2 12l10 5 10-5"/>
             </svg>
-            <?php esc_html_e('Powered by', 'oraculo_tainacan'); ?> <strong>Oráculo Tainacan</strong> &bull; <?php esc_html_e('Busca Inteligente com IA', 'oraculo_tainacan'); ?>
+            <?php esc_html_e('Powered by', 'oraculo-tainacan'); ?> <strong>Oráculo Tainacan</strong> &bull; <?php esc_html_e('Busca Inteligente com IA', 'oraculo-tainacan'); ?>
         </span>
     </div>
 </div>
@@ -296,8 +296,8 @@ if (empty($suggested_questions)) {
                 html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>';
                 html += '</div>';
                 html += '<div class="oraculo-response-meta">';
-                html += '<div class="oraculo-response-label"><?php esc_html_e('Assistente Oráculo', 'oraculo_tainacan'); ?></div>';
-                html += '<div class="oraculo-response-time"><?php esc_html_e('Respondido em', 'oraculo_tainacan'); ?> ' + responseTime + 's</div>';
+                html += '<div class="oraculo-response-label"><?php esc_html_e('Assistente Oráculo', 'oraculo-tainacan'); ?></div>';
+                html += '<div class="oraculo-response-time"><?php esc_html_e('Respondido em', 'oraculo-tainacan'); ?> ' + responseTime + 's</div>';
                 html += '</div>';
                 html += '</div>';
 
@@ -308,7 +308,7 @@ if (empty($suggested_questions)) {
                 // Sources
                 if (searchResult.items && searchResult.items.length > 0) {
                     html += '<div class="oraculo-sources">';
-                    html += '<h4><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><?php esc_html_e('Fontes consultadas no acervo', 'oraculo_tainacan'); ?></h4>';
+                    html += '<h4><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><?php esc_html_e('Fontes consultadas no acervo', 'oraculo-tainacan'); ?></h4>';
                     html += '<ul>';
                     searchResult.items.forEach(function(item, index) {
                         html += '<li>';
@@ -326,15 +326,15 @@ if (empty($suggested_questions)) {
                 // Feedback section - guarda search_id para associar feedback ao log
                 var searchId = searchResult.search_id || '';
                 html += '<div class="oraculo-feedback" data-search-id="' + escapeHtml(searchId) + '">';
-                html += '<span class="oraculo-feedback-label"><?php esc_html_e('Esta resposta foi útil?', 'oraculo_tainacan'); ?></span>';
+                html += '<span class="oraculo-feedback-label"><?php esc_html_e('Esta resposta foi útil?', 'oraculo-tainacan'); ?></span>';
                 html += '<div class="oraculo-feedback-buttons">';
                 html += '<button type="button" class="oraculo-feedback-btn positive" data-feedback="positive">';
                 html += '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>';
-                html += '<?php esc_html_e('Sim', 'oraculo_tainacan'); ?>';
+                html += '<?php esc_html_e('Sim', 'oraculo-tainacan'); ?>';
                 html += '</button>';
                 html += '<button type="button" class="oraculo-feedback-btn negative" data-feedback="negative">';
                 html += '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg>';
-                html += '<?php esc_html_e('Não', 'oraculo_tainacan'); ?>';
+                html += '<?php esc_html_e('Não', 'oraculo-tainacan'); ?>';
                 html += '</button>';
                 html += '</div>';
                 html += '</div>';
@@ -366,21 +366,21 @@ if (empty($suggested_questions)) {
                         });
 
                         // Update UI
-                        feedbackContainer.innerHTML = '<span class="oraculo-feedback-thanks"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><?php esc_html_e('Obrigado pelo feedback!', 'oraculo_tainacan'); ?></span>';
+                        feedbackContainer.innerHTML = '<span class="oraculo-feedback-thanks"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><?php esc_html_e('Obrigado pelo feedback!', 'oraculo-tainacan'); ?></span>';
                     });
                 });
 
             } else if (searchResult.message || data.error) {
-                var errorMsg = searchResult.message || data.error || '<?php esc_html_e('Erro desconhecido', 'oraculo_tainacan'); ?>';
+                var errorMsg = searchResult.message || data.error || '<?php esc_html_e('Erro desconhecido', 'oraculo-tainacan'); ?>';
                 results.innerHTML = '<div class="oraculo-error">' +
                     '<div class="oraculo-error-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>' +
-                    '<div class="oraculo-error-content"><h4><?php esc_html_e('Não foi possível processar sua busca', 'oraculo_tainacan'); ?></h4><p>' + escapeHtml(errorMsg) + '</p></div>' +
+                    '<div class="oraculo-error-content"><h4><?php esc_html_e('Não foi possível processar sua busca', 'oraculo-tainacan'); ?></h4><p>' + escapeHtml(errorMsg) + '</p></div>' +
                     '</div>';
             } else {
                 results.innerHTML = '<div class="oraculo-no-results">' +
                     '<div class="oraculo-no-results-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg></div>' +
-                    '<h3 class="oraculo-no-results-title"><?php esc_html_e('Nenhum resultado encontrado', 'oraculo_tainacan'); ?></h3>' +
-                    '<p class="oraculo-no-results-text"><?php esc_html_e('Não encontramos informações relacionadas à sua pergunta. Tente reformular usando outras palavras ou seja mais específico.', 'oraculo_tainacan'); ?></p>' +
+                    '<h3 class="oraculo-no-results-title"><?php esc_html_e('Nenhum resultado encontrado', 'oraculo-tainacan'); ?></h3>' +
+                    '<p class="oraculo-no-results-text"><?php esc_html_e('Não encontramos informações relacionadas à sua pergunta. Tente reformular usando outras palavras ou seja mais específico.', 'oraculo-tainacan'); ?></p>' +
                     '</div>';
             }
 
@@ -398,7 +398,7 @@ if (empty($suggested_questions)) {
 
             results.innerHTML = '<div class="oraculo-error">' +
                 '<div class="oraculo-error-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>' +
-                '<div class="oraculo-error-content"><h4><?php esc_html_e('Erro de conexão', 'oraculo_tainacan'); ?></h4><p><?php esc_html_e('Ocorreu um erro ao processar sua busca. Por favor, verifique sua conexão e tente novamente.', 'oraculo_tainacan'); ?></p></div>' +
+                '<div class="oraculo-error-content"><h4><?php esc_html_e('Erro de conexão', 'oraculo-tainacan'); ?></h4><p><?php esc_html_e('Ocorreu um erro ao processar sua busca. Por favor, verifique sua conexão e tente novamente.', 'oraculo-tainacan'); ?></p></div>' +
                 '</div>';
 
             // Show sections again on error

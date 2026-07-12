@@ -48,7 +48,7 @@ class VectorStore {
         foreach ($required as $field) {
             if (empty($data[$field])) {
                 /* translators: %s: name of the required field that is missing */
-                return new WP_Error('missing_field', sprintf(__('Campo obrigatório ausente: %s', 'oraculo_tainacan'), $field));
+                return new WP_Error('missing_field', sprintf(__('Campo obrigatório ausente: %s', 'oraculo-tainacan'), $field));
             }
         }
 
@@ -93,7 +93,7 @@ class VectorStore {
             );
             \Oraculo_Tainacan\oraculo_tainacan_flush_cache();
 
-            return $result !== false ? (int)$existing : new WP_Error('update_failed', __('Falha ao atualizar vetor.', 'oraculo_tainacan'));
+            return $result !== false ? (int)$existing : new WP_Error('update_failed', __('Falha ao atualizar vetor.', 'oraculo-tainacan'));
         }
 
         $record['created_at'] = current_time('mysql');
@@ -105,7 +105,7 @@ class VectorStore {
         );
         \Oraculo_Tainacan\oraculo_tainacan_flush_cache();
 
-        return $result !== false ? $wpdb->insert_id : new WP_Error('insert_failed', __('Falha ao inserir vetor.', 'oraculo_tainacan'));
+        return $result !== false ? $wpdb->insert_id : new WP_Error('insert_failed', __('Falha ao inserir vetor.', 'oraculo-tainacan'));
     }
 
     /**

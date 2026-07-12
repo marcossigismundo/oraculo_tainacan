@@ -65,7 +65,7 @@ class IndexingManager {
         // Verificar se coleção existe
         $collection = $this->get_collection($collection_id);
         if (!$collection) {
-            return new WP_Error('invalid_collection', __('Coleção não encontrada.', 'oraculo_tainacan'));
+            return new WP_Error('invalid_collection', __('Coleção não encontrada.', 'oraculo-tainacan'));
         }
 
         // Limpar vetores existentes se force
@@ -77,14 +77,14 @@ class IndexingManager {
         $total_items = $this->count_collection_items($collection_id);
 
         if ($total_items === 0) {
-            return new WP_Error('empty_collection', __('A coleção não possui itens para indexar.', 'oraculo_tainacan'));
+            return new WP_Error('empty_collection', __('A coleção não possui itens para indexar.', 'oraculo-tainacan'));
         }
 
         // Verificar se provedor de embeddings está configurado
         try {
             $embedding_provider = $this->ai_factory->create_for_embeddings();
             if (!$embedding_provider->is_configured()) {
-                return new WP_Error('provider_not_configured', __('Provedor de embeddings não configurado. Configure OpenAI ou Ollama.', 'oraculo_tainacan'));
+                return new WP_Error('provider_not_configured', __('Provedor de embeddings não configurado. Configure OpenAI ou Ollama.', 'oraculo-tainacan'));
             }
         } catch (\Exception $e) {
             return new WP_Error('provider_error', $e->getMessage());
@@ -107,7 +107,7 @@ class IndexingManager {
             'percentage' => 100,
             'message' => sprintf(
                 /* translators: 1: number of items successfully indexed, 2: total number of items */
-                __('Indexação concluída! %1$d de %2$d itens indexados.', 'oraculo_tainacan'),
+                __('Indexação concluída! %1$d de %2$d itens indexados.', 'oraculo-tainacan'),
                 $result['success'],
                 $total_items
             ),
@@ -365,14 +365,14 @@ class IndexingManager {
         $item = \Oraculo_Tainacan\get_tainacan_item($item_id);
 
         if (!$item) {
-            return new WP_Error('item_not_found', __('Item não encontrado.', 'oraculo_tainacan'));
+            return new WP_Error('item_not_found', __('Item não encontrado.', 'oraculo-tainacan'));
         }
 
         $index_fields = $this->options['index_fields'] ?? ['title', 'description'];
         $text = \Oraculo_Tainacan\format_item_for_indexing($item, $index_fields);
 
         if (empty(trim($text))) {
-            return new WP_Error('empty_content', __('Item não possui conteúdo para indexar.', 'oraculo_tainacan'));
+            return new WP_Error('empty_content', __('Item não possui conteúdo para indexar.', 'oraculo-tainacan'));
         }
 
         try {

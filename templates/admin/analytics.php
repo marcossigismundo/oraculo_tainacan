@@ -30,14 +30,14 @@ $by_collection = $analytics->get_stats_by_collection($period);
         <form method="get">
             <input type="hidden" name="page" value="oraculo-analytics">
             <select name="period" onchange="this.form.submit()">
-                <option value="today" <?php selected($period, 'today'); ?>><?php esc_html_e('Hoje', 'oraculo_tainacan'); ?></option>
-                <option value="week" <?php selected($period, 'week'); ?>><?php esc_html_e('Última Semana', 'oraculo_tainacan'); ?></option>
-                <option value="month" <?php selected($period, 'month'); ?>><?php esc_html_e('Último Mês', 'oraculo_tainacan'); ?></option>
-                <option value="year" <?php selected($period, 'year'); ?>><?php esc_html_e('Último Ano', 'oraculo_tainacan'); ?></option>
-                <option value="all" <?php selected($period, 'all'); ?>><?php esc_html_e('Todo Período', 'oraculo_tainacan'); ?></option>
+                <option value="today" <?php selected($period, 'today'); ?>><?php esc_html_e('Hoje', 'oraculo-tainacan'); ?></option>
+                <option value="week" <?php selected($period, 'week'); ?>><?php esc_html_e('Última Semana', 'oraculo-tainacan'); ?></option>
+                <option value="month" <?php selected($period, 'month'); ?>><?php esc_html_e('Último Mês', 'oraculo-tainacan'); ?></option>
+                <option value="year" <?php selected($period, 'year'); ?>><?php esc_html_e('Último Ano', 'oraculo-tainacan'); ?></option>
+                <option value="all" <?php selected($period, 'all'); ?>><?php esc_html_e('Todo Período', 'oraculo-tainacan'); ?></option>
             </select>
             <button type="button" class="button" id="oraculo-export-analytics">
-                <?php esc_html_e('Exportar Dados', 'oraculo_tainacan'); ?>
+                <?php esc_html_e('Exportar Dados', 'oraculo-tainacan'); ?>
             </button>
         </form>
     </div>
@@ -48,42 +48,42 @@ $by_collection = $analytics->get_stats_by_collection($period);
             <span class="stat-icon">🔍</span>
             <div class="stat-content">
                 <span class="stat-value"><?php echo number_format($stats['total_searches']); ?></span>
-                <span class="stat-label"><?php esc_html_e('Total de Buscas', 'oraculo_tainacan'); ?></span>
+                <span class="stat-label"><?php esc_html_e('Total de Buscas', 'oraculo-tainacan'); ?></span>
             </div>
         </div>
         <div class="oraculo-stat-card">
             <span class="stat-icon">👤</span>
             <div class="stat-content">
                 <span class="stat-value"><?php echo number_format($stats['unique_users']); ?></span>
-                <span class="stat-label"><?php esc_html_e('Usuários Únicos', 'oraculo_tainacan'); ?></span>
+                <span class="stat-label"><?php esc_html_e('Usuários Únicos', 'oraculo-tainacan'); ?></span>
             </div>
         </div>
         <div class="oraculo-stat-card success">
             <span class="stat-icon">✓</span>
             <div class="stat-content">
                 <span class="stat-value"><?php echo esc_html( $stats['success_rate'] ); ?>%</span>
-                <span class="stat-label"><?php esc_html_e('Taxa de Sucesso', 'oraculo_tainacan'); ?></span>
+                <span class="stat-label"><?php esc_html_e('Taxa de Sucesso', 'oraculo-tainacan'); ?></span>
             </div>
         </div>
         <div class="oraculo-stat-card">
             <span class="stat-icon">😊</span>
             <div class="stat-content">
                 <span class="stat-value"><?php echo esc_html( $stats['satisfaction_rate'] ); ?>%</span>
-                <span class="stat-label"><?php esc_html_e('Satisfação', 'oraculo_tainacan'); ?></span>
+                <span class="stat-label"><?php esc_html_e('Satisfação', 'oraculo-tainacan'); ?></span>
             </div>
         </div>
         <div class="oraculo-stat-card">
             <span class="stat-icon">⚡</span>
             <div class="stat-content">
                 <span class="stat-value"><?php echo number_format($stats['avg_response_time_ms']); ?>ms</span>
-                <span class="stat-label"><?php esc_html_e('Tempo Médio', 'oraculo_tainacan'); ?></span>
+                <span class="stat-label"><?php esc_html_e('Tempo Médio', 'oraculo-tainacan'); ?></span>
             </div>
         </div>
         <div class="oraculo-stat-card">
             <span class="stat-icon">🪙</span>
             <div class="stat-content">
                 <span class="stat-value"><?php echo number_format($stats['total_tokens']); ?></span>
-                <span class="stat-label"><?php esc_html_e('Tokens Usados', 'oraculo_tainacan'); ?></span>
+                <span class="stat-label"><?php esc_html_e('Tokens Usados', 'oraculo-tainacan'); ?></span>
             </div>
         </div>
     </div>
@@ -91,16 +91,16 @@ $by_collection = $analytics->get_stats_by_collection($period);
     <div class="oraculo-analytics-grid">
         <!-- Top Buscas -->
         <div class="oraculo-card">
-            <h2><?php esc_html_e('Buscas Mais Frequentes', 'oraculo_tainacan'); ?></h2>
+            <h2><?php esc_html_e('Buscas Mais Frequentes', 'oraculo-tainacan'); ?></h2>
             <?php if (empty($top_searches)) : ?>
-                <p class="oraculo-empty"><?php esc_html_e('Sem dados no período.', 'oraculo_tainacan'); ?></p>
+                <p class="oraculo-empty"><?php esc_html_e('Sem dados no período.', 'oraculo-tainacan'); ?></p>
             <?php else : ?>
                 <table class="oraculo-table">
                     <thead>
                         <tr>
-                            <th><?php esc_html_e('Busca', 'oraculo_tainacan'); ?></th>
-                            <th><?php esc_html_e('Qtd', 'oraculo_tainacan'); ?></th>
-                            <th><?php esc_html_e('Feedback', 'oraculo_tainacan'); ?></th>
+                            <th><?php esc_html_e('Busca', 'oraculo-tainacan'); ?></th>
+                            <th><?php esc_html_e('Qtd', 'oraculo-tainacan'); ?></th>
+                            <th><?php esc_html_e('Feedback', 'oraculo-tainacan'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -123,15 +123,15 @@ $by_collection = $analytics->get_stats_by_collection($period);
 
         <!-- Buscas Sem Resultado -->
         <div class="oraculo-card">
-            <h2><?php esc_html_e('Buscas Sem Resultados', 'oraculo_tainacan'); ?></h2>
+            <h2><?php esc_html_e('Buscas Sem Resultados', 'oraculo-tainacan'); ?></h2>
             <?php if (empty($failed_searches)) : ?>
-                <p class="oraculo-empty"><?php esc_html_e('Nenhuma busca sem resultados.', 'oraculo_tainacan'); ?></p>
+                <p class="oraculo-empty"><?php esc_html_e('Nenhuma busca sem resultados.', 'oraculo-tainacan'); ?></p>
             <?php else : ?>
                 <table class="oraculo-table">
                     <thead>
                         <tr>
-                            <th><?php esc_html_e('Busca', 'oraculo_tainacan'); ?></th>
-                            <th><?php esc_html_e('Ocorrências', 'oraculo_tainacan'); ?></th>
+                            <th><?php esc_html_e('Busca', 'oraculo-tainacan'); ?></th>
+                            <th><?php esc_html_e('Ocorrências', 'oraculo-tainacan'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -146,16 +146,16 @@ $by_collection = $analytics->get_stats_by_collection($period);
                     </tbody>
                 </table>
                 <p class="oraculo-hint">
-                    <?php esc_html_e('Considere adicionar conteúdo relacionado a essas buscas.', 'oraculo_tainacan'); ?>
+                    <?php esc_html_e('Considere adicionar conteúdo relacionado a essas buscas.', 'oraculo-tainacan'); ?>
                 </p>
             <?php endif; ?>
         </div>
 
         <!-- Uso por Coleção -->
         <div class="oraculo-card">
-            <h2><?php esc_html_e('Buscas por Coleção', 'oraculo_tainacan'); ?></h2>
+            <h2><?php esc_html_e('Buscas por Coleção', 'oraculo-tainacan'); ?></h2>
             <?php if (empty($by_collection)) : ?>
-                <p class="oraculo-empty"><?php esc_html_e('Sem dados no período.', 'oraculo_tainacan'); ?></p>
+                <p class="oraculo-empty"><?php esc_html_e('Sem dados no período.', 'oraculo-tainacan'); ?></p>
             <?php else : ?>
                 <canvas id="collectionChart" height="200"></canvas>
             <?php endif; ?>
@@ -163,16 +163,16 @@ $by_collection = $analytics->get_stats_by_collection($period);
 
         <!-- Uso de Modelos -->
         <div class="oraculo-card">
-            <h2><?php esc_html_e('Uso de Modelos IA', 'oraculo_tainacan'); ?></h2>
+            <h2><?php esc_html_e('Uso de Modelos IA', 'oraculo-tainacan'); ?></h2>
             <?php if (empty($model_usage)) : ?>
-                <p class="oraculo-empty"><?php esc_html_e('Sem dados no período.', 'oraculo_tainacan'); ?></p>
+                <p class="oraculo-empty"><?php esc_html_e('Sem dados no período.', 'oraculo-tainacan'); ?></p>
             <?php else : ?>
                 <table class="oraculo-table">
                     <thead>
                         <tr>
-                            <th><?php esc_html_e('Modelo', 'oraculo_tainacan'); ?></th>
-                            <th><?php esc_html_e('Usos', 'oraculo_tainacan'); ?></th>
-                            <th><?php esc_html_e('Tokens', 'oraculo_tainacan'); ?></th>
+                            <th><?php esc_html_e('Modelo', 'oraculo-tainacan'); ?></th>
+                            <th><?php esc_html_e('Usos', 'oraculo-tainacan'); ?></th>
+                            <th><?php esc_html_e('Tokens', 'oraculo-tainacan'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -190,15 +190,15 @@ $by_collection = $analytics->get_stats_by_collection($period);
 
         <!-- Estimativa de Custo -->
         <div class="oraculo-card">
-            <h2><?php esc_html_e('Estimativa de Custos', 'oraculo_tainacan'); ?></h2>
+            <h2><?php esc_html_e('Estimativa de Custos', 'oraculo-tainacan'); ?></h2>
             <div class="cost-estimate">
                 <div class="cost-total">
                     <span class="cost-value">$<?php echo number_format($cost_estimate['total_cost_usd'], 4); ?></span>
-                    <span class="cost-label"><?php esc_html_e('Custo Estimado (USD)', 'oraculo_tainacan'); ?></span>
+                    <span class="cost-label"><?php esc_html_e('Custo Estimado (USD)', 'oraculo-tainacan'); ?></span>
                 </div>
                 <?php if (!empty($cost_estimate['by_model'])) : ?>
                     <div class="cost-breakdown">
-                        <h4><?php esc_html_e('Por Modelo:', 'oraculo_tainacan'); ?></h4>
+                        <h4><?php esc_html_e('Por Modelo:', 'oraculo-tainacan'); ?></h4>
                         <ul>
                             <?php foreach ($cost_estimate['by_model'] as $model) : ?>
                                 <li>

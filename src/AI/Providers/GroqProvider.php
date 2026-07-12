@@ -86,7 +86,7 @@ class GroqProvider extends AbstractAIProvider {
      * {@inheritdoc}
      */
     public function get_description(): string {
-        return __('Inferência ultra-rápida em chips LPU. Até 10x mais rápido que GPUs tradicionais.', 'oraculo_tainacan');
+        return __('Inferência ultra-rápida em chips LPU. Até 10x mais rápido que GPUs tradicionais.', 'oraculo-tainacan');
     }
 
     /**
@@ -127,7 +127,7 @@ class GroqProvider extends AbstractAIProvider {
         if (!$this->is_configured()) {
             return [
                 'success' => false,
-                'message' => __('Chave de API não configurada.', 'oraculo_tainacan'),
+                'message' => __('Chave de API não configurada.', 'oraculo-tainacan'),
                 'details' => [],
             ];
         }
@@ -149,7 +149,7 @@ class GroqProvider extends AbstractAIProvider {
 
         return [
             'success' => true,
-            'message' => __('Conexão estabelecida com sucesso!', 'oraculo_tainacan'),
+            'message' => __('Conexão estabelecida com sucesso!', 'oraculo-tainacan'),
             'details' => [
                 'models_available' => count($response['data'] ?? []),
             ],
@@ -162,7 +162,7 @@ class GroqProvider extends AbstractAIProvider {
     public function generate_embedding(string $text, ?string $model = null) {
         return new WP_Error(
             'not_supported',
-            __('Groq não oferece API de embeddings. Use OpenAI ou Ollama para embeddings.', 'oraculo_tainacan')
+            __('Groq não oferece API de embeddings. Use OpenAI ou Ollama para embeddings.', 'oraculo-tainacan')
         );
     }
 
@@ -172,7 +172,7 @@ class GroqProvider extends AbstractAIProvider {
     public function generate_embeddings_batch(array $texts, ?string $model = null) {
         return new WP_Error(
             'not_supported',
-            __('Groq não oferece API de embeddings. Use OpenAI ou Ollama para embeddings.', 'oraculo_tainacan')
+            __('Groq não oferece API de embeddings. Use OpenAI ou Ollama para embeddings.', 'oraculo-tainacan')
         );
     }
 
@@ -188,7 +188,7 @@ class GroqProvider extends AbstractAIProvider {
      */
     public function chat(array $messages, string $system_prompt = '', array $options = []) {
         if (!$this->is_configured()) {
-            return new WP_Error('not_configured', __('Provedor Groq não configurado.', 'oraculo_tainacan'));
+            return new WP_Error('not_configured', __('Provedor Groq não configurado.', 'oraculo-tainacan'));
         }
 
         $options = $this->prepare_options($options);
@@ -218,7 +218,7 @@ class GroqProvider extends AbstractAIProvider {
         }
 
         if (!isset($response['choices'][0]['message']['content'])) {
-            return new WP_Error('invalid_response', __('Resposta inválida da API.', 'oraculo_tainacan'));
+            return new WP_Error('invalid_response', __('Resposta inválida da API.', 'oraculo-tainacan'));
         }
 
         $usage = $this->normalize_usage($response['usage'] ?? []);
@@ -256,7 +256,7 @@ class GroqProvider extends AbstractAIProvider {
      */
     public function stream_response(string $prompt, string $system_prompt, callable $callback, array $options = []): void {
         if (!$this->is_configured()) {
-            $callback('', true, new WP_Error('not_configured', __('Provedor não configurado.', 'oraculo_tainacan')));
+            $callback('', true, new WP_Error('not_configured', __('Provedor não configurado.', 'oraculo-tainacan')));
             return;
         }
 
