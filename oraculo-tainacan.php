@@ -16,6 +16,8 @@
  * @package Oraculo_Tainacan
  */
 
+declare( strict_types=1 );
+
 namespace Oraculo_Tainacan;
 
 // Impedir acesso direto

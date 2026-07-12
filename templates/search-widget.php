@@ -6,6 +6,8 @@
  * @package Oraculo_Tainacan
  */
 
+declare( strict_types=1 );
+
 defined( 'ABSPATH' ) || exit;
 
 // phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template file; all variables are local to this included template scope.

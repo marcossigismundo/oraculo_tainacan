@@ -8,6 +8,8 @@
  * @package Oraculo_Tainacan
  */
 
+declare( strict_types=1 );
+
 namespace Tainacan;
 
 if ( ! defined( 'ABSPATH' ) ) {

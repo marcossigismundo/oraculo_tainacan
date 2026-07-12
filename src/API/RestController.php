@@ -5,6 +5,8 @@
  * @package Oraculo_Tainacan
  */
 
+declare( strict_types=1 );
+
 namespace Oraculo_Tainacan\API;
 
 use Oraculo_Tainacan\Search\SearchEngine;

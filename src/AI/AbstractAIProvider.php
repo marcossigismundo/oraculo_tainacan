@@ -5,6 +5,8 @@
  * @package Oraculo_Tainacan
  */
 
+declare( strict_types=1 );
+
 namespace Oraculo_Tainacan\AI;
 
 use Oraculo_Tainacan\Oraculo_Tainacan;

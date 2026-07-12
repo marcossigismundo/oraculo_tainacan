@@ -5,6 +5,8 @@
  * @package Oraculo_Tainacan
  */
 
+declare( strict_types=1 );
+
 namespace Oraculo_Tainacan\Chat;
 
 use Oraculo_Tainacan\AI\AIProviderFactory;
