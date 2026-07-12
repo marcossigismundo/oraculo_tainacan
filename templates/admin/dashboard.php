@@ -185,7 +185,10 @@ $base_url = admin_url( 'admin.php?page=oraculo_tainacan_page' );
 				<h2><?php esc_html_e( 'Buscas nos Últimos 30 Dias', 'oraculo-tainacan' ); ?></h2>
 			</div>
 			<div class="oraculo-card-body">
-				<canvas id="oraculo-searches-chart" height="200"></canvas>
+				<canvas id="oraculo-searches-chart" height="200"
+						data-searches="<?php echo esc_attr( wp_json_encode( $searches_30_days ) ); ?>"
+						data-label="<?php esc_attr_e( 'Buscas', 'oraculo-tainacan' ); ?>"
+						data-tooltip-suffix="<?php esc_attr_e( 'buscas', 'oraculo-tainacan' ); ?>"></canvas>
 			</div>
 		</div>
 
@@ -286,90 +289,5 @@ $base_url = admin_url( 'admin.php?page=oraculo_tainacan_page' );
 	</div>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-	// Dados do PHP
-	var searchData = <?php echo wp_json_encode( $searches_30_days ); ?>;
-
-	// Verificar se há canvas e Chart.js disponível
-	var canvas = document.getElementById('oraculo-searches-chart');
-	if (!canvas || typeof Chart === 'undefined') {
-		console.log('Chart.js ou canvas não disponível');
-		return;
-	}
-
-	// Preparar labels e dados
-	var labels = searchData.map(function(item) { return item.date; });
-	var counts = searchData.map(function(item) { return item.count; });
-
-	// Criar o gráfico
-	new Chart(canvas.getContext('2d'), {
-		type: 'line',
-		data: {
-			labels: labels,
-			datasets: [{
-				label: '<?php esc_attr_e( 'Buscas', 'oraculo-tainacan' ); ?>',
-				data: counts,
-				borderColor: '#187181',
-				backgroundColor: 'rgba(24, 113, 129, 0.1)',
-				borderWidth: 2,
-				fill: true,
-				tension: 0.3,
-				pointBackgroundColor: '#187181',
-				pointBorderColor: '#fff',
-				pointBorderWidth: 2,
-				pointRadius: 3,
-				pointHoverRadius: 5
-			}]
-		},
-		options: {
-			responsive: true,
-			maintainAspectRatio: false,
-			plugins: {
-				legend: {
-					display: false
-				},
-				tooltip: {
-					backgroundColor: '#1f2f56',
-					titleColor: '#fff',
-					bodyColor: '#fff',
-					padding: 12,
-					displayColors: false,
-					callbacks: {
-						label: function(context) {
-							return context.parsed.y + ' <?php esc_attr_e( 'buscas', 'oraculo-tainacan' ); ?>';
-						}
-					}
-				}
-			},
-			scales: {
-				x: {
-					grid: {
-						display: false
-					},
-					ticks: {
-						maxTicksLimit: 10,
-						color: '#6b7280'
-					}
-				},
-				y: {
-					beginAtZero: true,
-					grid: {
-						color: 'rgba(0, 0, 0, 0.05)'
-					},
-					ticks: {
-						stepSize: 1,
-						color: '#6b7280'
-					}
-				}
-			},
-			interaction: {
-				intersect: false,
-				mode: 'index'
-			}
-		}
-	});
-});
-</script>
 
 <?php // phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound ?>

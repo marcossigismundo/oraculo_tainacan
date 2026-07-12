@@ -642,8 +642,8 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 	 * Enfileira assets do admin
 	 */
 	public function enqueue_admin_assets( string $hook ): void {
-		// Verificar se estamos em uma página do plugin
-		if ( strpos( $hook, 'oraculo' ) === false && strpos( $hook, 'tainacan' ) === false ) {
+		// Só na página do plugin (hook exato) — não em todas as páginas do Tainacan.
+		if ( strpos( $hook, 'oraculo_tainacan_page' ) === false ) {
 			return;
 		}
 
@@ -700,43 +700,110 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 	public function enqueue_frontend_assets(): void {
 		$options = get_option( 'oraculo_tainacan_options', array() );
 
-		// CSS Frontend
-		wp_enqueue_style(
+		// Registrar tudo; enfileirar só onde é usado (chat flutuante global
+		// quando habilitado; shortcodes enfileiram no render).
+		wp_register_style(
 			'oraculo-frontend',
 			ORACULO_TAINACAN_URL . 'assets/css/frontend.css',
 			array(),
 			ORACULO_TAINACAN_VERSION
 		);
-
-		// CSS do Chat Widget
-		if ( ! empty( $options['enable_chat'] ) ) {
-			wp_enqueue_style(
-				'oraculo-chat',
-				ORACULO_TAINACAN_URL . 'assets/css/chat-widget.css',
-				array(),
-				ORACULO_TAINACAN_VERSION
-			);
-		}
-
-		// JS Frontend
-		wp_enqueue_script(
+		wp_register_style(
+			'oraculo-chat',
+			ORACULO_TAINACAN_URL . 'assets/css/chat-widget.css',
+			array(),
+			ORACULO_TAINACAN_VERSION
+		);
+		wp_register_script(
 			'oraculo-frontend',
 			ORACULO_TAINACAN_URL . 'assets/js/frontend.js',
 			array( 'jquery' ),
 			ORACULO_TAINACAN_VERSION,
 			true
 		);
+		wp_register_script(
+			'oraculo-chat',
+			ORACULO_TAINACAN_URL . 'assets/js/chat-widget.js',
+			array( 'jquery', 'oraculo-frontend' ),
+			ORACULO_TAINACAN_VERSION,
+			true
+		);
 
-		// JS do Chat Widget
-		if ( ! empty( $options['enable_chat'] ) ) {
-			wp_enqueue_script(
-				'oraculo-chat',
-				ORACULO_TAINACAN_URL . 'assets/js/chat-widget.js',
-				array( 'jquery', 'oraculo-frontend' ),
-				ORACULO_TAINACAN_VERSION,
-				true
+		// Página atual usa algum shortcode do plugin?
+		$has_shortcode = false;
+		if ( is_singular() ) {
+			$post          = get_post();
+			$has_shortcode = $post && (
+				has_shortcode( $post->post_content, 'oraculo_search' ) ||
+				has_shortcode( $post->post_content, 'oraculo_chat' )
 			);
 		}
+
+		if ( ! empty( $options['enable_chat'] ) || $has_shortcode ) {
+			wp_enqueue_style( 'oraculo-frontend' );
+			wp_enqueue_script( 'oraculo-frontend' );
+		}
+
+		// Chat flutuante: global quando habilitado
+		if ( ! empty( $options['enable_chat'] ) ) {
+			wp_enqueue_style( 'oraculo-chat' );
+			wp_enqueue_script( 'oraculo-chat' );
+		}
+
+		// JS do widget de busca (registrado aqui; enfileirado apenas no render do shortcode)
+		wp_register_script(
+			'oraculo-search-page',
+			ORACULO_TAINACAN_URL . 'assets/js/search-page.js',
+			array(),
+			ORACULO_TAINACAN_VERSION,
+			true
+		);
+		wp_localize_script(
+			'oraculo-search-page',
+			'OraculoSearchPage',
+			array(
+				'searchUrl'   => rest_url( 'oraculo/v1/search' ),
+				'feedbackUrl' => rest_url( 'oraculo/v1/feedback' ),
+				'restNonce'   => wp_create_nonce( 'wp_rest' ),
+				'i18n'        => array(
+					'assistant'            => __( 'Assistente Oráculo', 'oraculo-tainacan' ),
+					'respondedIn'          => __( 'Respondido em', 'oraculo-tainacan' ),
+					'sources'              => __( 'Fontes consultadas no acervo', 'oraculo-tainacan' ),
+					'helpful'              => __( 'Esta resposta foi útil?', 'oraculo-tainacan' ),
+					'yes'                  => __( 'Sim', 'oraculo-tainacan' ),
+					'no'                   => __( 'Não', 'oraculo-tainacan' ),
+					'thanks'               => __( 'Obrigado pelo feedback!', 'oraculo-tainacan' ),
+					'unknownError'         => __( 'Erro desconhecido', 'oraculo-tainacan' ),
+					'cantProcess'          => __( 'Não foi possível processar sua busca', 'oraculo-tainacan' ),
+					'noResultsTitle'       => __( 'Nenhum resultado encontrado', 'oraculo-tainacan' ),
+					'noResultsText'        => __( 'Não encontramos informações relacionadas à sua pergunta. Tente reformular usando outras palavras ou seja mais específico.', 'oraculo-tainacan' ),
+					'connectionErrorTitle' => __( 'Erro de conexão', 'oraculo-tainacan' ),
+					'connectionErrorBody'  => __( 'Ocorreu um erro ao processar sua busca. Por favor, verifique sua conexão e tente novamente.', 'oraculo-tainacan' ),
+				),
+			)
+		);
+
+		// JS do chat embutido (registrado aqui; enfileirado apenas no render do shortcode)
+		wp_register_script(
+			'oraculo-chat-embedded',
+			ORACULO_TAINACAN_URL . 'assets/js/chat-embedded.js',
+			array(),
+			ORACULO_TAINACAN_VERSION,
+			true
+		);
+		wp_localize_script(
+			'oraculo-chat-embedded',
+			'OraculoChatEmbedded',
+			array(
+				'chatUrl'   => rest_url( 'oraculo/v1/chat' ),
+				'restNonce' => wp_create_nonce( 'wp_rest' ),
+				'i18n'      => array(
+					'error'           => __( 'Ocorreu um erro. Tente novamente.', 'oraculo-tainacan' ),
+					'connectionError' => __( 'Erro de conexão. Tente novamente.', 'oraculo-tainacan' ),
+					'sources'         => __( 'Fontes:', 'oraculo-tainacan' ),
+				),
+			)
+		);
 
 		// CSS customizado baseado nas opções
 		$appearance = $options['appearance'] ?? array();
@@ -1163,6 +1230,11 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 			'oraculo_search'
 		);
 
+		// Assets só nas páginas que usam o shortcode (fallback p/ widgets: enqueue no render).
+		wp_enqueue_style( 'oraculo-frontend' );
+		wp_enqueue_script( 'oraculo-frontend' );
+		wp_enqueue_script( 'oraculo-search-page' );
+
 		ob_start();
 		oraculo_tainacan_render_template( 'search-widget.php', array( 'atts' => $atts ) );
 		return ob_get_clean();
@@ -1182,6 +1254,11 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 			$atts,
 			'oraculo_chat'
 		);
+
+		// Assets só nas páginas que usam o shortcode (fallback p/ widgets: enqueue no render).
+		wp_enqueue_style( 'oraculo-frontend' );
+		wp_enqueue_script( 'oraculo-frontend' );
+		wp_enqueue_script( 'oraculo-chat-embedded' );
 
 		ob_start();
 		oraculo_tainacan_render_template( 'chat-widget.php', array( 'atts' => $atts ) );

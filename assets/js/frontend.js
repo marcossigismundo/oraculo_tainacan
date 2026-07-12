@@ -25,9 +25,11 @@
      */
     OraculoTainacan.Search = {
         init: function() {
-            this.form = $('.oraculo-search-form');
-            this.input = $('.oraculo-search-input');
-            this.button = $('.oraculo-search-button');
+            // O widget de página completa (.oraculo-search-page) tem seu próprio
+            // handler em search-page.js — excluí-lo evita busca disparada em dobro.
+            this.form = $('.oraculo-search-form').not('.oraculo-search-page .oraculo-search-form');
+            this.input = $('.oraculo-search-input').not('.oraculo-search-page .oraculo-search-input');
+            this.button = $('.oraculo-search-button').not('.oraculo-search-page .oraculo-search-button');
             this.results = $('.oraculo-results');
             this.suggestions = $('.oraculo-suggestions');
 

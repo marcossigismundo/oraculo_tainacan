@@ -38,7 +38,7 @@ $by_collection   = $analytics->get_stats_by_collection( $period );
 				<option value="year" <?php selected( $period, 'year' ); ?>><?php esc_html_e( 'Último Ano', 'oraculo-tainacan' ); ?></option>
 				<option value="all" <?php selected( $period, 'all' ); ?>><?php esc_html_e( 'Todo Período', 'oraculo-tainacan' ); ?></option>
 			</select>
-			<button type="button" class="button" id="oraculo-export-analytics">
+			<button type="button" class="button" id="oraculo-export-analytics" data-period="<?php echo esc_attr( $period ); ?>">
 				<?php esc_html_e( 'Exportar Dados', 'oraculo-tainacan' ); ?>
 			</button>
 		</form>
@@ -159,7 +159,8 @@ $by_collection   = $analytics->get_stats_by_collection( $period );
 			<?php if ( empty( $by_collection ) ) : ?>
 				<p class="oraculo-empty"><?php esc_html_e( 'Sem dados no período.', 'oraculo-tainacan' ); ?></p>
 			<?php else : ?>
-				<canvas id="collectionChart" height="200"></canvas>
+				<canvas id="collectionChart" height="200"
+					data-collections="<?php echo esc_attr( wp_json_encode( $by_collection ) ); ?>"></canvas>
 			<?php endif; ?>
 		</div>
 
@@ -378,45 +379,4 @@ $by_collection   = $analytics->get_stats_by_collection( $period );
 }
 </style>
 
-<script>
-jQuery(document).ready(function($) {
-	// Collection Chart - usando Chart.js já carregado pelo WordPress
-	var collectionData = <?php echo wp_json_encode( $by_collection ); ?>;
-	if (collectionData.length > 0 && typeof Chart !== 'undefined') {
-		var ctx2 = document.getElementById('collectionChart');
-		if (ctx2) {
-			new Chart(ctx2.getContext('2d'), {
-				type: 'doughnut',
-				data: {
-					labels: collectionData.map(function(d) { return d.collection_name; }),
-					datasets: [{
-						data: collectionData.map(function(d) { return d.searches; }),
-						backgroundColor: [
-							'#2271b1', '#46b450', '#ffb900', '#dc3232',
-							'#00a0d2', '#9b59b6', '#3498db', '#e74c3c'
-						]
-					}]
-				},
-				options: {
-					responsive: true,
-					animation: false,
-					plugins: {
-						legend: {
-							position: 'bottom',
-							labels: {
-								boxWidth: 12
-							}
-						}
-					}
-				}
-			});
-		}
-	}
-
-	// Export
-	$('#oraculo-export-analytics').on('click', function() {
-		window.location.href = '<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>?action=oraculo_export_analytics&period=<?php echo esc_attr( $period ); ?>&nonce=<?php echo esc_attr( wp_create_nonce( 'oraculo_export' ) ); ?>';
-	});
-});
-</script>
 <?php // phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound ?>

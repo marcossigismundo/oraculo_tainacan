@@ -108,7 +108,6 @@ class OraculoPage extends \Tainacan\Pages {
 	 */
 	public function load_page() {
 		parent::load_page();
-		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_page_assets' ) );
 	}
 
 	/**
@@ -127,6 +126,19 @@ class OraculoPage extends \Tainacan\Pages {
 	}
 
 	/**
+	 * Aba ativa da página (whitelist compartilhada com render_page_content).
+	 *
+	 * @return string
+	 */
+	private function get_current_tab(): string {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- tab is a read-only navigation parameter with no side effects; value is whitelisted below.
+		$tab          = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : 'dashboard';
+		$allowed_tabs = array( 'dashboard', 'indexing', 'settings', 'analytics', 'debug' );
+
+		return in_array( $tab, $allowed_tabs, true ) ? $tab : 'dashboard';
+	}
+
+	/**
 	 * Enqueue JS específico
 	 */
 	public function admin_enqueue_js() {
@@ -140,7 +152,7 @@ class OraculoPage extends \Tainacan\Pages {
 		);
 
 		if ( defined( 'ORACULO_TAINACAN_URL' ) && defined( 'ORACULO_TAINACAN_VERSION' ) ) {
-			// JS Admin
+			// JS Admin (base: tabs, tooltips, notices, modal)
 			wp_enqueue_script(
 				'oraculo-admin-page',
 				ORACULO_TAINACAN_URL . 'assets/js/admin-page.js',
@@ -148,21 +160,9 @@ class OraculoPage extends \Tainacan\Pages {
 				ORACULO_TAINACAN_VERSION,
 				true
 			);
-		}
-	}
 
-	/**
-	 * Enfileira assets específicos
-	 */
-	public function enqueue_page_assets() {
-		if ( ! defined( 'ORACULO_TAINACAN_URL' ) || ! defined( 'ORACULO_TAINACAN_VERSION' ) ) {
-			return;
-		}
-
-		// Dados para JS
-		if ( class_exists( '\Oraculo_Tainacan\AI\AIProviderFactory' ) ) {
+			// Dados/i18n para os scripts da página (localize após o registro do handle)
 			$factory = new \Oraculo_Tainacan\AI\AIProviderFactory();
-
 			wp_localize_script(
 				'oraculo-admin-page',
 				'OraculoAdminPage',
@@ -179,6 +179,24 @@ class OraculoPage extends \Tainacan\Pages {
 					'options'         => $this->get_safe_options(),
 					'strings'         => $this->get_js_strings(),
 				)
+			);
+
+			// JS por aba (extraídos dos antigos inline <script> dos templates)
+			$tab      = $this->get_current_tab();
+			$tab_deps = array(
+				'dashboard' => array( 'chart-js' ),
+				'analytics' => array( 'jquery', 'oraculo-admin-page', 'chart-js' ),
+				'settings'  => array( 'jquery', 'oraculo-admin-page' ),
+				'indexing'  => array( 'jquery', 'oraculo-admin-page' ),
+				'debug'     => array( 'jquery', 'oraculo-admin-page' ),
+			);
+
+			wp_enqueue_script(
+				'oraculo-admin-tab-' . $tab,
+				ORACULO_TAINACAN_URL . 'assets/js/admin/' . $tab . '.js',
+				$tab_deps[ $tab ],
+				ORACULO_TAINACAN_VERSION,
+				true
 			);
 		}
 	}
@@ -348,19 +366,61 @@ class OraculoPage extends \Tainacan\Pages {
 	 */
 	private function get_js_strings(): array {
 		return array(
-			'confirmDelete'  => __( 'Tem certeza que deseja excluir?', 'oraculo-tainacan' ),
-			'confirmReindex' => __( 'Tem certeza que deseja reindexar esta coleção? Isso pode levar alguns minutos.', 'oraculo-tainacan' ),
-			'indexing'       => __( 'Indexando...', 'oraculo-tainacan' ),
-			'processing'     => __( 'Processando...', 'oraculo-tainacan' ),
-			'completed'      => __( 'Concluído!', 'oraculo-tainacan' ),
-			'error'          => __( 'Erro:', 'oraculo-tainacan' ),
-			'testing'        => __( 'Testando conexão...', 'oraculo-tainacan' ),
-			'success'        => __( 'Sucesso!', 'oraculo-tainacan' ),
-			'saved'          => __( 'Configurações salvas!', 'oraculo-tainacan' ),
-			'items'          => __( 'itens', 'oraculo-tainacan' ),
-			'of'             => __( 'de', 'oraculo-tainacan' ),
-			'cancel'         => __( 'Cancelar', 'oraculo-tainacan' ),
-			'save'           => __( 'Salvar', 'oraculo-tainacan' ),
+			'confirmDelete'          => __( 'Tem certeza que deseja excluir?', 'oraculo-tainacan' ),
+			'confirmReindex'         => __( 'Tem certeza que deseja reindexar esta coleção? Isso pode levar alguns minutos.', 'oraculo-tainacan' ),
+			'indexing'               => __( 'Indexando...', 'oraculo-tainacan' ),
+			'processing'             => __( 'Processando', 'oraculo-tainacan' ),
+			'processing2'            => __( 'Processando...', 'oraculo-tainacan' ),
+			'completed'              => __( 'Concluído', 'oraculo-tainacan' ),
+			'error'                  => __( 'Erro', 'oraculo-tainacan' ),
+			'testing'                => __( 'Testando...', 'oraculo-tainacan' ),
+			'test'                   => __( 'Testar', 'oraculo-tainacan' ),
+			'testConnection'         => __( 'Testar Conexão', 'oraculo-tainacan' ),
+			'connectionOk'           => __( 'Conexão OK!', 'oraculo-tainacan' ),
+			'connectionFailed'       => __( 'Erro na conexão', 'oraculo-tainacan' ),
+			'connError'              => __( 'Erro de conexão', 'oraculo-tainacan' ),
+			'success'                => __( 'Sucesso!', 'oraculo-tainacan' ),
+			'saved'                  => __( 'Configurações salvas com sucesso!', 'oraculo-tainacan' ),
+			'saveError'              => __( 'Erro ao salvar', 'oraculo-tainacan' ),
+			'saving'                 => __( 'Salvando...', 'oraculo-tainacan' ),
+			'settingsSaved'          => __( 'Configurações salvas!', 'oraculo-tainacan' ),
+			'items'                  => __( 'itens', 'oraculo-tainacan' ),
+			'of'                     => __( 'de', 'oraculo-tainacan' ),
+			'cancel'                 => __( 'Cancelar', 'oraculo-tainacan' ),
+			'save'                   => __( 'Salvar', 'oraculo-tainacan' ),
+			'clearing'               => __( 'Limpando...', 'oraculo-tainacan' ),
+			'clear'                  => __( 'Limpar', 'oraculo-tainacan' ),
+			'clearCache'             => __( 'Limpar Cache', 'oraculo-tainacan' ),
+			'cacheCleared'           => __( 'Cache limpo com sucesso!', 'oraculo-tainacan' ),
+			'cacheClearedShort'      => __( 'Cache limpo!', 'oraculo-tainacan' ),
+			'cacheError'             => __( 'Erro ao limpar cache', 'oraculo-tainacan' ),
+			'clearVectors'           => __( 'Limpar Vetores', 'oraculo-tainacan' ),
+			'vectorsCleared'         => __( 'Vetores limpos com sucesso!', 'oraculo-tainacan' ),
+			'vectorsError'           => __( 'Erro ao limpar vetores', 'oraculo-tainacan' ),
+			'vectorsRemoved'         => __( 'Vetores da coleção removidos.', 'oraculo-tainacan' ),
+			'allVectorsRemoved'      => __( 'Todos os vetores foram removidos.', 'oraculo-tainacan' ),
+			'confirmClearVectors'    => __( 'Tem certeza? Isso removerá todos os vetores indexados.', 'oraculo-tainacan' ),
+			'confirmClearCollection' => __( 'Tem certeza que deseja limpar os vetores desta coleção?', 'oraculo-tainacan' ),
+			'confirmIndexAll'        => __( 'Indexar todas as coleções? Isso pode demorar.', 'oraculo-tainacan' ),
+			'confirmClearAll'        => __( 'ATENÇÃO: Isso removerá TODOS os vetores. Continuar?', 'oraculo-tainacan' ),
+			'startingIndex'          => __( 'Iniciando indexação da coleção', 'oraculo-tainacan' ),
+			'syncWait'               => __( 'Aguarde, este processo é síncrono e pode levar alguns segundos...', 'oraculo-tainacan' ),
+			'indexDone'              => __( 'Indexação concluída!', 'oraculo-tainacan' ),
+			'indexingAll'            => __( 'Iniciando indexação de todas as coleções...', 'oraculo-tainacan' ),
+			'itemsFailed'            => __( 'itens falharam na indexação.', 'oraculo-tainacan' ),
+			'index'                  => __( 'Indexar', 'oraculo-tainacan' ),
+			'reindex'                => __( 'Reindexar', 'oraculo-tainacan' ),
+			'notIndexed'             => __( 'Não indexado', 'oraculo-tainacan' ),
+			'unknownError'           => __( 'Erro desconhecido', 'oraculo-tainacan' ),
+			'optimizing'             => __( 'Otimizando...', 'oraculo-tainacan' ),
+			'optimizeDb'             => __( 'Otimizar Banco de Dados', 'oraculo-tainacan' ),
+			'optimizeTables'         => __( 'Otimizar Tabelas', 'oraculo-tainacan' ),
+			'dbOptimized'            => __( 'Banco de dados otimizado com sucesso!', 'oraculo-tainacan' ),
+			'tablesOptimized'        => __( 'Tabelas otimizadas!', 'oraculo-tainacan' ),
+			'tablesRepaired'         => __( 'Tabelas reparadas com sucesso!', 'oraculo-tainacan' ),
+			'confirmReset1'          => __( 'ATENÇÃO: Isso removerá TODOS os dados do plugin. Continuar?', 'oraculo-tainacan' ),
+			'confirmReset2'          => __( 'Esta ação NÃO pode ser desfeita. Tem certeza absoluta?', 'oraculo-tainacan' ),
+			'resetDone'              => __( 'Plugin resetado com sucesso!', 'oraculo-tainacan' ),
 		);
 	}
 
