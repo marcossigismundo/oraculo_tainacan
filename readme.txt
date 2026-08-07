@@ -4,7 +4,7 @@ Tags: tainacan, ai, search, rag, openai
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 2.0.3
+Stable tag: 2.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -15,6 +15,7 @@ AI-powered natural-language search and chat for Tainacan digital archives. RAG w
 Oráculo Tainacan adds Artificial Intelligence capabilities to Tainacan, enabling:
 
 * **Semantic Search (RAG)**: Find items by meaning, not just keywords
+* **Tainacan Theme Integration**: An "AI Search" tab injected next to the default search field on Tainacan items lists (collections, repository, taxonomy terms and faceted search block)
 * **AI Chat**: Converse about the archive with conversation memory and extracted facts
 * **Vector Indexing**: Generate embeddings for items to enable similarity search
 * **Multiple Providers**: OpenAI, Google Gemini, Claude (Anthropic), DeepSeek, Groq and Ollama (local)
@@ -111,6 +112,13 @@ OpenAI is the most tested option. Ollama is recommended for fully local, private
 Only the text content of your archived items is sent to the AI provider you configure. When using Ollama, everything stays local.
 
 == Changelog ==
+
+= 2.1.0 =
+* New: Tainacan theme integration — an "AI Search" tab is injected next to the default search field on all Tainacan items lists (collection archives, repository archive, taxonomy term archives and pages using the faceted search block/shortcode)
+* New: AI answer panel below the search bar with staged loading feedback, suggested questions, related items grid, feedback buttons and a "refine in traditional search" action
+* New: settings tab "Tema Tainacan" (enable/disable, tab label, placeholder, search scope, suggestions)
+* New: deep link support — `?oraculo_q=question` opens the AI tab and runs the search automatically
+* The integration follows the active theme through the --tainacan-* CSS variables and keeps state across Vue re-renders of the Tainacan items list
 
 = 2.0.3 =
 * Harden chat textarea color/background against theme resets

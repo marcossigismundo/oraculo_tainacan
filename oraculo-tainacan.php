@@ -3,7 +3,7 @@
  * Plugin Name: Oráculo Tainacan
  * Plugin URI: https://github.com/tainacan/oraculo-tainacan
  * Description: Sistema avançado de busca em linguagem natural com IA para acervos Tainacan. Integra RAG (Retrieval-Augmented Generation) com múltiplos provedores de IA.
- * Version: 2.0.3
+ * Version: 2.1.0
  * Author: Tainacan Community
  * Author URI: https://tainacan.org
  * License: GPL-2.0+
@@ -24,7 +24,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Constantes do plugin
-define('ORACULO_TAINACAN_VERSION', '2.0.3');
+define('ORACULO_TAINACAN_VERSION', '2.1.0');
 define('ORACULO_TAINACAN_FILE', __FILE__);
 define('ORACULO_TAINACAN_PATH', plugin_dir_path(__FILE__));
 define('ORACULO_TAINACAN_URL', plugin_dir_url(__FILE__));
@@ -468,6 +468,7 @@ final class Oraculo_Tainacan {
                 __('Quais coleções estão disponíveis?', 'oraculo_tainacan'),
             ],
             'index_fields' => ['title', 'description'],
+            'theme_integration' => Frontend\ThemeIntegration::get_default_settings(),
             'appearance' => [
                 'primary_color' => '#1f2f56',
                 'accent_color' => '#b5e0e3',
@@ -561,6 +562,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
         $this->services['chat'] = new Chat\ChatEngine();
         $this->services['indexing'] = new Indexing\IndexingManager();
         $this->services['analytics'] = new Analytics\AnalyticsManager();
+        $this->services['theme_integration'] = new Frontend\ThemeIntegration();
     }
 
     /**
@@ -609,6 +611,19 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
         if (isset($options['similarity_threshold'])) {
             $options['similarity_threshold'] = floatval($options['similarity_threshold']);
             $options['similarity_threshold'] = max(0, min(1, $options['similarity_threshold']));
+        }
+
+        // Sanitização da integração com o tema Tainacan
+        if (isset($options['theme_integration']) && is_array($options['theme_integration'])) {
+            $ti = $options['theme_integration'];
+            $defaults = Frontend\ThemeIntegration::get_default_settings();
+            $options['theme_integration'] = [
+                'enabled' => !empty($ti['enabled']),
+                'tab_label' => sanitize_text_field($ti['tab_label'] ?? '') ?: $defaults['tab_label'],
+                'placeholder' => sanitize_text_field($ti['placeholder'] ?? '') ?: $defaults['placeholder'],
+                'scope' => in_array($ti['scope'] ?? '', ['collection', 'all'], true) ? $ti['scope'] : 'collection',
+                'show_suggestions' => !empty($ti['show_suggestions']),
+            ];
         }
 
         return $options;
