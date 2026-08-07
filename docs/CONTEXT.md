@@ -48,6 +48,7 @@ src/
 │   ├── MultimodalSearch.php
 │   ├── SmartSuggestions.php
 │   └── WebhooksManager.php
+├── Frontend/ThemeIntegration.php Aba "Busca com IA" nas listagens do Tainacan (v2.1.0)
 ├── Indexing/IndexingManager.php  Indexação síncrona + cron em lote
 ├── Search/SearchEngine.php       RAG (retrieval + generation)
 └── Vector/VectorStore.php        Upsert/similaridade sobre MySQL
@@ -61,9 +62,30 @@ templates/
     ├── settings.php
     └── debug.php
 assets/
-├── css/ (admin-page, admin, chat-widget, frontend)
-└── js/  (admin-page, admin, chat-widget, frontend)
+├── css/ (admin-page, admin, chat-widget, frontend, theme-integration)
+└── js/  (admin-page, admin, chat-widget, frontend, theme-integration)
 ```
+
+## Integração com o tema Tainacan (v2.1.0)
+
+[src/Frontend/ThemeIntegration.php](src/Frontend/ThemeIntegration.php) injeta uma aba
+"Busca com IA" junto ao campo de busca padrão das listagens de itens do Tainacan.
+
+- A listagem é uma app Vue.js montada pelo Tainacan em `[data-module="faceted-search"]`
+  (`tainacan_the_faceted_search()`); não há hook PHP dentro da barra de busca, então a
+  injeção acontece no client-side ([theme-integration.js](assets/js/theme-integration.js))
+  via `MutationObserver` — os nós injetados sobrevivem a re-renders do Vue e nunca
+  reposicionam DOM gerenciado pelo Vue.
+- Detecção server-side de página de listagem: arquivo de coleção
+  (`Theme_Helper::is_post_type_a_collection`), arquivo de repositório
+  (`tainacan_repository_archive`), termo de taxonomia Tainacan e bloco/shortcode de
+  busca facetada. Assets só são enfileirados nesses contextos.
+- Visual segue o tema ativo pelas variáveis CSS `--tainacan-*` com fallback para
+  `--oraculo-*` ([theme-integration.css](assets/css/theme-integration.css)).
+- Configurável na aba "Tema Tainacan" de Configurações
+  (opção `theme_integration`: enabled, tab_label, placeholder, scope, show_suggestions).
+- Deep link: `?oraculo_q=pergunta` abre a aba de IA e executa a busca.
+- Evento público: `oraculo-ai-search-done` (CustomEvent, bubbles) após cada busca.
 
 ## Ponto de entrada
 
