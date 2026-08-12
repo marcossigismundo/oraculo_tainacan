@@ -4,7 +4,7 @@ Tags: tainacan, ai, search, rag, openai
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 2.1.0
+Stable tag: 2.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -112,7 +112,7 @@ Only the text content of your archived items is sent to the AI provider you conf
 
 == Changelog ==
 
-= 2.1.0 =
+= 2.2.0 =
 * Security: escape all dynamic content injected into HTML by the widgets (AI responses, item titles/snippets, error messages); markdown links restricted to safe URL schemes
 * Security: REST endpoints hardened — nonce + per-IP rate limit on public search/chat/feedback, conversation ownership checks, admin-only health endpoint, argument schemas everywhere
 * Security: admin page menu requires manage_options; remote image download via WordPress HTTP API
@@ -120,7 +120,19 @@ Only the text content of your archived items is sent to the AI provider you conf
 * Refactor: all inline template scripts extracted to enqueued files; assets load only where used (plugin admin page, shortcode pages, floating chat)
 * Refactor: public widgets now use the oraculo/v1 REST API exclusively; nopriv admin-ajax handlers removed
 * Dev: strict phpcs ruleset (WordPress-Core/Docs/Extra + Security + PHPCompatibilityWP) with composer tooling; declare(strict_types=1) across the codebase; text domain migrated to oraculo-tainacan
-* Fix: OraculoAdminPage localized data now attaches after script registration; duplicate/broken admin action handlers removed (double-fired searches and indexing)
+* Security: input size caps in the REST schema (query ≤ 500 chars, chat message ≤ 2000, collections ≤ 20) and a site-wide ceiling of 60 AI calls/minute across all IPs
+* Security: the daily oraculo_cleanup_old_data cron finally has a handler — search logs (90d), conversations/messages (30d) and expired memory are purged instead of growing without bound
+* Fix: unchecking "show sources" / "show similarity" now persists; the missing key used to fall back to the default instead of false
+* Fix: settings sanitization unified in SettingsSanitizer for both the admin form and the REST /settings endpoint; options absent from the submitted form (search/chat prompts, unused provider models) keep their stored value instead of being wiped
+* Fix: the AI search tab now shows the real message on rate limit / disabled feature / invalid nonce instead of reporting "no items found"
+* Cleanup: the legacy admin bundle (assets/js/admin.js, assets/css/admin.css and the OraculoAdmin localized object) is gone — every handler it registered was either superseded by the per-tab scripts or bound to selectors no template renders
+
+= 2.1.0 =
+* New: Tainacan theme integration — an "AI Search" tab is injected next to the default search field on all Tainacan items lists (collection archives, repository archive, taxonomy term archives and pages using the faceted search block/shortcode)
+* New: AI answer panel below the search bar with staged loading feedback, suggested questions, related items grid, feedback buttons and a "refine in traditional search" action
+* New: settings tab "Tema Tainacan" (enable/disable, tab label, placeholder, search scope, suggestions)
+* New: deep link support — `?oraculo_q=question` opens the AI tab and runs the search automatically
+* The integration follows the active theme through the --tainacan-* CSS variables and keeps state across Vue re-renders of the Tainacan items list
 
 = 2.0.3 =
 * Harden chat textarea color/background against theme resets

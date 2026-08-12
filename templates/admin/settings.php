@@ -38,6 +38,9 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
 				<button type="button" class="oraculo-tab-btn" data-tab="appearance">
 					<?php esc_html_e( 'Aparência', 'oraculo-tainacan' ); ?>
 				</button>
+				<button type="button" class="oraculo-tab-btn" data-tab="tainacan">
+					<?php esc_html_e( 'Tema Tainacan', 'oraculo-tainacan' ); ?>
+				</button>
 				<button type="button" class="oraculo-tab-btn" data-tab="advanced">
 					<?php esc_html_e( 'Avançado', 'oraculo-tainacan' ); ?>
 				</button>
@@ -376,15 +379,118 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
 						<th><?php esc_html_e( 'Opções de Exibição', 'oraculo-tainacan' ); ?></th>
 						<td>
 							<label>
+								<?php // Campo oculto garante o valor 0 no POST: sanitize_appearance() assume "true" quando a chave está ausente. ?>
+								<input type="hidden" name="oraculo_tainacan_options[appearance][show_sources]" value="0">
 								<input type="checkbox" name="oraculo_tainacan_options[appearance][show_sources]" value="1"
-										<?php checked( $options['appearance']['show_sources'] ?? true ); ?>>
+										<?php checked( ! empty( $options['appearance']['show_sources'] ?? true ) ); ?>>
 								<?php esc_html_e( 'Mostrar fontes nas respostas', 'oraculo-tainacan' ); ?>
 							</label><br>
 							<label>
+								<input type="hidden" name="oraculo_tainacan_options[appearance][show_similarity]" value="0">
 								<input type="checkbox" name="oraculo_tainacan_options[appearance][show_similarity]" value="1"
-										<?php checked( $options['appearance']['show_similarity'] ?? false ); ?>>
+										<?php checked( ! empty( $options['appearance']['show_similarity'] ?? false ) ); ?>>
 								<?php esc_html_e( 'Mostrar score de similaridade', 'oraculo-tainacan' ); ?>
 							</label>
+						</td>
+					</tr>
+				</table>
+			</div>
+
+			<!-- Tab: Tema Tainacan -->
+			<div class="oraculo-tab-content" id="tab-tainacan">
+				<h2><?php esc_html_e( 'Integração com o tema Tainacan', 'oraculo-tainacan' ); ?></h2>
+				<p class="description">
+					<?php esc_html_e( 'Insere uma aba "Busca com IA" junto ao campo de busca padrão das listagens de itens do Tainacan (coleções, repositório, termos de taxonomia e páginas com o bloco de busca facetada). Funciona com qualquer tema compatível com o Tainacan, incluindo o tema Tainacan Interface.', 'oraculo-tainacan' ); ?>
+				</p>
+
+				<?php
+				$theme_integration = wp_parse_args(
+					$options['theme_integration'] ?? array(),
+					\Oraculo_Tainacan\Frontend\ThemeIntegration::get_default_settings()
+				);
+				$tainacan_active   = class_exists( '\Tainacan\Theme_Helper' );
+				?>
+
+				<?php if ( ! $tainacan_active ) : ?>
+					<div class="notice notice-warning inline">
+						<p><?php esc_html_e( 'O plugin Tainacan não está ativo. A integração ficará inativa até que o Tainacan seja ativado.', 'oraculo-tainacan' ); ?></p>
+					</div>
+				<?php endif; ?>
+
+				<table class="form-table">
+					<tr>
+						<th><?php esc_html_e( 'Habilitar aba de busca IA', 'oraculo-tainacan' ); ?></th>
+						<td>
+							<label>
+								<input type="hidden" name="oraculo_tainacan_options[theme_integration][enabled]" value="0">
+								<input type="checkbox" name="oraculo_tainacan_options[theme_integration][enabled]" value="1"
+										<?php checked( ! empty( $theme_integration['enabled'] ) ); ?>>
+								<?php esc_html_e( 'Exibir a aba "Busca com IA" nas listagens de itens do Tainacan', 'oraculo-tainacan' ); ?>
+							</label>
+							<p class="description">
+								<?php esc_html_e( 'Requer que a funcionalidade "Habilitar Busca" (aba Geral) esteja ativa.', 'oraculo-tainacan' ); ?>
+							</p>
+						</td>
+					</tr>
+					<tr>
+						<th><?php esc_html_e( 'Rótulo da aba', 'oraculo-tainacan' ); ?></th>
+						<td>
+							<input type="text"
+									name="oraculo_tainacan_options[theme_integration][tab_label]"
+									value="<?php echo esc_attr( $theme_integration['tab_label'] ); ?>"
+									class="regular-text"
+									placeholder="<?php esc_attr_e( 'Busca com IA', 'oraculo-tainacan' ); ?>">
+						</td>
+					</tr>
+					<tr>
+						<th><?php esc_html_e( 'Placeholder do campo', 'oraculo-tainacan' ); ?></th>
+						<td>
+							<input type="text"
+									name="oraculo_tainacan_options[theme_integration][placeholder]"
+									value="<?php echo esc_attr( $theme_integration['placeholder'] ); ?>"
+									class="large-text"
+									placeholder="<?php esc_attr_e( 'Pergunte em linguagem natural ao acervo…', 'oraculo-tainacan' ); ?>">
+						</td>
+					</tr>
+					<tr>
+						<th><?php esc_html_e( 'Escopo da busca', 'oraculo-tainacan' ); ?></th>
+						<td>
+							<select name="oraculo_tainacan_options[theme_integration][scope]">
+								<option value="collection" <?php selected( $theme_integration['scope'], 'collection' ); ?>>
+									<?php esc_html_e( 'Coleção atual (quando em uma página de coleção)', 'oraculo-tainacan' ); ?>
+								</option>
+								<option value="all" <?php selected( $theme_integration['scope'], 'all' ); ?>>
+									<?php esc_html_e( 'Todo o acervo (ignora a coleção da página)', 'oraculo-tainacan' ); ?>
+								</option>
+							</select>
+							<p class="description">
+								<?php esc_html_e( 'Em páginas de repositório e termos, a busca sempre considera as coleções padrão configuradas na aba Geral (ou todas, se nenhuma for selecionada).', 'oraculo-tainacan' ); ?>
+							</p>
+						</td>
+					</tr>
+					<tr>
+						<th><?php esc_html_e( 'Sugestões de perguntas', 'oraculo-tainacan' ); ?></th>
+						<td>
+							<label>
+								<input type="hidden" name="oraculo_tainacan_options[theme_integration][show_suggestions]" value="0">
+								<input type="checkbox" name="oraculo_tainacan_options[theme_integration][show_suggestions]" value="1"
+										<?php checked( ! empty( $theme_integration['show_suggestions'] ) ); ?>>
+								<?php esc_html_e( 'Mostrar as perguntas sugeridas (aba Prompts) ao abrir a aba de IA', 'oraculo-tainacan' ); ?>
+							</label>
+						</td>
+					</tr>
+					<tr>
+						<th><?php esc_html_e( 'Link direto', 'oraculo-tainacan' ); ?></th>
+						<td>
+							<p class="description">
+								<?php
+								printf(
+									/* translators: %s: example URL query string parameter */
+									esc_html__( 'Dica: adicione %s à URL de qualquer listagem do Tainacan para abrir a aba de IA já com a pergunta preenchida e executada.', 'oraculo-tainacan' ),
+									'<code>?oraculo_q=sua+pergunta</code>'
+								);
+								?>
+							</p>
 						</td>
 					</tr>
 				</table>

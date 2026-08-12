@@ -1,0 +1,579 @@
+﻿/**
+ * Oráculo Tainacan - Integração com o tema Tainacan
+ *
+ * Estilos da aba "Busca com IA" injetada na barra de busca das listagens de
+ * itens do Tainacan. Usa as variáveis CSS --tainacan-* expostas pelo tema,
+ * com fallback para as cores configuradas no plugin (--oraculo-*).
+ */
+
+/* ------------------------------------------------------------------ */
+/* Abas                                                                */
+/* ------------------------------------------------------------------ */
+
+/* Especificidade (0,3,0) para vencer o CSS scoped do Vue
+   (.search-control-item[data-v-*] { display: inline-block }) */
+.search-control .search-control-item.search-control-item--search {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.oraculo-ai-tabs {
+    display: inline-flex;
+    gap: 0.125em;
+    margin-bottom: 0.25em;
+    order: -1;
+}
+
+.oraculo-ai-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375em;
+    padding: 0.25em 0.75em 0.3125em;
+    font-size: 0.75em;
+    line-height: 1.4;
+    color: var(--tainacan-info-color, #505253);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    border-radius: 4px 4px 0 0;
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.oraculo-ai-tab:hover,
+.oraculo-ai-tab:focus-visible {
+    color: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
+    background: var(--tainacan-item-hover-background-color, rgba(0, 0, 0, 0.04));
+    outline: none;
+}
+
+.oraculo-ai-tab:focus-visible {
+    box-shadow: 0 0 0 2px var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
+}
+
+.oraculo-ai-tab.is-active {
+    color: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
+    border-bottom-color: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
+    font-weight: 600;
+}
+
+.oraculo-ai-tab--ai svg {
+    flex-shrink: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Alternância entre busca nativa e busca IA                           */
+/* ------------------------------------------------------------------ */
+
+.search-control-item--search .oraculo-ai-searchbar {
+    display: none;
+    width: 100%;
+}
+
+.search-control-item--search.oraculo-ai-mode .search-area {
+    display: none !important;
+}
+
+.search-control-item--search.oraculo-ai-mode .oraculo-ai-searchbar {
+    display: block;
+}
+
+/* ------------------------------------------------------------------ */
+/* Campo de busca IA                                                   */
+/* ------------------------------------------------------------------ */
+
+.oraculo-ai-control {
+    display: flex;
+    align-items: stretch;
+    min-width: 16em;
+}
+
+.oraculo-ai-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 0.875em;
+    padding: 0.25em 0.5em;
+    color: var(--tainacan-input-color, #1d1d1d);
+    background: var(--tainacan-input-background-color, #ffffff);
+    border: 1px solid var(--tainacan-input-border-color, #dbdbdb);
+    border-right: none;
+    border-radius: 3px 0 0 3px;
+}
+
+.oraculo-ai-input:focus {
+    outline: none;
+    border-color: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
+    box-shadow: 0 0 0 1px var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
+}
+
+.oraculo-ai-submit {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375em;
+    padding: 0.25em 0.75em;
+    font-size: 0.75em;
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--tainacan-input-background-color, #ffffff);
+    background: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
+    border: 1px solid var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
+    border-radius: 0 3px 3px 0;
+    cursor: pointer;
+    transition: filter 0.15s ease;
+}
+
+.oraculo-ai-submit:hover:not(:disabled),
+.oraculo-ai-submit:focus-visible {
+    filter: brightness(1.15);
+    outline: none;
+}
+
+.oraculo-ai-submit:disabled {
+    opacity: 0.65;
+    cursor: wait;
+}
+
+.oraculo-ai-searchbar.is-loading .oraculo-ai-submit svg {
+    animation: oraculo-ai-spin 1.2s linear infinite;
+}
+
+@keyframes oraculo-ai-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ------------------------------------------------------------------ */
+/* Painel de resposta                                                  */
+/* ------------------------------------------------------------------ */
+
+.oraculo-ai-panel {
+    margin: 0.75em 1em 1em;
+    background: var(--tainacan-background-color, #ffffff);
+    border: 1px solid var(--tainacan-input-border-color, #dbdbdb);
+    border-top: 3px solid var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
+    border-radius: 0 0 6px 6px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    animation: oraculo-ai-slide-in 0.25s ease;
+}
+
+@keyframes oraculo-ai-slide-in {
+    from { opacity: 0; transform: translateY(-0.5em); }
+    to { opacity: 1; transform: none; }
+}
+
+.oraculo-ai-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1em;
+    padding: 0.75em 1.25em;
+    border-bottom: 1px solid var(--tainacan-input-border-color, #dbdbdb);
+}
+
+.oraculo-ai-panel-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    color: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
+    min-width: 0;
+}
+
+.oraculo-ai-panel-title h3 {
+    margin: 0;
+    font-size: 0.9375em;
+    font-weight: 600;
+    color: var(--tainacan-heading-color, #000000);
+}
+
+.oraculo-ai-panel-scope {
+    font-size: 0.75em;
+    color: var(--tainacan-info-color, #505253);
+    padding: 0.125em 0.625em;
+    background: var(--tainacan-item-hover-background-color, #f2f2f2);
+    border-radius: 999px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.oraculo-ai-panel-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2em;
+    height: 2em;
+    padding: 0;
+    color: var(--tainacan-info-color, #505253);
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.oraculo-ai-panel-close:hover,
+.oraculo-ai-panel-close:focus-visible {
+    background: var(--tainacan-item-hover-background-color, #f2f2f2);
+    color: var(--tainacan-heading-color, #000000);
+    outline: none;
+}
+
+.oraculo-ai-panel-body {
+    padding: 1em 1.25em;
+}
+
+.oraculo-ai-panel-footer {
+    padding: 0.5em 1.25em;
+    border-top: 1px solid var(--tainacan-input-border-color, #dbdbdb);
+    font-size: 0.6875em;
+    color: var(--tainacan-info-color, #505253);
+}
+
+.oraculo-ai-panel-footer span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375em;
+}
+
+/* ------------------------------------------------------------------ */
+/* Estado: carregando                                                  */
+/* ------------------------------------------------------------------ */
+
+.oraculo-ai-loading-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    margin-bottom: 1em;
+    color: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
+    font-size: 0.875em;
+}
+
+.oraculo-ai-loading-status svg {
+    animation: oraculo-ai-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes oraculo-ai-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+.oraculo-ai-skeleton span {
+    display: block;
+    height: 0.875em;
+    margin-bottom: 0.625em;
+    border-radius: 4px;
+    background: linear-gradient(
+        90deg,
+        var(--tainacan-skeleton-color, #eeeeee) 25%,
+        var(--tainacan-item-hover-background-color, #f7f7f7) 50%,
+        var(--tainacan-skeleton-color, #eeeeee) 75%
+    );
+    background-size: 200% 100%;
+    animation: oraculo-ai-shimmer 1.4s linear infinite;
+}
+
+.oraculo-ai-skeleton span:nth-child(2) { width: 92%; }
+.oraculo-ai-skeleton span:nth-child(3) { width: 60%; }
+
+@keyframes oraculo-ai-shimmer {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+}
+
+/* ------------------------------------------------------------------ */
+/* Estado: resposta                                                    */
+/* ------------------------------------------------------------------ */
+
+.oraculo-ai-answer {
+    font-size: 0.9375em;
+    line-height: 1.65;
+    color: var(--tainacan-label-color, #373839);
+}
+
+.oraculo-ai-answer p {
+    margin: 0 0 0.75em;
+}
+
+.oraculo-ai-answer p:last-child {
+    margin-bottom: 0;
+}
+
+.oraculo-ai-answer a {
+    color: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
+    text-decoration: underline;
+}
+
+.oraculo-ai-response-time {
+    margin: 0.75em 0 0;
+    font-size: 0.6875em;
+    color: var(--tainacan-info-color, #505253);
+}
+
+/* Fontes / itens relacionados */
+
+.oraculo-ai-sources {
+    margin-top: 1.25em;
+}
+
+.oraculo-ai-sources h4 {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    margin: 0 0 0.75em;
+    font-size: 0.8125em;
+    font-weight: 600;
+    color: var(--tainacan-heading-color, #000000);
+}
+
+.oraculo-ai-sources-count {
+    font-size: 0.85em;
+    font-weight: 600;
+    color: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
+    background: var(--tainacan-primary, var(--oraculo-accent, #b5e0e3));
+    padding: 0 0.5em;
+    border-radius: 999px;
+}
+
+.oraculo-ai-sources-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15em, 1fr));
+    gap: 0.625em;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.oraculo-ai-source-card {
+    display: flex;
+    gap: 0.625em;
+    padding: 0.75em;
+    background: var(--tainacan-item-background-color, #ffffff);
+    border: 1px solid var(--tainacan-input-border-color, #dbdbdb);
+    border-radius: 5px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.oraculo-ai-source-card:hover {
+    border-color: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
+}
+
+.oraculo-ai-source-icon {
+    color: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
+    flex-shrink: 0;
+    margin-top: 0.125em;
+}
+
+.oraculo-ai-source-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25em;
+    min-width: 0;
+}
+
+.oraculo-ai-source-title {
+    font-size: 0.8125em;
+    font-weight: 600;
+    color: var(--tainacan-heading-color, #000000);
+    text-decoration: none;
+    overflow-wrap: break-word;
+}
+
+a.oraculo-ai-source-title:hover,
+a.oraculo-ai-source-title:focus-visible {
+    color: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
+    text-decoration: underline;
+}
+
+.oraculo-ai-source-collection {
+    font-size: 0.6875em;
+    color: var(--tainacan-info-color, #505253);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.oraculo-ai-source-snippet {
+    font-size: 0.75em;
+    line-height: 1.5;
+    color: var(--tainacan-label-color, #373839);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.oraculo-ai-source-snippet mark {
+    background: var(--tainacan-primary, var(--oraculo-accent, #b5e0e3));
+    color: inherit;
+    padding: 0 0.125em;
+    border-radius: 2px;
+}
+
+.oraculo-ai-source-similarity {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    font-size: 0.6875em;
+    color: var(--tainacan-info-color, #505253);
+}
+
+.oraculo-ai-meter {
+    flex: 0 0 4em;
+    height: 0.3125em;
+    background: var(--tainacan-skeleton-color, #eeeeee);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.oraculo-ai-meter > span {
+    display: block;
+    height: 100%;
+    background: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
+    border-radius: 999px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Sugestões                                                           */
+/* ------------------------------------------------------------------ */
+
+.oraculo-ai-suggestions-title {
+    margin: 0 0 0.625em;
+    font-size: 0.8125em;
+    color: var(--tainacan-info-color, #505253);
+}
+
+.oraculo-ai-suggestions-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+}
+
+.oraculo-ai-chip {
+    padding: 0.375em 0.875em;
+    font-size: 0.8125em;
+    color: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
+    background: transparent;
+    border: 1px solid var(--tainacan-input-border-color, #dbdbdb);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.oraculo-ai-chip:hover,
+.oraculo-ai-chip:focus-visible {
+    background: var(--tainacan-primary, var(--oraculo-accent, #b5e0e3));
+    border-color: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
+    outline: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* Feedback e ações                                                    */
+/* ------------------------------------------------------------------ */
+
+.oraculo-ai-feedback {
+    display: flex;
+    align-items: center;
+    gap: 0.625em;
+    margin-top: 1.25em;
+    padding-top: 0.875em;
+    border-top: 1px dashed var(--tainacan-input-border-color, #dbdbdb);
+    font-size: 0.8125em;
+    color: var(--tainacan-info-color, #505253);
+}
+
+.oraculo-ai-feedback-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375em;
+    padding: 0.25em 0.75em;
+    font-size: 0.875em;
+    color: var(--tainacan-label-color, #373839);
+    background: transparent;
+    border: 1px solid var(--tainacan-input-border-color, #dbdbdb);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.oraculo-ai-feedback-btn:hover,
+.oraculo-ai-feedback-btn:focus-visible {
+    background: var(--tainacan-item-hover-background-color, #f2f2f2);
+    border-color: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
+    outline: none;
+}
+
+.oraculo-ai-feedback-thanks {
+    color: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
+    font-weight: 600;
+}
+
+.oraculo-ai-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    margin-top: 1em;
+}
+
+.oraculo-ai-action-btn {
+    padding: 0.375em 1em;
+    font-size: 0.8125em;
+    font-weight: 600;
+    color: var(--tainacan-input-background-color, #ffffff);
+    background: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
+    border: 1px solid var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
+    border-radius: 4px;
+    cursor: pointer;
+    transition: filter 0.15s ease;
+}
+
+.oraculo-ai-action-btn:hover,
+.oraculo-ai-action-btn:focus-visible {
+    filter: brightness(1.15);
+    outline: none;
+}
+
+.oraculo-ai-action-btn.oraculo-ai-action-secondary {
+    color: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
+    background: transparent;
+}
+
+/* ------------------------------------------------------------------ */
+/* Erro                                                                */
+/* ------------------------------------------------------------------ */
+
+.oraculo-ai-error p {
+    margin: 0;
+    padding: 0.75em 1em;
+    font-size: 0.875em;
+    color: #a94442;
+    background: #fdf3f2;
+    border: 1px solid #f3c6c3;
+    border-radius: 4px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Responsivo e acessibilidade                                         */
+/* ------------------------------------------------------------------ */
+
+@media (max-width: 768px) {
+    .oraculo-ai-panel {
+        margin: 0.5em 0.5em 0.75em;
+    }
+
+    .oraculo-ai-sources-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .oraculo-ai-panel-scope {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .oraculo-ai-panel,
+    .oraculo-ai-skeleton span,
+    .oraculo-ai-loading-status svg,
+    .oraculo-ai-searchbar.is-loading .oraculo-ai-submit svg {
+        animation: none;
+    }
+}
