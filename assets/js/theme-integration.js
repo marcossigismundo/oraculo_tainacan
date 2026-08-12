@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Oráculo Tainacan - Integração com o tema Tainacan
  *
  * A listagem de itens do Tainacan é uma aplicação Vue.js montada em
