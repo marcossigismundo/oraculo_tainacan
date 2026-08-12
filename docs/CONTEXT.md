@@ -5,6 +5,9 @@
 Plugin WordPress que adiciona busca semântica (RAG) e chat com IA sobre acervos do Tainacan.
 Arquitetura orientada a serviços com múltiplos provedores de IA intercambiáveis.
 
+> Para o detalhamento dos pontos de acoplamento com o Tainacan, o contrato das rotas REST
+> e os fluxos de indexação e busca, veja [INTEGRACAO-TAINACAN.md](INTEGRACAO-TAINACAN.md).
+
 ## Metadados
 
 | Campo | Valor |
