@@ -111,6 +111,15 @@ class SettingsSanitizer {
 			$sanitized['index_fields'] = array_map( 'sanitize_text_field', (array) $input['index_fields'] );
 		}
 
+		// Busca visual (AI API CLIP do IBRAM)
+		$backend                     = sanitize_text_field( $input['search_backend'] ?? 'local' );
+		$sanitized['search_backend'] = in_array( $backend, array( 'local', 'clip' ), true ) ? $backend : 'local';
+		$sanitized['clip_api_url']   = esc_url_raw( $input['clip_api_url'] ?? '' );
+		$sanitized['clip_api_model'] = sanitize_text_field( $input['clip_api_model'] ?? 'ViT-L-14' );
+
+		$sanitized['clip_api_timeout'] = absint( $input['clip_api_timeout'] ?? 60 );
+		$sanitized['clip_api_timeout'] = max( 5, min( 300, $sanitized['clip_api_timeout'] ) );
+
 		// Aparência
 		if ( isset( $input['appearance'] ) ) {
 			$sanitized['appearance'] = \Oraculo_Tainacan\sanitize_appearance( $input['appearance'] );

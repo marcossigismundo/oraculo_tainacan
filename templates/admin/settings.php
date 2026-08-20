@@ -213,6 +213,44 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
 			<div class="oraculo-tab-content" id="tab-general">
 				<h2><?php esc_html_e( 'Configurações Gerais', 'oraculo-tainacan' ); ?></h2>
 
+				<h3><?php esc_html_e( 'Busca Visual (AI API — CLIP)', 'oraculo-tainacan' ); ?></h3>
+				<p class="description">
+					<?php esc_html_e( 'Integração com a AI API do IBRAM (CLIP + pgvector). No modo CLIP, a busca em linguagem natural roda no espaço visual imagem-texto e restrições como "século 21" viram filtros de metadado. Não há resposta gerada por IA: os resultados são as obras mais próximas da consulta.', 'oraculo-tainacan' ); ?>
+				</p>
+				<table class="form-table">
+					<tr>
+						<th><?php esc_html_e( 'Backend de Busca', 'oraculo-tainacan' ); ?></th>
+						<td>
+							<select name="oraculo_tainacan_options[search_backend]">
+								<option value="local" <?php selected( $options['search_backend'] ?? 'local', 'local' ); ?>>
+									<?php esc_html_e( 'Local (embeddings de texto + resposta com IA)', 'oraculo-tainacan' ); ?>
+								</option>
+								<option value="clip" <?php selected( $options['search_backend'] ?? 'local', 'clip' ); ?>>
+									<?php esc_html_e( 'AI API CLIP (busca visual, sem resposta gerada)', 'oraculo-tainacan' ); ?>
+								</option>
+							</select>
+						</td>
+					</tr>
+					<tr>
+						<th><?php esc_html_e( 'URL da AI API', 'oraculo-tainacan' ); ?></th>
+						<td>
+							<input type="url" name="oraculo_tainacan_options[clip_api_url]"
+									value="<?php echo esc_attr( $options['clip_api_url'] ?? '' ); ?>"
+									class="regular-text" placeholder="http://localhost:8000">
+							<p class="description"><?php esc_html_e( 'Endereço do serviço FastAPI (sem barra final). Vazio desliga a integração.', 'oraculo-tainacan' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th><?php esc_html_e( 'Modelo CLIP', 'oraculo-tainacan' ); ?></th>
+						<td>
+							<input type="text" name="oraculo_tainacan_options[clip_api_model]"
+									value="<?php echo esc_attr( $options['clip_api_model'] ?? 'ViT-L-14' ); ?>"
+									class="regular-text">
+							<p class="description"><?php esc_html_e( 'Deve ser um dos modelos carregados no servidor (GET /v1/models). Indexação e busca precisam usar o mesmo modelo.', 'oraculo-tainacan' ); ?></p>
+						</td>
+					</tr>
+				</table>
+
 				<table class="form-table">
 					<tr>
 						<th><?php esc_html_e( 'Coleções Padrão', 'oraculo-tainacan' ); ?></th>

@@ -183,6 +183,7 @@ final class Oraculo_Tainacan {
 		add_action( 'wp_ajax_oraculo_save_indexing_settings', array( $this, 'ajax_save_indexing_settings' ) );
 		add_action( 'wp_ajax_oraculo_save_settings', array( $this, 'ajax_save_settings' ) );
 		add_action( 'wp_ajax_oraculo_clear_cache', array( $this, 'ajax_clear_cache' ) );
+		add_action( 'wp_ajax_oraculo_process_queue', array( $this, 'ajax_process_queue' ) );
 
 		// Cron para indexação em background
 		add_action( 'oraculo_process_indexing_batch', array( $this, 'process_indexing_batch' ) );
@@ -228,6 +229,9 @@ final class Oraculo_Tainacan {
 		if ( ! wp_next_scheduled( Indexing\AutoIndexer::CRON_HOOK ) ) {
 			wp_schedule_event( time(), Indexing\AutoIndexer::CRON_SCHEDULE, Indexing\AutoIndexer::CRON_HOOK );
 		}
+		if ( ! wp_next_scheduled( Indexing\AutoIndexer::CRON_RECONCILE ) ) {
+			wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', Indexing\AutoIndexer::CRON_RECONCILE );
+		}
 
 		// Flush rewrite rules
 		flush_rewrite_rules();
@@ -245,6 +249,7 @@ final class Oraculo_Tainacan {
 		wp_clear_scheduled_hook( 'oraculo_cleanup_old_data' );
 		wp_clear_scheduled_hook( Indexing\AutoIndexer::CRON_HOOK );
 		wp_clear_scheduled_hook( Indexing\AutoIndexer::CRON_HOOK, array( 'kick' ) );
+		wp_clear_scheduled_hook( Indexing\AutoIndexer::CRON_RECONCILE );
 
 		// Sem isto, um lock deixado por um worker interrompido bloquearia a fila
 		// por LOCK_TIMEOUT depois da reativação.
@@ -493,6 +498,11 @@ final class Oraculo_Tainacan {
 				__( 'Quais coleções estão disponíveis?', 'oraculo-tainacan' ),
 			),
 			'index_fields'           => array( 'title', 'description' ),
+			// Busca visual via AI API do IBRAM (CLIP + pgvector). URL vazia = desligado.
+			'search_backend'         => 'local',
+			'clip_api_url'           => '',
+			'clip_api_model'         => 'ViT-L-14',
+			'clip_api_timeout'       => 60,
 			'appearance'             => array(
 				'primary_color'   => '#1f2f56',
 				'accent_color'    => '#b5e0e3',
@@ -1077,14 +1087,25 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 			$allowed_settings_keys = array( 'batch_size', 'embedding_provider', 'auto_index', 'index_title', 'index_description', 'index_metadata', 'index_document' );
 			$settings              = array_intersect_key( $settings, array_flip( $allowed_settings_keys ) );
 
-			// Salvar configurações
-			update_option( 'oraculo_batch_size', absint( $settings['batch_size'] ?? 10 ) );
+			$batch_size = max( 1, min( 100, absint( $settings['batch_size'] ?? 10 ) ) );
+
+			// Checkboxes → index_fields no array principal de opções, que é o
+			// que IndexingManager efetivamente lê. As opções soltas
+			// oraculo_index_* eram gravadas aqui e não eram lidas por nada.
+			$index_fields = array();
+			foreach ( array( 'title', 'description', 'metadata', 'document' ) as $field ) {
+				if ( ! empty( $settings[ 'index_' . $field ] ) ) {
+					$index_fields[] = $field;
+				}
+			}
+
+			self::update_option( 'batch_size', $batch_size );
+			self::update_option( 'index_fields', $index_fields );
+
+			// Opções standalone consumidas por AutoIndexer e AIProviderFactory.
+			update_option( 'oraculo_batch_size', $batch_size );
 			update_option( 'oraculo_embedding_provider', sanitize_text_field( $settings['embedding_provider'] ?? 'openai' ) );
 			update_option( 'oraculo_auto_index', ! empty( $settings['auto_index'] ) );
-			update_option( 'oraculo_index_title', ! empty( $settings['index_title'] ) );
-			update_option( 'oraculo_index_description', ! empty( $settings['index_description'] ) );
-			update_option( 'oraculo_index_metadata', ! empty( $settings['index_metadata'] ) );
-			update_option( 'oraculo_index_document', ! empty( $settings['index_document'] ) );
 
 			wp_send_json_success(
 				array(
@@ -1159,6 +1180,30 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 		} catch ( \Exception $e ) {
 			wp_send_json_error( array( 'message' => $e->getMessage() ) );
 		}
+	}
+
+	/**
+	 * Handler AJAX do botão "Processar fila agora" (tela de indexação)
+	 */
+	public function ajax_process_queue(): void {
+		check_ajax_referer( 'oraculo_admin', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permissão negada.', 'oraculo-tainacan' ) ) );
+		}
+
+		$auto_indexer = $this->services['auto_indexer'] ?? new Indexing\AutoIndexer();
+		$summary      = $auto_indexer->process_queue();
+
+		if ( ! empty( $summary['locked'] ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'A fila já está sendo processada em segundo plano. Tente novamente em instantes.', 'oraculo-tainacan' ),
+				)
+			);
+		}
+
+		wp_send_json_success( $summary );
 	}
 
 	/**

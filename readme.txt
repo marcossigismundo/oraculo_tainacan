@@ -115,9 +115,13 @@ Only the text content of your archived items is sent to the AI provider you conf
 = 2.2.0 =
 * Feature: automatic indexing — new and edited items are queued on save and indexed in the background, so they become searchable within minutes instead of waiting for a manual reindex
 * Feature: items sent to trash, unpublished or deleted are removed from the index immediately, so search no longer returns items visitors cannot open
+* Feature: daily reconciliation cron re-syncs the index with the collection (backup restores, direct imports, items that exhausted retries) and removes orphan vectors
+* Feature: CLIP visual search backend — optional integration with the IBRAM AI API (FastAPI + pgvector). Natural language queries run in the CLIP image-text space and temporal constraints ("obras do século 21") are parsed into metadata filters; item images are indexed remotely with normalized facets (year/decade/century/collection). No AI-generated answer in this mode: results are the closest works, with a deterministic summary
+* Feature: queue status card and "process now" button on the indexing screen; new WP-CLI commands `wp oraculo queue <status|process|reconcile>` and `wp oraculo clip <health|models|search|index>`
 * Fix: search and suggestion caches are now versioned by the index, so a freshly indexed item shows up right away instead of after the cache TTL (up to 1 hour)
 * Fix: `wp oraculo index` no longer aborts on a call to a non-existent method; it now reports the result of the (already synchronous) indexing run
 * Fix: indexing an item whose collection was deleted no longer raises a fatal error
+* Fix: the "Campos para Indexar" checkboxes and batch size on the indexing screen now persist to the options the indexer actually reads (they previously wrote orphan options), and the embeddings-provider select is honored by the provider factory
 * Dev: new filters `oraculo_tainacan_auto_index_enabled`, `oraculo_tainacan_index_delay` and `oraculo_tainacan_queue_batch_size`
 
 = 2.1.0 =

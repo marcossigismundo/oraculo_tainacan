@@ -199,6 +199,49 @@
 			});
 		});
 
+		// Processar fila de indexação automática agora
+		$('#oraculo-process-queue').on('click', function() {
+			var btn = $(this);
+
+			btn.prop('disabled', true);
+			addLog(s.queueProcessing || 'Processando fila...', 'info');
+
+			$.ajax({
+				url: cfg.ajaxUrl,
+				type: 'POST',
+				timeout: 300000,
+				data: {
+					action: 'oraculo_process_queue',
+					nonce: cfg.nonce
+				},
+				success: function(response) {
+					if (response.success) {
+						var d = response.data || {};
+						$('#oraculo-queue-count').text(d.remaining || 0);
+						addLog('✅ ' + (s.queueDone || 'Fila processada') + ': ' +
+							(d.indexed || 0) + ' ' + (s.queueIndexed || 'indexado(s)') + ', ' +
+							(d.failed || 0) + ' ' + (s.queueFailed || 'falha(s)') + ', ' +
+							(d.remaining || 0) + ' ' + (s.queueRemaining || 'restante(s)'), 'success');
+						if (typeof d.clip_sent !== 'undefined') {
+							addLog('CLIP: ' + d.clip_sent + ' ' + (s.clipSent || 'enviado(s)') + ', ' +
+								d.clip_failed + ' ' + (s.queueFailed || 'falha(s)'), d.clip_failed > 0 ? 'error' : 'info');
+						}
+						(d.errors || []).forEach(function(err) {
+							addLog('   → ' + (typeof err === 'string' ? err : JSON.stringify(err)), 'error');
+						});
+					} else {
+						addLog('⚠️ ' + ((response.data || {}).message || s.saveError), 'error');
+					}
+				},
+				error: function() {
+					addLog(s.saveError || 'Erro', 'error');
+				},
+				complete: function() {
+					btn.prop('disabled', false);
+				}
+			});
+		});
+
 		// Salvar configurações
 		$('#oraculo-indexing-settings').on('submit', function(e) {
 			e.preventDefault();

@@ -97,6 +97,14 @@ class AIProviderFactory {
 		// Provedores que suportam embeddings
 		$embedding_providers = array( 'openai', 'ollama' );
 
+		// A tela de indexação permite escolher um provedor de embeddings
+		// diferente do provedor de chat (ex: chat via Gemini, embeddings via
+		// Ollama local). Quando definido e válido, tem precedência.
+		$preferred = (string) get_option( 'oraculo_embedding_provider', '' );
+		if ( in_array( $preferred, $embedding_providers, true ) ) {
+			$provider_id = $preferred;
+		}
+
 		if ( ! in_array( $provider_id, $embedding_providers ) ) {
 			// Fallback para OpenAI se o provedor atual não suporta embeddings
 			if ( ! empty( $options['openai_api_key'] ) ) {

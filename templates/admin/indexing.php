@@ -13,8 +13,13 @@ defined( 'ABSPATH' ) || exit;
 
 $indexing     = new \Oraculo_Tainacan\Indexing\IndexingManager();
 $vector_store = new \Oraculo_Tainacan\Vector\VectorStore();
+$auto_indexer = new \Oraculo_Tainacan\Indexing\AutoIndexer();
 $collections  = \Oraculo_Tainacan\get_tainacan_collections();
 $vector_stats = $vector_store->get_stats();
+
+$plugin_options = \Oraculo_Tainacan\Oraculo_Tainacan::get_options();
+$index_fields   = (array) ( $plugin_options['index_fields'] ?? array( 'title', 'description' ) );
+$queue_pending  = $auto_indexer->count_pending();
 ?>
 
 <div class="oraculo-indexing-content">
@@ -126,6 +131,23 @@ $vector_stats = $vector_store->get_stats();
 		<?php endif; ?>
 	</div>
 
+	<!-- Fila de Indexação Automática -->
+	<div class="oraculo-card">
+		<h2><?php esc_html_e( 'Fila de Indexação Automática', 'oraculo-tainacan' ); ?></h2>
+		<p>
+			<?php esc_html_e( 'Itens aguardando indexação:', 'oraculo-tainacan' ); ?>
+			<strong id="oraculo-queue-count"><?php echo (int) $queue_pending; ?></strong>
+		</p>
+		<p class="description">
+			<?php esc_html_e( 'Obras criadas ou editadas entram nesta fila e são indexadas em segundo plano (normalmente em menos de um minuto). A fila também é verificada a cada 5 minutos e reconciliada com o acervo uma vez por dia.', 'oraculo-tainacan' ); ?>
+		</p>
+		<p>
+			<button type="button" class="button" id="oraculo-process-queue">
+				<?php esc_html_e( 'Processar fila agora', 'oraculo-tainacan' ); ?>
+			</button>
+		</p>
+	</div>
+
 	<!-- Ações em Massa -->
 	<div class="oraculo-card">
 		<h2><?php esc_html_e( 'Ações em Massa', 'oraculo-tainacan' ); ?></h2>
@@ -159,7 +181,7 @@ $vector_stats = $vector_store->get_stats();
 					<th scope="row"><?php esc_html_e( 'Tamanho do Batch', 'oraculo-tainacan' ); ?></th>
 					<td>
 						<input type="number" name="batch_size"
-								value="<?php echo esc_attr( get_option( 'oraculo_batch_size', 10 ) ); ?>"
+								value="<?php echo esc_attr( (string) ( $plugin_options['batch_size'] ?? 10 ) ); ?>"
 								min="1" max="100" class="small-text">
 						<p class="description">
 							<?php esc_html_e( 'Número de itens processados por vez. Valores menores são mais seguros para servidores limitados.', 'oraculo-tainacan' ); ?>
@@ -206,24 +228,25 @@ $vector_stats = $vector_store->get_stats();
 				<tr>
 					<th scope="row"><?php esc_html_e( 'Campos para Indexar', 'oraculo-tainacan' ); ?></th>
 					<td>
+						<?php // Fonte canônica: oraculo_tainacan_options['index_fields'], a mesma lida pelo IndexingManager. ?>
 						<label>
 							<input type="checkbox" name="index_title" value="1"
-									<?php checked( get_option( 'oraculo_index_title', true ) ); ?>>
+									<?php checked( in_array( 'title', $index_fields, true ) ); ?>>
 							<?php esc_html_e( 'Título', 'oraculo-tainacan' ); ?>
 						</label><br>
 						<label>
 							<input type="checkbox" name="index_description" value="1"
-									<?php checked( get_option( 'oraculo_index_description', true ) ); ?>>
+									<?php checked( in_array( 'description', $index_fields, true ) ); ?>>
 							<?php esc_html_e( 'Descrição', 'oraculo-tainacan' ); ?>
 						</label><br>
 						<label>
 							<input type="checkbox" name="index_metadata" value="1"
-									<?php checked( get_option( 'oraculo_index_metadata', true ) ); ?>>
+									<?php checked( in_array( 'metadata', $index_fields, true ) ); ?>>
 							<?php esc_html_e( 'Metadados', 'oraculo-tainacan' ); ?>
 						</label><br>
 						<label>
 							<input type="checkbox" name="index_document" value="1"
-									<?php checked( get_option( 'oraculo_index_document', false ) ); ?>>
+									<?php checked( in_array( 'document', $index_fields, true ) ); ?>>
 							<?php esc_html_e( 'Documento (OCR quando disponível)', 'oraculo-tainacan' ); ?>
 						</label>
 					</td>

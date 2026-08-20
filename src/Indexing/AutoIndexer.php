@@ -57,6 +57,11 @@ class AutoIndexer {
 	public const CRON_SCHEDULE = 'oraculo_five_minutes';
 
 	/**
+	 * Hook da reconciliação diária.
+	 */
+	public const CRON_RECONCILE = 'oraculo_reconcile_index';
+
+	/**
 	 * Opção usada como lock do worker (padrão WP_Upgrader::create_lock()).
 	 */
 	private const LOCK_OPTION = 'oraculo_index_queue_lock';
@@ -96,6 +101,7 @@ class AutoIndexer {
 		// phpcs:ignore WordPress.WP.CronInterval.CronSchedulesInterval -- The 5-minute schedule is only the safety net for a queue that is normally drained by a single event fired right after the save; a 15-minute floor would be the worst-case latency for a new item to become searchable.
 		add_filter( 'cron_schedules', array( $this, 'register_cron_schedule' ) );
 		add_action( self::CRON_HOOK, array( $this, 'process_queue' ) );
+		add_action( self::CRON_RECONCILE, array( $this, 'reconcile' ) );
 
 		// Garante o recorrente mesmo em instalações que já estavam ativas antes
 		// desta versão (o agendamento da ativação não roda em upgrade).
@@ -161,6 +167,10 @@ class AutoIndexer {
 	public function ensure_scheduled(): void {
 		if ( ! wp_next_scheduled( self::CRON_HOOK ) ) {
 			wp_schedule_event( time(), self::CRON_SCHEDULE, self::CRON_HOOK );
+		}
+
+		if ( ! wp_next_scheduled( self::CRON_RECONCILE ) ) {
+			wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', self::CRON_RECONCILE );
 		}
 	}
 
@@ -301,6 +311,12 @@ class AutoIndexer {
 
 		update_post_meta( $item_id, self::META_PENDING, time() + $delay );
 
+		// Item marcado como "sem imagem" no índice CLIP pode ter ganhado imagem
+		// nesta edição; limpar a marca faz o worker re-avaliar.
+		if ( 'no-image' === (string) get_post_meta( $item_id, ClipIndexer::META_INDEXED, true ) ) {
+			ClipIndexer::reset_item( $item_id );
+		}
+
 		$this->schedule_worker( $delay );
 	}
 
@@ -410,6 +426,18 @@ class AutoIndexer {
 			$summary['skipped']   = count( $result['skipped_ids'] );
 			$summary['failed']    = count( $item_ids ) - count( $done );
 			$summary['errors']    = array_slice( $result['errors'], 0, 10 );
+
+			// Passo CLIP (melhor esforço): sobe a imagem dos itens que ficaram
+			// em dia localmente. Falha remota não devolve o item à fila — quem
+			// re-tenta é a reconciliação diária, guiada pela meta ausente.
+			$clip = new ClipIndexer();
+			if ( $clip->is_enabled() && ! empty( $result['indexed_ids'] ) ) {
+				$clip_summary            = $clip->index_items( array_map( 'intval', $result['indexed_ids'] ) );
+				$summary['clip_sent']    = $clip_summary['sent'];
+				$summary['clip_skipped'] = $clip_summary['skipped'];
+				$summary['clip_failed']  = $clip_summary['failed'];
+				$summary['errors']       = array_slice( array_merge( $summary['errors'], $clip_summary['errors'] ), 0, 10 );
+			}
 
 			// Fecha o lote invalidando o cache de busca mesmo quando o bump por
 			// request já tinha sido gasto no primeiro upsert.
@@ -577,6 +605,100 @@ class AutoIndexer {
 		}
 
 		return count( $ids );
+	}
+
+	/**
+	 * Reconciliação diária: índice e acervo voltam a bater
+	 *
+	 * Rede de segurança para tudo que os hooks não veem: restauração de
+	 * backup, import via SQL, lote que estourou o teto de tentativas, item
+	 * cujo save aconteceu com o plugin desativado. Três verificações por
+	 * coleção publicada:
+	 *
+	 * 1. Publicado sem vetor local  → enfileira.
+	 * 2. Vetor local sem publicado  → remove (busca não deve citar o que sumiu).
+	 * 3. Publicado sem envio CLIP   → enfileira (o worker faz o passo remoto;
+	 *    o local resolve por hash sem custo de API).
+	 *
+	 * @return array Resumo da passada.
+	 */
+	public function reconcile(): array {
+		$summary = array(
+			'collections'     => 0,
+			'enqueued'        => 0,
+			'orphans_removed' => 0,
+			'clip_backfill'   => 0,
+		);
+
+		if ( ! class_exists( '\Tainacan\Repositories\Collections' ) ) {
+			return $summary;
+		}
+
+		if ( null === $this->vector_store ) {
+			$this->vector_store = new VectorStore();
+		}
+
+		$clip_enabled = ( new ClipIndexer() )->is_enabled();
+
+		foreach ( \Oraculo_Tainacan\get_tainacan_collections() as $collection ) {
+			$collection_id = (int) $collection['id'];
+			$post_type     = self::get_post_type_from_collection_id( $collection_id );
+
+			if ( '' === $post_type ) {
+				continue;
+			}
+
+			++$summary['collections'];
+
+			$base_args = array(
+				'post_type'              => $post_type,
+				'post_status'            => 'publish',
+				'posts_per_page'         => -1,
+				'fields'                 => 'ids',
+				'ignore_sticky_posts'    => true,
+				'no_found_rows'          => true,
+				'update_post_meta_cache' => false,
+				'update_post_term_cache' => false,
+			);
+
+			$published = array_map( 'intval', (array) get_posts( $base_args ) );
+			$indexed   = array_map( 'intval', $this->vector_store->get_indexed_item_ids( $collection_id ) );
+
+			// 1. Publicados que o índice local não conhece.
+			$missing = array_diff( $published, $indexed );
+			foreach ( $missing as $item_id ) {
+				$this->enqueue( $item_id );
+				++$summary['enqueued'];
+			}
+
+			// 2. Vetores de itens que já não estão publicados.
+			foreach ( array_diff( $indexed, $published ) as $item_id ) {
+				$this->vector_store->delete( $item_id, $collection_id );
+				++$summary['orphans_removed'];
+			}
+
+			// 3. Publicados ainda não enviados ao CLIP. Um EXISTS por coleção
+			// em vez de um get_post_meta() por item.
+			if ( $clip_enabled ) {
+				$sent_args = $base_args;
+				// phpcs:ignore WordPress.DB.SlowMetaQuery.SlowMetaQuery -- The marker meta is the remote-index ledger; one EXISTS query per collection on a daily cron.
+				$sent_args['meta_query'] = array(
+					array(
+						'key'     => ClipIndexer::META_INDEXED,
+						'compare' => 'EXISTS',
+					),
+				);
+
+				$sent = array_map( 'intval', (array) get_posts( $sent_args ) );
+
+				foreach ( array_diff( $published, $sent, $missing ) as $item_id ) {
+					$this->enqueue( $item_id );
+					++$summary['clip_backfill'];
+				}
+			}
+		}
+
+		return $summary;
 	}
 
 	/**
