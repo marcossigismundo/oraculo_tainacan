@@ -3,7 +3,7 @@
  * Plugin Name: Oráculo Tainacan
  * Plugin URI: https://github.com/tainacan/oraculo-tainacan
  * Description: Sistema avançado de busca em linguagem natural com IA para acervos Tainacan. Integra RAG (Retrieval-Augmented Generation) com múltiplos provedores de IA.
- * Version: 2.1.0
+ * Version: 2.2.0
  * Author: Tainacan Community
  * Author URI: https://tainacan.org
  * License: GPL-2.0+
@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Constantes do plugin
-define( 'ORACULO_TAINACAN_VERSION', '2.1.0' );
+define( 'ORACULO_TAINACAN_VERSION', '2.2.0' );
 define( 'ORACULO_TAINACAN_FILE', __FILE__ );
 define( 'ORACULO_TAINACAN_PATH', plugin_dir_path( __FILE__ ) );
 define( 'ORACULO_TAINACAN_URL', plugin_dir_url( __FILE__ ) );
@@ -220,6 +220,15 @@ final class Oraculo_Tainacan {
 			wp_schedule_event( time(), 'daily', 'oraculo_cleanup_old_data' );
 		}
 
+		// Worker da fila de indexação automática. O schedule custom só existe
+		// depois do filtro cron_schedules, por isso o registro explícito aqui;
+		// AutoIndexer::ensure_scheduled() cobre upgrades, onde activate() não roda.
+		// phpcs:ignore WordPress.WP.CronInterval.ChangeDetected -- Same callback registered by AutoIndexer::register(); re-added here because activation runs before the plugin's own filter is attached. Interval rationale documented at the callback.
+		add_filter( 'cron_schedules', array( new Indexing\AutoIndexer(), 'register_cron_schedule' ) );
+		if ( ! wp_next_scheduled( Indexing\AutoIndexer::CRON_HOOK ) ) {
+			wp_schedule_event( time(), Indexing\AutoIndexer::CRON_SCHEDULE, Indexing\AutoIndexer::CRON_HOOK );
+		}
+
 		// Flush rewrite rules
 		flush_rewrite_rules();
 
@@ -234,6 +243,12 @@ final class Oraculo_Tainacan {
 		// Limpar cron jobs
 		wp_clear_scheduled_hook( 'oraculo_process_indexing_batch' );
 		wp_clear_scheduled_hook( 'oraculo_cleanup_old_data' );
+		wp_clear_scheduled_hook( Indexing\AutoIndexer::CRON_HOOK );
+		wp_clear_scheduled_hook( Indexing\AutoIndexer::CRON_HOOK, array( 'kick' ) );
+
+		// Sem isto, um lock deixado por um worker interrompido bloquearia a fila
+		// por LOCK_TIMEOUT depois da reativação.
+		delete_option( 'oraculo_index_queue_lock' );
 
 		// Limpar transients
 		$this->clear_all_transients();
@@ -579,6 +594,11 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 		$this->services['chat']      = new Chat\ChatEngine();
 		$this->services['indexing']  = new Indexing\IndexingManager();
 		$this->services['analytics'] = new Analytics\AnalyticsManager();
+
+		// Indexação automática: mantém o índice vetorial em dia conforme o
+		// acervo muda. Só registra hooks aqui — nada de chamada de IA no save.
+		$this->services['auto_indexer'] = new Indexing\AutoIndexer();
+		$this->services['auto_indexer']->register();
 	}
 
 	/**
@@ -1142,11 +1162,16 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 	}
 
 	/**
-	 * Processa batch de indexação (cron)
+	 * Processa batch de indexação (cron legado)
+	 *
+	 * O hook oraculo_process_indexing_batch nunca chegou a ser agendado e
+	 * chamava IndexingManager::process_next_batch(), método inexistente — se
+	 * algum agendamento residual disparasse, era fatal. Agora delega ao worker
+	 * da fila, que é o mecanismo real de indexação em background.
 	 */
 	public function process_indexing_batch(): void {
-		if ( isset( $this->services['indexing'] ) ) {
-			$this->services['indexing']->process_next_batch();
+		if ( isset( $this->services['auto_indexer'] ) ) {
+			$this->services['auto_indexer']->process_queue();
 		}
 	}
 

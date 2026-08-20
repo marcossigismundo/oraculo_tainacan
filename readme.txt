@@ -4,7 +4,7 @@ Tags: tainacan, ai, search, rag, openai
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 2.1.0
+Stable tag: 2.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -111,6 +111,14 @@ OpenAI is the most tested option. Ollama is recommended for fully local, private
 Only the text content of your archived items is sent to the AI provider you configure. When using Ollama, everything stays local.
 
 == Changelog ==
+
+= 2.2.0 =
+* Feature: automatic indexing — new and edited items are queued on save and indexed in the background, so they become searchable within minutes instead of waiting for a manual reindex
+* Feature: items sent to trash, unpublished or deleted are removed from the index immediately, so search no longer returns items visitors cannot open
+* Fix: search and suggestion caches are now versioned by the index, so a freshly indexed item shows up right away instead of after the cache TTL (up to 1 hour)
+* Fix: `wp oraculo index` no longer aborts on a call to a non-existent method; it now reports the result of the (already synchronous) indexing run
+* Fix: indexing an item whose collection was deleted no longer raises a fatal error
+* Dev: new filters `oraculo_tainacan_auto_index_enabled`, `oraculo_tainacan_index_delay` and `oraculo_tainacan_queue_batch_size`
 
 = 2.1.0 =
 * Security: escape all dynamic content injected into HTML by the widgets (AI responses, item titles/snippets, error messages); markdown links restricted to safe URL schemes

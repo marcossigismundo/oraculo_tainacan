@@ -60,7 +60,10 @@ class SmartSuggestions {
 	 * @return array
 	 */
 	public function get_suggestions( ?int $collection_id = null, int $limit = 5 ): array {
-		$cache_key = self::CACHE_PREFIX . ( $collection_id ?: 'all' ) . '_' . $limit;
+		// Sufixo de versão do índice: sugestões derivam do acervo indexado e
+		// precisam acompanhar itens novos, não esperar o TTL de 1h.
+		$cache_key = self::CACHE_PREFIX . ( $collection_id ?: 'all' ) . '_' . $limit
+			. '_v' . \Oraculo_Tainacan\get_index_version();
 		$cached    = get_transient( $cache_key );
 
 		if ( $cached !== false ) {

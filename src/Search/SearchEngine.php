@@ -414,6 +414,10 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados. S
 			'query'       => strtolower( trim( $query ) ),
 			'collections' => $collection_ids,
 			'provider'    => $this->options['ai_provider'] ?? 'openai',
+			// Versão do índice: qualquer escrita de vetor a incrementa, aposentando
+			// as chaves antigas. Sem isso, um item novo só aparecia na busca depois
+			// que o transient expirasse (cache_duration, padrão 1h).
+			'index'       => \Oraculo_Tainacan\get_index_version(),
 		);
 
 		return 'oraculo_search_' . md5( wp_json_encode( $data ) );

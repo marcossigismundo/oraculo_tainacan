@@ -103,31 +103,20 @@ class Commands extends WP_CLI_Command {
 			WP_CLI::error( $result->get_error_message() );
 		}
 
-		WP_CLI::log( 'Indexação iniciada. Processando...' );
+		// start_indexing() é síncrono e já processa a coleção inteira: o loop de
+		// batches que existia aqui chamava process_next_batch(), método que nunca
+		// existiu em IndexingManager — o comando quebrava neste ponto.
+		WP_CLI::success(
+			sprintf(
+				'Indexação concluída! %d de %d itens indexados (%d falhas).',
+				(int) $result['indexed_items'],
+				(int) $result['total_items'],
+				(int) $result['failed_items']
+			)
+		);
 
-		// Processar batches em loop
-		$progress = \WP_CLI\Utils\make_progress_bar( 'Indexando', $collection['items_count'] );
-
-		while ( true ) {
-			$status = $indexing->process_next_batch( $collection_id );
-
-			if ( $status['status'] === 'completed' ) {
-				$progress->finish();
-				WP_CLI::success( "Indexação concluída! {$status['processed']} itens indexados." );
-				break;
-			}
-
-			if ( $status['status'] === 'error' ) {
-				$progress->finish();
-				WP_CLI::error( "Erro: {$status['error']}" );
-			}
-
-			if ( isset( $status['processed'] ) ) {
-				$progress->tick( $status['processed'] );
-			}
-
-			// Pequena pausa para não sobrecarregar
-			usleep( 100000 );
+		foreach ( array_slice( (array) ( $result['errors'] ?? array() ), 0, 10 ) as $error ) {
+			WP_CLI::warning( is_array( $error ) ? wp_json_encode( $error ) : (string) $error );
 		}
 	}
 

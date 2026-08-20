@@ -102,6 +102,11 @@ class IndexingManager {
 			return $result;
 		}
 
+		// Fecha o lote: o bump inicial (no primeiro upsert) ocorreu antes das
+		// escritas terminarem, então buscas feitas durante a indexação teriam
+		// cacheado um índice parcial. Forçar aqui aposenta essas chaves.
+		\Oraculo_Tainacan\force_bump_index_version();
+
 		return array(
 			'collection_id'   => $collection_id,
 			'collection_name' => $collection['name'],
@@ -166,16 +171,45 @@ class IndexingManager {
 	}
 
 	/**
-	 * Processa batch de itens
+	 * Processa batch de itens (retorno agregado, usado pela indexação completa)
 	 *
 	 * @param array $items
 	 * @param int   $collection_id
 	 * @return array
 	 */
 	private function process_items_batch( array $items, int $collection_id ): array {
-		$success = 0;
-		$failed  = 0;
-		$errors  = array();
+		$result = $this->index_item_batch( $items, $collection_id );
+
+		return array(
+			'success' => $result['success'],
+			'failed'  => $result['failed'],
+			'errors'  => $result['errors'],
+		);
+	}
+
+	/**
+	 * Indexa um lote de itens da mesma coleção com uma única chamada de embeddings
+	 *
+	 * Diferente de index_single_item(), que gasta uma requisição HTTP por item,
+	 * este método agrupa os textos em generate_embeddings_batch(). É o caminho
+	 * usado tanto pela indexação completa quanto pelo worker da fila automática.
+	 *
+	 * O retorno separa os itens em três destinos para que a fila saiba o que fazer
+	 * com cada um: indexed_ids (pronto), skipped_ids (sem conteúdo indexável — não
+	 * adianta repetir) e failed_ids (falha transitória — vale novo retry). IDs que
+	 * não aparecem em nenhuma das listas devem ser tratados como falha pelo chamador.
+	 *
+	 * @param array $items         Entidades \Tainacan\Entities\Item.
+	 * @param int   $collection_id
+	 * @return array
+	 */
+	public function index_item_batch( array $items, int $collection_id ): array {
+		$success     = 0;
+		$failed      = 0;
+		$errors      = array();
+		$indexed_ids = array();
+		$skipped_ids = array();
+		$failed_ids  = array();
 
 		// Preparar textos para batch embedding
 		$texts        = array();
@@ -183,6 +217,8 @@ class IndexingManager {
 		$index_fields = $this->options['index_fields'] ?? array( 'title', 'description' );
 
 		foreach ( $items as $item ) {
+			$item_id = 0;
+
 			try {
 				// Verificar se é um objeto Item válido
 				if ( ! ( $item instanceof \Tainacan\Entities\Item ) ) {
@@ -191,6 +227,7 @@ class IndexingManager {
 					continue;
 				}
 
+				$item_id   = (int) $item->get_id();
 				$formatted = \Oraculo_Tainacan\format_tainacan_item( $item );
 
 				if ( empty( $formatted['id'] ) ) {
@@ -205,6 +242,7 @@ class IndexingManager {
 				// Verificar se precisa reindexar
 				if ( ! $this->vector_store->needs_reindex( $formatted['id'], $collection_id, $content_hash ) ) {
 					++$success;
+					$indexed_ids[] = (int) $formatted['id'];
 					continue;
 				}
 
@@ -213,27 +251,44 @@ class IndexingManager {
 					$item_data[] = $formatted;
 				} else {
 					++$failed;
-					$errors[] = 'Item #' . $formatted['id'] . ' não tem texto para indexar';
+					// Sem título nem descrição: repetir não muda o resultado.
+					$skipped_ids[] = (int) $formatted['id'];
+					$errors[]      = 'Item #' . $formatted['id'] . ' não tem texto para indexar';
 				}
 			} catch ( \Throwable $e ) {
 				++$failed;
+				if ( $item_id > 0 ) {
+					$failed_ids[] = $item_id;
+				}
 				$errors[] = 'Erro ao processar item: ' . $e->getMessage();
 			}
+		}
+
+		// IDs cujo destino depende da chamada de embeddings abaixo.
+		$pending_ids = array();
+		foreach ( $item_data as $data ) {
+			$pending_ids[] = (int) $data['id'];
 		}
 
 		if ( empty( $texts ) ) {
 			// Se todos os itens foram pulados (já indexados ou sem texto)
 			if ( $success === 0 && count( $items ) > 0 ) {
 				return array(
-					'success' => 0,
-					'failed'  => count( $items ),
-					'errors'  => array( 'Nenhum item tem conteúdo para indexar. Verifique se os itens possuem título ou descrição.' ),
+					'success'     => 0,
+					'failed'      => count( $items ),
+					'errors'      => array( 'Nenhum item tem conteúdo para indexar. Verifique se os itens possuem título ou descrição.' ),
+					'indexed_ids' => $indexed_ids,
+					'skipped_ids' => $skipped_ids,
+					'failed_ids'  => $failed_ids,
 				);
 			}
 			return array(
-				'success' => $success,
-				'failed'  => 0,
-				'errors'  => array(),
+				'success'     => $success,
+				'failed'      => 0,
+				'errors'      => array(),
+				'indexed_ids' => $indexed_ids,
+				'skipped_ids' => $skipped_ids,
+				'failed_ids'  => $failed_ids,
 			);
 		}
 
@@ -244,16 +299,19 @@ class IndexingManager {
 			// Verificar se o provedor está configurado
 			if ( ! $embedding_provider->is_configured() ) {
 				return array(
-					'success' => $success,
-					'failed'  => count( $texts ),
-					'errors'  => array( 'Provedor de embeddings não está configurado. Verifique a API key nas configurações.' ),
+					'success'     => $success,
+					'failed'      => count( $texts ),
+					'errors'      => array( 'Provedor de embeddings não está configurado. Verifique a API key nas configurações.' ),
+					'indexed_ids' => $indexed_ids,
+					'skipped_ids' => $skipped_ids,
+					'failed_ids'  => array_merge( $failed_ids, $pending_ids ),
 				);
 			}
 
 			// Debug: verificar tamanho dos textos
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 				$total_chars = array_sum( array_map( 'mb_strlen', $texts ) );
-                // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Debug log gated by WP_DEBUG.
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Debug log gated by WP_DEBUG.
 				error_log( '[Oraculo] Enviando ' . count( $texts ) . ' textos para embedding, total de ' . $total_chars . ' caracteres' );
 			}
 
@@ -261,18 +319,24 @@ class IndexingManager {
 
 			if ( is_wp_error( $embedding_result ) ) {
 				return array(
-					'success' => $success,
-					'failed'  => count( $texts ),
-					'errors'  => array( 'Erro ao gerar embeddings: ' . $embedding_result->get_error_message() ),
+					'success'     => $success,
+					'failed'      => count( $texts ),
+					'errors'      => array( 'Erro ao gerar embeddings: ' . $embedding_result->get_error_message() ),
+					'indexed_ids' => $indexed_ids,
+					'skipped_ids' => $skipped_ids,
+					'failed_ids'  => array_merge( $failed_ids, $pending_ids ),
 				);
 			}
 
 			// Verificar se recebemos embeddings
 			if ( empty( $embedding_result['embeddings'] ) ) {
 				return array(
-					'success' => $success,
-					'failed'  => count( $texts ),
-					'errors'  => array( 'A API não retornou embeddings. Verifique a configuração do provedor.' ),
+					'success'     => $success,
+					'failed'      => count( $texts ),
+					'errors'      => array( 'A API não retornou embeddings. Verifique a configuração do provedor.' ),
+					'indexed_ids' => $indexed_ids,
+					'skipped_ids' => $skipped_ids,
+					'failed_ids'  => array_merge( $failed_ids, $pending_ids ),
 				);
 			}
 
@@ -303,26 +367,34 @@ class IndexingManager {
 
 				if ( is_wp_error( $result ) ) {
 					++$failed;
-					$errors[] = array(
+					$failed_ids[] = (int) $item['id'];
+					$errors[]     = array(
 						'item_id' => $item['id'],
 						'error'   => $result->get_error_message(),
 					);
 				} else {
 					++$success;
+					$indexed_ids[] = (int) $item['id'];
 				}
 			}
 		} catch ( \Exception $e ) {
 			return array(
-				'success' => $success,
-				'failed'  => count( $texts ),
-				'errors'  => array( $e->getMessage() ),
+				'success'     => $success,
+				'failed'      => count( $texts ),
+				'errors'      => array( $e->getMessage() ),
+				'indexed_ids' => $indexed_ids,
+				'skipped_ids' => $skipped_ids,
+				'failed_ids'  => array_merge( $failed_ids, $pending_ids ),
 			);
 		}
 
 		return array(
-			'success' => $success,
-			'failed'  => $failed,
-			'errors'  => $errors,
+			'success'     => $success,
+			'failed'      => $failed,
+			'errors'      => $errors,
+			'indexed_ids' => $indexed_ids,
+			'skipped_ids' => $skipped_ids,
+			'failed_ids'  => $failed_ids,
 		);
 	}
 
@@ -362,6 +434,72 @@ class IndexingManager {
 			'total_items'   => $total,
 			'percentage'    => $percentage,
 		);
+	}
+
+	/**
+	 * Indexa itens a partir de uma lista de IDs, agrupando por coleção
+	 *
+	 * Ponto de entrada do worker da fila automática: carrega as entidades pelo
+	 * repositório do Tainacan e delega a index_item_batch(), que gasta uma única
+	 * requisição de embeddings por coleção presente no lote.
+	 *
+	 * IDs que não resolvem para um item válido entram em skipped_ids — o post foi
+	 * excluído ou não é um item Tainacan, e repetir não muda o resultado.
+	 *
+	 * @param int[] $item_ids
+	 * @return array {success, failed, errors, indexed_ids, skipped_ids, failed_ids}
+	 */
+	public function index_items_by_id( array $item_ids ): array {
+		$totals = array(
+			'success'     => 0,
+			'failed'      => 0,
+			'errors'      => array(),
+			'indexed_ids' => array(),
+			'skipped_ids' => array(),
+			'failed_ids'  => array(),
+		);
+
+		if ( empty( $item_ids ) || ! class_exists( '\Tainacan\Repositories\Items' ) ) {
+			$totals['skipped_ids'] = array_map( 'intval', $item_ids );
+			return $totals;
+		}
+
+		$repository = \Tainacan\Repositories\Items::get_instance();
+
+		// Agrupar por coleção: index_item_batch() assume um único collection_id
+		// e a fila pode misturar itens de coleções diferentes.
+		$by_collection = array();
+
+		foreach ( array_unique( array_map( 'intval', $item_ids ) ) as $item_id ) {
+			$item = $repository->fetch( $item_id );
+
+			if ( ! ( $item instanceof \Tainacan\Entities\Item ) || ! $item->get_id() ) {
+				$totals['skipped_ids'][] = $item_id;
+				continue;
+			}
+
+			$collection_id = (int) $item->get_collection_id();
+
+			if ( $collection_id <= 0 ) {
+				$totals['skipped_ids'][] = $item_id;
+				continue;
+			}
+
+			$by_collection[ $collection_id ][] = $item;
+		}
+
+		foreach ( $by_collection as $collection_id => $items ) {
+			$result = $this->index_item_batch( $items, (int) $collection_id );
+
+			$totals['success']    += $result['success'];
+			$totals['failed']     += $result['failed'];
+			$totals['errors']      = array_merge( $totals['errors'], $result['errors'] );
+			$totals['indexed_ids'] = array_merge( $totals['indexed_ids'], $result['indexed_ids'] );
+			$totals['skipped_ids'] = array_merge( $totals['skipped_ids'], $result['skipped_ids'] );
+			$totals['failed_ids']  = array_merge( $totals['failed_ids'], $result['failed_ids'] );
+		}
+
+		return $totals;
 	}
 
 	/**
