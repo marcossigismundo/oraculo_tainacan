@@ -26,33 +26,40 @@ class GeminiProvider extends AbstractAIProvider {
 	 * Modelos disponíveis
 	 */
 	private const MODELS = array(
-		'gemini-2.0-flash-exp' => array(
-			'name'         => 'Gemini 2.0 Flash (Experimental)',
-			'context'      => 1048576,
-			'input_price'  => 0,
-			'output_price' => 0,
-			'description'  => 'Modelo experimental mais recente',
+		"gemini-2.5-pro"       => array(
+			"name"         => "Gemini 2.5 Pro",
+			"context"      => 1048576,
+			"input_price"  => 0.00125,
+			"output_price" => 0.01,
+			"description"  => "Modelo mais capaz, com raciocínio",
 		),
-		'gemini-1.5-pro'       => array(
-			'name'         => 'Gemini 1.5 Pro',
-			'context'      => 2097152,
-			'input_price'  => 0.00125,
-			'output_price' => 0.005,
-			'description'  => 'Modelo mais capaz com contexto de 2M tokens',
+		"gemini-2.5-flash"     => array(
+			"name"         => "Gemini 2.5 Flash",
+			"context"      => 1048576,
+			"input_price"  => 0.0003,
+			"output_price" => 0.0025,
+			"description"  => "Rápido e econômico, recomendado para RAG",
 		),
-		'gemini-1.5-flash'     => array(
-			'name'         => 'Gemini 1.5 Flash',
-			'context'      => 1048576,
-			'input_price'  => 0.000075,
-			'output_price' => 0.0003,
-			'description'  => 'Modelo rápido e econômico',
+		"gemini-2.0-flash"     => array(
+			"name"         => "Gemini 2.0 Flash (legado)",
+			"context"      => 1048576,
+			"input_price"  => 0.0001,
+			"output_price" => 0.0004,
+			"description"  => "Geração anterior; mantido por compatibilidade",
 		),
-		'gemini-1.5-flash-8b'  => array(
-			'name'         => 'Gemini 1.5 Flash 8B',
-			'context'      => 1048576,
-			'input_price'  => 0.0000375,
-			'output_price' => 0.00015,
-			'description'  => 'Versão menor e mais rápida',
+		"gemini-1.5-pro"       => array(
+			"name"         => "Gemini 1.5 Pro (legado)",
+			"context"      => 2097152,
+			"input_price"  => 0.00125,
+			"output_price" => 0.005,
+			"description"  => "Geração anterior com contexto de 2M tokens",
+		),
+		"gemini-1.5-flash"     => array(
+			"name"         => "Gemini 1.5 Flash (legado)",
+			"context"      => 1048576,
+			"input_price"  => 0.000075,
+			"output_price" => 0.0003,
+			"description"  => "Geração anterior econômica",
 		),
 	);
 
@@ -126,7 +133,7 @@ class GeminiProvider extends AbstractAIProvider {
 			);
 		}
 
-		$model = $this->get_config( 'model', 'gemini-1.5-flash' );
+		$model = $this->get_config( 'model', 'gemini-2.5-flash' );
 		$url   = self::API_BASE_URL . "/models/{$model}?key=" . $this->get_api_key();
 
 		$response = $this->make_request( $url, array(), array(), 'GET' );
@@ -250,7 +257,7 @@ class GeminiProvider extends AbstractAIProvider {
 		}
 
 		$options = $this->prepare_options( $options );
-		$model   = $options['model'] ?? $this->get_config( 'model', 'gemini-1.5-flash' );
+		$model   = $options['model'] ?? $this->get_config( 'model', 'gemini-2.5-flash' );
 
 		$url = self::API_BASE_URL . "/models/{$model}:generateContent?key=" . $this->get_api_key();
 

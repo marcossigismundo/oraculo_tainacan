@@ -26,54 +26,47 @@ class OpenAIProvider extends AbstractAIProvider {
 	 * Modelos disponíveis com informações
 	 */
 	private const MODELS = array(
-		'gpt-4o'        => array(
-			'name'         => 'GPT-4o',
-			'context'      => 128000,
-			'input_price'  => 0.0025,
-			'output_price' => 0.01,
-			'description'  => 'Modelo mais capaz, recomendado para tarefas complexas',
+		"gpt-5.2"      => array(
+			"name"         => "GPT-5.2",
+			"context"      => 400000,
+			"input_price"  => 0.00125,
+			"output_price" => 0.01,
+			"description"  => "Modelo topo de linha atual, melhor qualidade",
 		),
-		'gpt-4o-mini'   => array(
-			'name'         => 'GPT-4o Mini',
-			'context'      => 128000,
-			'input_price'  => 0.00015,
-			'output_price' => 0.0006,
-			'description'  => 'Versão econômica do GPT-4o, ótimo custo-benefício',
+		"gpt-5.1"      => array(
+			"name"         => "GPT-5.1",
+			"context"      => 400000,
+			"input_price"  => 0.00125,
+			"output_price" => 0.01,
+			"description"  => "Geração anterior do topo de linha",
 		),
-		'gpt-4-turbo'   => array(
-			'name'         => 'GPT-4 Turbo',
-			'context'      => 128000,
-			'input_price'  => 0.01,
-			'output_price' => 0.03,
-			'description'  => 'GPT-4 com contexto estendido',
+		"gpt-5-mini"   => array(
+			"name"         => "GPT-5 Mini",
+			"context"      => 400000,
+			"input_price"  => 0.00025,
+			"output_price" => 0.002,
+			"description"  => "Ótimo custo-benefício, recomendado para RAG",
 		),
-		'gpt-4'         => array(
-			'name'         => 'GPT-4',
-			'context'      => 8192,
-			'input_price'  => 0.03,
-			'output_price' => 0.06,
-			'description'  => 'Modelo GPT-4 original',
+		"gpt-5-nano"   => array(
+			"name"         => "GPT-5 Nano",
+			"context"      => 400000,
+			"input_price"  => 0.00005,
+			"output_price" => 0.0004,
+			"description"  => "O mais rápido e econômico da família GPT-5",
 		),
-		'gpt-3.5-turbo' => array(
-			'name'         => 'GPT-3.5 Turbo',
-			'context'      => 16385,
-			'input_price'  => 0.0005,
-			'output_price' => 0.0015,
-			'description'  => 'Modelo rápido e econômico',
+		"gpt-4o"       => array(
+			"name"         => "GPT-4o (legado)",
+			"context"      => 128000,
+			"input_price"  => 0.0025,
+			"output_price" => 0.01,
+			"description"  => "Geração anterior; mantido por compatibilidade",
 		),
-		'o1'            => array(
-			'name'         => 'o1',
-			'context'      => 200000,
-			'input_price'  => 0.015,
-			'output_price' => 0.06,
-			'description'  => 'Modelo de raciocínio avançado',
-		),
-		'o1-mini'       => array(
-			'name'         => 'o1 Mini',
-			'context'      => 128000,
-			'input_price'  => 0.003,
-			'output_price' => 0.012,
-			'description'  => 'Versão menor do modelo de raciocínio',
+		"gpt-4o-mini"  => array(
+			"name"         => "GPT-4o Mini (legado)",
+			"context"      => 128000,
+			"input_price"  => 0.00015,
+			"output_price" => 0.0006,
+			"description"  => "Geração anterior econômica; mantido por compatibilidade",
 		),
 	);
 
@@ -119,7 +112,7 @@ class OpenAIProvider extends AbstractAIProvider {
 	 * {@inheritdoc}
 	 */
 	public function get_description(): string {
-		return __( 'Provedor oficial da OpenAI. Inclui GPT-4o, GPT-4 e GPT-3.5 Turbo.', 'oraculo-tainacan' );
+		return __( 'Provedor oficial da OpenAI. Inclui a família GPT-5 e modelos legados GPT-4o.', 'oraculo-tainacan' );
 	}
 
 	/**
@@ -374,7 +367,7 @@ class OpenAIProvider extends AbstractAIProvider {
 		}
 
 		$options = $this->prepare_options( $options );
-		$model   = $options['model'] ?? $this->get_config( 'model', 'gpt-4o-mini' );
+		$model   = $options['model'] ?? $this->get_config( 'model', 'gpt-5-mini' );
 
 		$formatted_messages = $this->format_messages( $messages, $system_prompt );
 
@@ -438,7 +431,7 @@ class OpenAIProvider extends AbstractAIProvider {
 		}
 
 		$options = $this->prepare_options( $options );
-		$model   = $options['model'] ?? $this->get_config( 'model', 'gpt-4o-mini' );
+		$model   = $options['model'] ?? $this->get_config( 'model', 'gpt-5-mini' );
 
 		$messages = $this->format_messages(
 			array(

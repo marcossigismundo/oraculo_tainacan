@@ -26,6 +26,20 @@ class GroqProvider extends AbstractAIProvider {
 	 * Modelos disponíveis
 	 */
 	private const MODELS = array(
+		"meta-llama/llama-4-maverick-17b-128e-instruct" => array(
+			"name"         => "Llama 4 Maverick",
+			"context"      => 131072,
+			"input_price"  => 0.0002,
+			"output_price" => 0.0006,
+			"description"  => "Llama 4 multimodal, melhor qualidade",
+		),
+		"meta-llama/llama-4-scout-17b-16e-instruct"     => array(
+			"name"         => "Llama 4 Scout",
+			"context"      => 131072,
+			"input_price"  => 0.00011,
+			"output_price" => 0.00034,
+			"description"  => "Llama 4 leve e rápido",
+		),
 		'llama-3.3-70b-versatile' => array(
 			'name'         => 'Llama 3.3 70B',
 			'context'      => 128000,

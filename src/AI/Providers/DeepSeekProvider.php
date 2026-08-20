@@ -26,6 +26,13 @@ class DeepSeekProvider extends AbstractAIProvider {
 	 * Modelos disponíveis
 	 */
 	private const MODELS = array(
+		"deepseek-reasoner" => array(
+			"name"         => "DeepSeek Reasoner (R1)",
+			"context"      => 64000,
+			"input_price"  => 0.00055,
+			"output_price" => 0.00219,
+			"description"  => "Modelo de raciocínio para consultas complexas",
+		),
 		'deepseek-chat'     => array(
 			'name'         => 'DeepSeek Chat',
 			'context'      => 64000,
@@ -39,13 +46,6 @@ class DeepSeekProvider extends AbstractAIProvider {
 			'input_price'  => 0.00014,
 			'output_price' => 0.00028,
 			'description'  => 'Especializado em programação',
-		),
-		'deepseek-reasoner' => array(
-			'name'         => 'DeepSeek Reasoner (R1)',
-			'context'      => 64000,
-			'input_price'  => 0.00055,
-			'output_price' => 0.00219,
-			'description'  => 'Modelo de raciocínio avançado',
 		),
 	);
 

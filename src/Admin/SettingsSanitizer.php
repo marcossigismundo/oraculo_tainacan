@@ -69,14 +69,14 @@ class SettingsSanitizer {
 		}
 
 		// Modelos
-		$sanitized['openai_model']           = $text( 'openai_model', 'gpt-4o-mini' );
-		$sanitized['openai_embedding_model'] = $text( 'openai_embedding_model', 'text-embedding-ada-002' );
-		$sanitized['gemini_model']           = $text( 'gemini_model', 'gemini-1.5-flash' );
+		$sanitized['openai_model']           = $text( 'openai_model', 'gpt-5-mini' );
+		$sanitized['openai_embedding_model'] = $text( 'openai_embedding_model', 'text-embedding-3-small' );
+		$sanitized['gemini_model']           = $text( 'gemini_model', 'gemini-2.5-flash' );
 		$sanitized['deepseek_model']         = $text( 'deepseek_model', 'deepseek-chat' );
 		$sanitized['ollama_model']           = $text( 'ollama_model', 'llama3.2' );
 		$sanitized['ollama_embedding_model'] = $text( 'ollama_embedding_model', 'nomic-embed-text' );
 		$sanitized['groq_model']             = $text( 'groq_model', 'llama-3.3-70b-versatile' );
-		$sanitized['claude_model']           = $text( 'claude_model', 'claude-3-5-sonnet-latest' );
+		$sanitized['claude_model']           = $text( 'claude_model', 'claude-sonnet-5' );
 
 		$sanitized['ollama_url'] = esc_url_raw(
 			(string) ( $input['ollama_url'] ?? $current['ollama_url'] ?? 'http://localhost:11434' )

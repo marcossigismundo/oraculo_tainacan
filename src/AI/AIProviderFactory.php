@@ -150,7 +150,7 @@ class AIProviderFactory {
 					$common,
 					array(
 						'api_key'         => $api_key,
-						'model'           => $options['openai_model'] ?? 'gpt-4o-mini',
+						'model'           => $options['openai_model'] ?? 'gpt-5-mini',
 						'embedding_model' => $options['openai_embedding_model'] ?? 'text-embedding-ada-002',
 					)
 				);
@@ -160,7 +160,7 @@ class AIProviderFactory {
 					$common,
 					array(
 						'api_key' => $options['gemini_api_key'] ?? '',
-						'model'   => $options['gemini_model'] ?? 'gemini-1.5-pro',
+						'model'   => $options['gemini_model'] ?? 'gemini-2.5-flash',
 					)
 				);
 
@@ -197,7 +197,7 @@ class AIProviderFactory {
 					$common,
 					array(
 						'api_key' => $options['claude_api_key'] ?? '',
-						'model'   => $options['claude_model'] ?? 'claude-3-5-sonnet-latest',
+						'model'   => $options['claude_model'] ?? 'claude-sonnet-5',
 					)
 				);
 
