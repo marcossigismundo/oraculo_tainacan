@@ -3,7 +3,7 @@
  * Plugin Name: Oráculo Tainacan
  * Plugin URI: https://github.com/tainacan/oraculo-tainacan
  * Description: Sistema avançado de busca em linguagem natural com IA para acervos Tainacan. Integra RAG (Retrieval-Augmented Generation) com múltiplos provedores de IA.
- * Version: 2.2.0
+ * Version: 2.3.0
  * Author: Tainacan Community
  * Author URI: https://tainacan.org
  * License: GPL-2.0+
@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Constantes do plugin
-define( 'ORACULO_TAINACAN_VERSION', '2.2.0' );
+define( 'ORACULO_TAINACAN_VERSION', '2.3.0' );
 define( 'ORACULO_TAINACAN_FILE', __FILE__ );
 define( 'ORACULO_TAINACAN_PATH', plugin_dir_path( __FILE__ ) );
 define( 'ORACULO_TAINACAN_URL', plugin_dir_url( __FILE__ ) );
@@ -163,9 +163,8 @@ final class Oraculo_Tainacan {
 		add_action( 'plugins_loaded', array( $this, 'init_tainacan_page' ), 20 );
 		add_action( 'plugins_loaded', array( $this, 'init' ), 25 );
 
-		// Admin
+		// Admin (os assets da página vivem em Admin\OraculoPage, via Tainacan Pages API)
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
-		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
 
 		// Frontend
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
@@ -510,6 +509,7 @@ final class Oraculo_Tainacan {
 				'show_sources'    => true,
 				'show_similarity' => false,
 			),
+			'theme_integration'      => Frontend\ThemeIntegration::get_default_settings(),
 		);
 
 		$existing = get_option( 'oraculo_tainacan_options', array() );
@@ -609,6 +609,9 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 		// acervo muda. Só registra hooks aqui — nada de chamada de IA no save.
 		$this->services['auto_indexer'] = new Indexing\AutoIndexer();
 		$this->services['auto_indexer']->register();
+
+		// Aba "Busca com IA" nas listagens de itens do Tainacan (injeção client-side).
+		$this->services['theme_integration'] = new Frontend\ThemeIntegration();
 	}
 
 	/**
@@ -627,99 +630,18 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 
 	/**
 	 * Sanitiza opções
+	 *
+	 * Delega para SettingsSanitizer, o mesmo ponto usado pelo endpoint REST
+	 * /settings: allowlist por chave, limites numéricos e preservação das API
+	 * keys mascaradas. Antes havia duas implementações divergentes (esta e a
+	 * do REST), o que fazia a mesma opção ser aceita ou descartada conforme o
+	 * caminho de gravação.
+	 *
+	 * @param array $options Opções brutas vindas do formulário.
+	 * @return array
 	 */
 	public function sanitize_options( array $options ): array {
-		// Obter opções existentes para preservar API keys
-		$existing_options = get_option( 'oraculo_tainacan_options', array() );
-
-		// Sanitização de API keys - preservar se for placeholder
-		$api_keys = array( 'openai_api_key', 'gemini_api_key', 'deepseek_api_key', 'anthropic_api_key' );
-		foreach ( $api_keys as $key ) {
-			if ( isset( $options[ $key ] ) ) {
-				$value = sanitize_text_field( $options[ $key ] );
-				// Se o valor for placeholder (••••••••) ou vazio, preservar o valor existente
-				if ( $value === '••••••••' || $value === '' || strpos( $value, '•' ) !== false ) {
-					if ( ! empty( $existing_options[ $key ] ) ) {
-						$options[ $key ] = $existing_options[ $key ];
-					} else {
-						unset( $options[ $key ] );
-					}
-				} else {
-					$options[ $key ] = $value;
-				}
-			}
-		}
-
-		// Sanitização de números
-		if ( isset( $options['max_tokens'] ) ) {
-			$options['max_tokens'] = absint( $options['max_tokens'] );
-		}
-		if ( isset( $options['temperature'] ) ) {
-			$options['temperature'] = floatval( $options['temperature'] );
-			$options['temperature'] = max( 0, min( 2, $options['temperature'] ) );
-		}
-		if ( isset( $options['similarity_threshold'] ) ) {
-			$options['similarity_threshold'] = floatval( $options['similarity_threshold'] );
-			$options['similarity_threshold'] = max( 0, min( 1, $options['similarity_threshold'] ) );
-		}
-
-		return $options;
-	}
-
-	/**
-	 * Enfileira assets do admin
-	 */
-	public function enqueue_admin_assets( string $hook ): void {
-		// Só na página do plugin (hook exato) — não em todas as páginas do Tainacan.
-		if ( strpos( $hook, 'oraculo_tainacan_page' ) === false ) {
-			return;
-		}
-
-		// CSS Admin
-		wp_enqueue_style(
-			'oraculo-admin',
-			ORACULO_TAINACAN_URL . 'assets/css/admin.css',
-			array(),
-			ORACULO_TAINACAN_VERSION
-		);
-
-		// JS Admin
-		wp_enqueue_script(
-			'oraculo-admin',
-			ORACULO_TAINACAN_URL . 'assets/js/admin.js',
-			array( 'jquery', 'wp-util' ),
-			ORACULO_TAINACAN_VERSION,
-			true
-		);
-
-		// Chart.js para analytics (bundled locally to avoid external CDN)
-		wp_enqueue_script(
-			'chart-js',
-			ORACULO_TAINACAN_URL . 'assets/vendor/chart.umd.min.js',
-			array(),
-			'4.4.1',
-			true
-		);
-
-		// Localizar script
-		wp_localize_script(
-			'oraculo-admin',
-			'OraculoAdmin',
-			array(
-				'ajaxUrl'   => admin_url( 'admin-ajax.php' ),
-				'restUrl'   => rest_url( 'oraculo/v1/' ),
-				'nonce'     => wp_create_nonce( 'oraculo_admin' ),
-				'restNonce' => wp_create_nonce( 'wp_rest' ),
-				'strings'   => array(
-					'confirmDelete' => __( 'Tem certeza que deseja excluir?', 'oraculo-tainacan' ),
-					'indexing'      => __( 'Indexando...', 'oraculo-tainacan' ),
-					'completed'     => __( 'Concluído!', 'oraculo-tainacan' ),
-					'error'         => __( 'Erro:', 'oraculo-tainacan' ),
-					'testing'       => __( 'Testando conexão...', 'oraculo-tainacan' ),
-					'success'       => __( 'Sucesso!', 'oraculo-tainacan' ),
-				),
-			)
-		);
+		return Admin\SettingsSanitizer::sanitize( $options );
 	}
 
 	/**

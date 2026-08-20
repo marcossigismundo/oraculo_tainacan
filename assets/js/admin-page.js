@@ -17,9 +17,14 @@
         });
     }
 
+    // Os dados localizados vivem em OraculoAdminPage (handle oraculo-admin-page).
+    // Ler o identificador nu OraculoAdmin aqui lançava ReferenceError quando o
+    // bundle admin legado, que o declarava, não estava carregado.
+    var pageConfig = window.OraculoAdminPage || {};
+
     window.OraculoAdmin = {
-        ajaxUrl: ajaxurl,
-        nonce: OraculoAdmin?.nonce || '',
+        ajaxUrl: pageConfig.ajaxUrl || (typeof ajaxurl !== 'undefined' ? ajaxurl : ''),
+        nonce: pageConfig.nonce || '',
 
         init: function() {
             this.bindEvents();

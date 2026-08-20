@@ -1452,6 +1452,11 @@
     border-radius: var(--oraculo-radius);
 }
 
+/* Notice de feedback dos formulários (herdado do antigo admin.css) */
+.oraculo-notice {
+    margin: 15px 0;
+}
+
 /* Dashboard Grid */
 .oraculo-dashboard-grid {
     display: grid;

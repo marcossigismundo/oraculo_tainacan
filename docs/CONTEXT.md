@@ -1,26 +1,30 @@
 # Oráculo Tainacan — Contexto do Projeto
 
-> Snapshot em 2026-04-19 (branch `main`, commit `9a78501`)
+> Snapshot da versão 2.2.0 (integração do refactor UI-patterns com a aba de busca IA do tema)
 
 Plugin WordPress que adiciona busca semântica (RAG) e chat com IA sobre acervos do Tainacan.
 Arquitetura orientada a serviços com múltiplos provedores de IA intercambiáveis.
+
+> Para o detalhamento dos pontos de acoplamento com o Tainacan, o contrato das rotas REST
+> e os fluxos de indexação e busca, veja [INTEGRACAO-TAINACAN.md](INTEGRACAO-TAINACAN.md).
 
 ## Metadados
 
 | Campo | Valor |
 |---|---|
-| Versão declarada (`oraculo-tainacan.php` e `readme.txt`) | **2.0.0** |
-| PHP mínimo | **8.0** |
+| Versão declarada (`oraculo-tainacan.php` e `readme.txt`) | **2.2.0** |
+| PHP mínimo | **8.0** (`declare(strict_types=1)` em todos os arquivos) |
 | WordPress mínimo | 6.0 |
 | Text domain | `oraculo-tainacan` |
 | Namespace raiz | `Oraculo_Tainacan\` |
-| Total de linhas (PHP + JS + CSS) | ~17.500 |
+| Total de linhas (PHP + JS + CSS, sem `assets/vendor/`) | ~19.300 |
 
 ## Estrutura de diretórios
 
 ```
-oraculo-tainacan.php         Bootstrap singleton + hooks + DDL + AJAX
-readme.txt                   Descrição WP.org (desatualizado)
+oraculo-tainacan.php         Bootstrap singleton + hooks + DDL + AJAX admin
+readme.txt                   Descrição WP.org
+composer.json / phpcs.xml.dist   Tooling de dev (WPCS estrito, não vai para o pacote)
 src/
 ├── helpers.php              Funções utilitárias globais
 ├── AI/
@@ -29,15 +33,15 @@ src/
 │   ├── AIProviderFactory.php
 │   └── Providers/
 │       ├── OpenAIProvider.php   (gpt-4o-mini default, text-embedding-ada-002)
-│       ├── GeminiProvider.php   (gemini-1.5-pro)
-│       ├── ClaudeProvider.php   (Anthropic)
-│       ├── DeepSeekProvider.php (deepseek-chat)
-│       ├── GroqProvider.php     (llama-3.1-70b / mixtral / gemma2)
+│       ├── GeminiProvider.php
+│       ├── ClaudeProvider.php   (opção claude_api_key)
+│       ├── DeepSeekProvider.php
+│       ├── GroqProvider.php
 │       └── OllamaProvider.php   (local — nomic-embed-text)
-├── API/RestController.php   20 rotas REST sob /oraculo/v1
+├── API/RestController.php   19 rotas REST sob /oraculo/v1
 ├── Admin/
-│   ├── AdminPage.php        Página admin standalone (legado)
-│   └── OraculoPage.php      Integração via \Tainacan\Pages (preferencial)
+│   ├── OraculoPage.php      Página admin via \Tainacan\Pages (único caminho)
+│   └── SettingsSanitizer.php   Sanitização única das opções (admin + REST)
 ├── Analytics/AnalyticsManager.php
 ├── CLI/Commands.php         WP-CLI (`wp oraculo ...`)
 ├── Chat/ChatEngine.php
@@ -48,38 +52,37 @@ src/
 │   ├── MultimodalSearch.php
 │   ├── SmartSuggestions.php
 │   └── WebhooksManager.php
-├── Indexing/IndexingManager.php  Indexação síncrona + cron em lote
-├── Search/SearchEngine.php       RAG (retrieval + generation)
-└── Vector/VectorStore.php        Upsert/similaridade sobre MySQL
+├── Frontend/ThemeIntegration.php  Aba "Busca com IA" nas listagens do Tainacan
+├── Indexing/IndexingManager.php   Indexação síncrona + cron em lote
+├── Search/SearchEngine.php        RAG (retrieval + generation)
+└── Vector/VectorStore.php         Upsert/similaridade sobre MySQL
 templates/
 ├── chat-widget.php
 ├── search-widget.php
-└── admin/
-    ├── dashboard.php
-    ├── analytics.php
-    ├── indexing.php
-    ├── settings.php
-    └── debug.php
+└── admin/ (dashboard, analytics, indexing, settings, debug)
 assets/
-├── css/ (admin-page, admin, chat-widget, frontend)
-└── js/  (admin-page, admin, chat-widget, frontend)
+├── css/ (admin-page, chat-widget, frontend, theme-integration)
+├── js/  (admin-page, admin/*.js por aba, chat-widget, chat-embedded,
+│         frontend, search-page, theme-integration)
+└── vendor/chart.umd.min.js   Chart.js 4.4.1 embarcado (sem CDN externo)
 ```
 
 ## Ponto de entrada
 
-[oraculo-tainacan.php](oraculo-tainacan.php) — classe final `Oraculo_Tainacan` como **singleton**:
+`oraculo-tainacan.php` — classe final `Oraculo_Tainacan` como **singleton**:
 
 - Autoloader próprio PSR-4 (prefixo `Oraculo_Tainacan\` → `src/`).
-- `plugins_loaded` prioridade 20 → [init_tainacan_page()](oraculo-tainacan.php#L553) registra a página via API de páginas do Tainacan (`\Tainacan\Pages`).
-- `plugins_loaded` prioridade 25 → [init()](oraculo-tainacan.php#L564) instancia os 5 serviços core em `$this->services`:
-  `api`, `search`, `chat`, `indexing`, `analytics`.
+- `plugins_loaded` prioridade 20 → `init_tainacan_page()` registra a página via API de páginas do Tainacan (`\Tainacan\Pages`).
+- `plugins_loaded` prioridade 25 → `init()` instancia os serviços em `$this->services`:
+  `api`, `search`, `chat`, `indexing`, `analytics`, `theme_integration`.
 
-A página admin moderna vive em [src/Admin/OraculoPage.php](src/Admin/OraculoPage.php) (namespace `\Tainacan`, estende `\Tainacan\Pages`).
-[src/Admin/AdminPage.php](src/Admin/AdminPage.php) parece ser o caminho admin antigo/fallback — ainda presente mas não instanciado em `init()`.
+Não há mais página admin standalone: `Admin\OraculoPage` é o único caminho, e os assets
+do admin são enfileirados por ela (`admin-page.css`, `admin-page.js` e o JS da aba ativa
+em `assets/js/admin/<aba>.js`).
 
 ## Tabelas do banco
 
-Criadas em [create_tables()](oraculo-tainacan.php#L236) na ativação (prefixo `{wp_prefix}oraculo_`):
+Criadas em `create_tables()` na ativação (prefixo `{wp_prefix}oraculo_`):
 
 | Tabela | Função |
 |---|---|
@@ -93,45 +96,82 @@ Criadas em [create_tables()](oraculo-tainacan.php#L236) na ativação (prefixo `
 | `oraculo_facts` | Fatos extraídos por sessão |
 | `oraculo_webhooks` | Webhooks registrados |
 
+Retenção: o cron diário `oraculo_cleanup_old_data` remove logs de busca (90 dias),
+conversas/mensagens inativas (30 dias) e memória expirada. Ambos os prazos são
+filtráveis (`oraculo_tainacan_retention_logs_days`, `oraculo_tainacan_retention_conversations_days`).
+
 ## Superfícies de API
 
-**REST** (namespace `oraculo/v1`, 20 rotas em [RestController](src/API/RestController.php)):
-`/search`, `/chat`, `/conversations`, `/conversations/{session}/messages`, `/conversations/{session}/end`,
-`/feedback`, `/indexing/start|status|cancel`, `/analytics`, `/analytics/timeline`, `/analytics/export`,
-`/collections`, `/vectors/stats`, `/providers`, `/providers/test`, `/settings`, `/suggestions`, `/health`.
+**REST** (namespace `oraculo/v1`, 19 rotas em `src/API/RestController.php`) — é a única
+superfície pública. Endpoints e suas proteções:
 
-**AJAX** (14 actions registradas em [init_hooks()](oraculo-tainacan.php#L162-L176)):
-`oraculo_search`, `oraculo_chat`, `oraculo_index_collection`, `oraculo_get_indexing_status`,
-`oraculo_feedback`, `oraculo_test_connection`, `oraculo_clear_vectors`, `oraculo_clear_all_vectors`,
-`oraculo_optimize_db`, `oraculo_save_indexing_settings`, `oraculo_save_settings`, `oraculo_clear_cache`.
-`search` e `chat` também são expostos a `nopriv_`.
+| Grupo | Rotas | Proteção |
+|---|---|---|
+| Público | `/search`, `/chat`, `/feedback` | gate `enable_<feature>` + nonce `wp_rest` + rate-limit por IP (10/20/30 por min) + teto global de 60 chamadas de IA/min |
+| Leitura ligada à busca | `/collections`, `/suggestions` | `enable_search` |
+| Usuário logado | `/conversations`, `/conversations/{session}/messages` | `is_user_logged_in()` + checagem de posse |
+| Mutação de conversa | `/conversations/{session}/end` | nonce `wp_rest` + posse |
+| Admin | indexação, analytics, vetores, provedores, settings, health | `manage_options` |
 
-**Shortcodes**: `[oraculo_search]`, `[oraculo_chat]`.
+Caps de entrada no schema: `query` ≤ 500 caracteres, `message` ≤ 2000, `collections` ≤ 20 itens.
+Filtros para ajustar limites: `oraculo_tainacan_rest_rate_limit`, `oraculo_tainacan_rest_global_rate_limit`.
 
-**WP-CLI**: `wp oraculo <index|reindex|stats|clear-cache|...>` ([src/CLI/Commands.php](src/CLI/Commands.php)).
+**AJAX** — apenas `wp_ajax_` (admin autenticado), sem handlers `nopriv`:
+`oraculo_index_collection`, `oraculo_get_indexing_status`, `oraculo_test_connection`,
+`oraculo_clear_vectors`, `oraculo_clear_all_vectors`, `oraculo_optimize_db`,
+`oraculo_save_indexing_settings`, `oraculo_save_settings`, `oraculo_clear_cache`.
+
+**Shortcodes**: `[oraculo_search]`, `[oraculo_chat]` — enfileiram seus assets no render.
+
+**WP-CLI**: `wp oraculo <index|reindex|stats|clear-cache|...>` (`src/CLI/Commands.php`).
+
+## Integração com o tema Tainacan
+
+`src/Frontend/ThemeIntegration.php` injeta uma aba "Busca com IA" ao lado do campo de busca
+padrão das listagens de itens do Tainacan. A listagem é uma aplicação Vue.js montada pelo
+próprio Tainacan (`tainacan_the_faceted_search`), então a injeção acontece no client-side
+(`assets/js/theme-integration.js`) sobre o DOM renderizado, com `MutationObserver` para
+reinjetar após re-renders do Vue preservando o estado.
+
+Contextos cobertos: arquivo de itens de coleção, arquivo do repositório, arquivo de termo de
+taxonomia Tainacan e páginas com o bloco/shortcode de busca facetada.
+
+Deep link: `?oraculo_q=pergunta` abre a aba de IA e executa a busca automaticamente.
+
+Configurável na aba **Tema Tainacan** das configurações (`theme_integration`):
+`enabled`, `tab_label`, `placeholder`, `scope` (`collection`|`all`), `show_suggestions`.
 
 ## Configuração
 
-Uma única opção `oraculo_tainacan_options` (array) — defaults em [set_default_options()](oraculo-tainacan.php#L433):
+Uma única opção `oraculo_tainacan_options` (array) — defaults em `set_default_options()`:
 - Provedor ativo (`ai_provider`), API keys e modelos por provedor.
-- `max_tokens`, `temperature`, `similarity_threshold`, `max_results`, `batch_size`, `request_timeout`.
+- `max_tokens`, `temperature`, `similarity_threshold`, `max_results`, `batch_size`, `request_timeout`, `cache_duration`.
 - Flags de feature: `enable_chat`, `enable_search`, `enable_analytics`, `enable_feedback`, `debug_mode`.
 - Prompts default (system/search/chat) + welcome message + perguntas sugeridas.
-- `appearance` (cores, posição do chat).
-- Sanitização preserva API keys quando o POST chega com placeholder `••••••••` ([sanitize_options()](oraculo-tainacan.php#L586)).
+- `appearance` (cores, posição do chat, exibição de fontes/similaridade).
+- `theme_integration` (aba de busca IA no tema).
 
-## Integração com Tainacan
+**Sanitização**: ponto único em `Admin\SettingsSanitizer::sanitize()`, usado tanto pelo POST
+do admin (`oraculo_save_settings`) quanto pelo endpoint REST `/settings`. Allowlist por chave;
+API keys com placeholder `••••••••` preservam o valor salvo; chaves ausentes na entrada caem
+para o valor já armazenado (e só então para o padrão), de modo que um formulário parcial não
+apague o restante. Checkboxes são a exceção deliberada — ausência significa desmarcado.
 
-Integração principal via `\Tainacan\Pages` (API de páginas do Tainacan 1.0+).
-Página é registrada apenas se `class_exists('\Tainacan\Pages')` — degrada silenciosamente se o Tainacan não estiver presente.
+## Integração com Tainacan (admin)
 
-## Pendências / divergências visíveis
-
-1. **Dois caminhos admin**: `AdminPage.php` não é instanciado em `init()` mas permanece no repositório — candidato a remoção ou a fallback documentado.
-2. **Provider Anthropic**: `set_default_options()` não inclui defaults para `anthropic_api_key` / modelo do Claude, mas `sanitize_options()` já o trata na lista de `$api_keys`.
-3. **Histórico git ruidoso**: últimos commits são todos "Add files via upload" — sem mensagens semânticas, dificulta rastrear mudanças.
+Página registrada apenas se `class_exists('\Tainacan\Pages')` e o trait
+`\Tainacan\Traits\Singleton_Instance` existir — degrada silenciosamente sem o Tainacan.
+Aparece sob o menu "Mais" do Tainacan, exigindo `manage_options`.
 
 ## Como rodar localmente
 
-Plugin instalado em `c:\xampp-tainacan\htdocs\wordpress\wp-content\plugins\oraculo_tainacan` sob XAMPP.
-Requer Tainacan ativo para a página admin integrada; sem Tainacan, o plugin carrega mas não expõe UI admin nova (apenas REST/AJAX/shortcodes).
+Plugin instalado sob XAMPP em `wp-content/plugins/oraculo_tainacan`.
+Requer Tainacan ativo para a página admin integrada e para a aba de busca no tema;
+sem Tainacan, o plugin carrega mas expõe apenas REST e shortcodes.
+
+Ferramentas de dev (não empacotadas):
+
+```
+composer install          # instala WPCS + PHPCompatibilityWP
+composer run lint         # phpcs conforme phpcs.xml.dist
+```
