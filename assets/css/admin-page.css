@@ -1771,6 +1771,19 @@
     border: 1px solid var(--oraculo-border-light);
 }
 
+.oraculo-fetch-models-status {
+    margin: 6px 0 0;
+    font-size: 13px;
+}
+
+.oraculo-fetch-models-status.oraculo-fetch-ok {
+    color: #1e7e34;
+}
+
+.oraculo-fetch-models-status.oraculo-fetch-error {
+    color: #c0392b;
+}
+
 /* Suggested Questions */
 .suggested-question-row {
     display: flex;

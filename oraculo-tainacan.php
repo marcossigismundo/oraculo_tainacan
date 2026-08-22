@@ -3,7 +3,7 @@
  * Plugin Name: Oráculo Tainacan
  * Plugin URI: https://github.com/tainacan/oraculo-tainacan
  * Description: Sistema avançado de busca em linguagem natural com IA para acervos Tainacan. Integra RAG (Retrieval-Augmented Generation) com múltiplos provedores de IA.
- * Version: 2.3.0
+ * Version: 2.4.0
  * Author: Tainacan Community
  * Author URI: https://tainacan.org
  * License: GPL-2.0+
@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Constantes do plugin
-define( 'ORACULO_TAINACAN_VERSION', '2.3.0' );
+define( 'ORACULO_TAINACAN_VERSION', '2.4.0' );
 define( 'ORACULO_TAINACAN_FILE', __FILE__ );
 define( 'ORACULO_TAINACAN_PATH', plugin_dir_path( __FILE__ ) );
 define( 'ORACULO_TAINACAN_URL', plugin_dir_url( __FILE__ ) );
@@ -176,6 +176,7 @@ final class Oraculo_Tainacan {
 		add_action( 'wp_ajax_oraculo_index_collection', array( $this, 'ajax_index_collection' ) );
 		add_action( 'wp_ajax_oraculo_get_indexing_status', array( $this, 'ajax_get_indexing_status' ) );
 		add_action( 'wp_ajax_oraculo_test_connection', array( $this, 'ajax_test_connection' ) );
+		add_action( 'wp_ajax_oraculo_list_models', array( $this, 'ajax_list_models' ) );
 		add_action( 'wp_ajax_oraculo_clear_vectors', array( $this, 'ajax_clear_vectors' ) );
 		add_action( 'wp_ajax_oraculo_clear_all_vectors', array( $this, 'ajax_clear_all_vectors' ) );
 		add_action( 'wp_ajax_oraculo_optimize_db', array( $this, 'ajax_optimize_db' ) );
@@ -903,6 +904,64 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 			$result      = $ai_provider->test_connection();
 			wp_send_json_success( $result );
 		} catch ( \Exception $e ) {
+			wp_send_json_error( array( 'message' => $e->getMessage() ) );
+		}
+	}
+
+	/**
+	 * Handler AJAX: consulta o endpoint de modelos do provedor com a chave
+	 * digitada (ou a já salva) e devolve o que a conta realmente libera
+	 *
+	 * Funciona antes de salvar: o operador digita uma chave nova, clica em
+	 * "Buscar modelos" e vê o catálogo daquela conta sem precisar submeter o
+	 * formulário primeiro. Campo vazio ou com a máscara "••••••••" usa a
+	 * chave já configurada para o provedor.
+	 */
+	public function ajax_list_models(): void {
+		check_ajax_referer( 'oraculo_admin', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permissão negada.', 'oraculo-tainacan' ) ) );
+		}
+
+		$provider_id = sanitize_text_field( wp_unslash( $_POST['provider'] ?? '' ) );
+		$submitted   = isset( $_POST['api_key'] ) ? sanitize_text_field( wp_unslash( $_POST['api_key'] ) ) : '';
+		$ollama_url  = isset( $_POST['ollama_url'] ) ? esc_url_raw( wp_unslash( $_POST['ollama_url'] ) ) : '';
+
+		if ( '' === $provider_id ) {
+			wp_send_json_error( array( 'message' => __( 'Provedor inválido.', 'oraculo-tainacan' ) ) );
+		}
+
+		$current = self::get_options();
+		$is_mask = '' === $submitted || (bool) preg_match( '/^[*\x{2022}\x{25CF}]+$/u', $submitted );
+		$config  = array();
+
+		if ( 'ollama' === $provider_id ) {
+			// Ollama não tem chave; o campo relevante é a URL do servidor.
+			$config['base_url'] = '' !== $ollama_url ? $ollama_url : (string) ( $current['ollama_url'] ?? '' );
+		} else {
+			// Placeholder/vazio -> usa o valor já salvo (get_api_key() descriptografa
+			// sozinho se estiver no formato 'enc:...'); valor digitado vai como
+			// texto puro mesmo, pois ainda não foi persistido nem criptografado.
+			$config['api_key'] = $is_mask ? (string) ( $current[ $provider_id . '_api_key' ] ?? '' ) : $submitted;
+		}
+
+		try {
+			$factory     = new AI\AIProviderFactory();
+			$ai_provider = $factory->create( $provider_id, $config );
+			$models      = $ai_provider->list_remote_models();
+
+			if ( is_wp_error( $models ) ) {
+				wp_send_json_error( array( 'message' => $models->get_error_message() ) );
+			}
+
+			wp_send_json_success(
+				array(
+					'models' => $models,
+					'count'  => count( $models ),
+				)
+			);
+		} catch ( \Throwable $e ) {
 			wp_send_json_error( array( 'message' => $e->getMessage() ) );
 		}
 	}

@@ -236,6 +236,45 @@ class OllamaProvider extends AbstractAIProvider {
 	/**
 	 * {@inheritdoc}
 	 */
+	public function list_remote_models() {
+		$base_url = $this->get_base_url();
+
+		if ( '' === $base_url ) {
+			return new WP_Error( 'not_configured', __( 'URL do Ollama não configurada.', 'oraculo-tainacan' ) );
+		}
+
+		$response = $this->make_request( $base_url . '/api/tags', array(), array(), 'GET' );
+
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		$models = array();
+		foreach ( (array) ( $response['models'] ?? array() ) as $item ) {
+			if ( ! is_array( $item ) || empty( $item['name'] ) ) {
+				continue;
+			}
+			$models[] = array(
+				'id'   => (string) $item['name'],
+				'name' => (string) $item['name'],
+			);
+		}
+
+		usort( $models, static fn( $a, $b ) => strcmp( $a['id'], $b['id'] ) );
+
+		if ( empty( $models ) ) {
+			return new WP_Error(
+				'models_empty',
+				__( 'Nenhum modelo instalado neste servidor Ollama. Baixe um com "ollama pull <modelo>".', 'oraculo-tainacan' )
+			);
+		}
+
+		return $models;
+	}
+
+	/**
+	 * {@inheritdoc}
+	 */
 	public function generate_embedding( string $text, ?string $model = null ) {
 		if ( ! $this->is_configured() ) {
 			return new WP_Error( 'not_configured', __( 'Provedor Ollama não configurado.', 'oraculo-tainacan' ) );

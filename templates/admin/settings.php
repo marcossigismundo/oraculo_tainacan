@@ -135,7 +135,8 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
 						<tr>
 							<th><?php esc_html_e( 'Modelo de Chat', 'oraculo-tainacan' ); ?></th>
 							<td>
-								<select name="oraculo_tainacan_options[<?php echo esc_attr( $model_option ); ?>]">
+								<select name="oraculo_tainacan_options[<?php echo esc_attr( $model_option ); ?>]"
+										class="oraculo-model-select" data-provider="<?php echo esc_attr( $pid ); ?>">
 									<?php if ( '' !== $current_model && ! in_array( $current_model, $catalog_ids, true ) ) : ?>
 										<?php // Modelo salvo fora do catálogo atual: manter selecionável para não trocar silenciosamente ao salvar. ?>
 										<option value="<?php echo esc_attr( $current_model ); ?>" selected>
@@ -157,6 +158,13 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
 									</option>
 									<?php endforeach; ?>
 								</select>
+								<button type="button" class="button oraculo-fetch-models" data-provider="<?php echo esc_attr( $pid ); ?>">
+									<?php esc_html_e( 'Buscar modelos da conta', 'oraculo-tainacan' ); ?>
+								</button>
+								<p class="description">
+									<?php esc_html_e( 'Consulta a API com a chave acima (mesmo sem salvar) e mostra os modelos que esta conta realmente libera — útil quando o plano ainda não tem acesso a um modelo novo, ou já tem a algum lançado depois desta versão do plugin.', 'oraculo-tainacan' ); ?>
+								</p>
+								<p class="oraculo-fetch-models-status" data-provider="<?php echo esc_attr( $pid ); ?>"></p>
 							</td>
 						</tr>
 						<?php if ( ! empty( $provider['embedding_models'] ) ) : ?>
@@ -208,7 +216,16 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
 										name="oraculo_tainacan_options[ollama_model]"
 										value="<?php echo esc_attr( $options['ollama_model'] ?? 'llama3.2' ); ?>"
 										class="regular-text"
+										list="oraculo-ollama-models-list"
 										placeholder="llama3.2">
+								<datalist id="oraculo-ollama-models-list"></datalist>
+								<button type="button" class="button oraculo-fetch-models" data-provider="ollama">
+									<?php esc_html_e( 'Buscar modelos instalados', 'oraculo-tainacan' ); ?>
+								</button>
+								<p class="description">
+									<?php esc_html_e( 'Lista os modelos já baixados neste servidor Ollama (ollama pull).', 'oraculo-tainacan' ); ?>
+								</p>
+								<p class="oraculo-fetch-models-status" data-provider="ollama"></p>
 							</td>
 						</tr>
 						<tr>

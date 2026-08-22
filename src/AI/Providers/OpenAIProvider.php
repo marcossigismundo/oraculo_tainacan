@@ -199,6 +199,36 @@ class OpenAIProvider extends AbstractAIProvider {
 	/**
 	 * {@inheritdoc}
 	 */
+	public function list_remote_models() {
+		$key = $this->get_api_key();
+
+		if ( '' === $key ) {
+			return new WP_Error( 'not_configured', __( 'Chave de API não configurada.', 'oraculo-tainacan' ) );
+		}
+
+		$response = $this->make_request(
+			self::API_BASE_URL . '/models',
+			array(),
+			array( 'Authorization' => 'Bearer ' . $key ),
+			'GET'
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		$models = $this->normalize_openai_style_models( $response );
+
+		if ( empty( $models ) ) {
+			return new WP_Error( 'models_empty', __( 'O provedor não retornou modelos para esta chave.', 'oraculo-tainacan' ) );
+		}
+
+		return $models;
+	}
+
+	/**
+	 * {@inheritdoc}
+	 */
 	public function generate_embedding( string $text, ?string $model = null ) {
 		if ( ! $this->is_configured() ) {
 			return new WP_Error( 'not_configured', __( 'Provedor OpenAI não configurado.', 'oraculo-tainacan' ) );

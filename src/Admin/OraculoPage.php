@@ -378,6 +378,10 @@ class OraculoPage extends \Tainacan\Pages {
 			'testConnection'         => __( 'Testar Conexão', 'oraculo-tainacan' ),
 			'connectionOk'           => __( 'Conexão OK!', 'oraculo-tainacan' ),
 			'connectionFailed'       => __( 'Erro na conexão', 'oraculo-tainacan' ),
+			'fetchingModels'         => __( 'Buscando modelos...', 'oraculo-tainacan' ),
+			'fetchModelsError'       => __( 'Não foi possível buscar os modelos.', 'oraculo-tainacan' ),
+			/* translators: %d: number of models found; substituted client-side via JS String.replace(), not sprintf(). */
+			'modelsFound'            => __( '%d modelo(s) encontrado(s) nesta conta.', 'oraculo-tainacan' ),
 			'connError'              => __( 'Erro de conexão', 'oraculo-tainacan' ),
 			'success'                => __( 'Sucesso!', 'oraculo-tainacan' ),
 			'saved'                  => __( 'Configurações salvas com sucesso!', 'oraculo-tainacan' ),

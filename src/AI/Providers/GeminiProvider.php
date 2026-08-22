@@ -159,6 +159,52 @@ class GeminiProvider extends AbstractAIProvider {
 	/**
 	 * {@inheritdoc}
 	 */
+	public function list_remote_models() {
+		$key = $this->get_api_key();
+
+		if ( '' === $key ) {
+			return new WP_Error( 'not_configured', __( 'Chave de API não configurada.', 'oraculo-tainacan' ) );
+		}
+
+		$url      = self::API_BASE_URL . '/models?key=' . rawurlencode( $key ) . '&pageSize=200';
+		$response = $this->make_request( $url, array(), array(), 'GET' );
+
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		$models = array();
+		foreach ( (array) ( $response['models'] ?? array() ) as $item ) {
+			if ( ! is_array( $item ) || empty( $item['name'] ) ) {
+				continue;
+			}
+
+			// Só modelos que aceitam geração de texto — a listagem inclui
+			// embeddings e outros métodos que não servem para o chat.
+			$methods = (array) ( $item['supportedGenerationMethods'] ?? array() );
+			if ( ! empty( $methods ) && ! in_array( 'generateContent', $methods, true ) ) {
+				continue;
+			}
+
+			$id       = preg_replace( '#^models/#', '', (string) $item['name'] );
+			$models[] = array(
+				'id'   => $id,
+				'name' => (string) ( $item['displayName'] ?? $id ),
+			);
+		}
+
+		usort( $models, static fn( $a, $b ) => strcmp( $a['id'], $b['id'] ) );
+
+		if ( empty( $models ) ) {
+			return new WP_Error( 'models_empty', __( 'O provedor não retornou modelos para esta chave.', 'oraculo-tainacan' ) );
+		}
+
+		return $models;
+	}
+
+	/**
+	 * {@inheritdoc}
+	 */
 	public function generate_embedding( string $text, ?string $model = null ) {
 		if ( ! $this->is_configured() ) {
 			return new WP_Error( 'not_configured', __( 'Provedor Gemini não configurado.', 'oraculo-tainacan' ) );

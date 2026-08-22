@@ -159,6 +159,41 @@ class ClaudeProvider extends AbstractAIProvider {
 	/**
 	 * {@inheritdoc}
 	 */
+	public function list_remote_models() {
+		$key = $this->get_api_key();
+
+		if ( '' === $key ) {
+			return new WP_Error( 'not_configured', __( 'Chave de API não configurada.', 'oraculo-tainacan' ) );
+		}
+
+		$response = $this->make_request(
+			self::API_BASE_URL . '/models?limit=100',
+			array(),
+			array(
+				'x-api-key'         => $key,
+				'anthropic-version' => self::API_VERSION,
+			),
+			'GET'
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		// Mesma forma de resposta do dialeto OpenAI (lista de objetos com id
+		// e display_name), então reaproveita o mesmo normalizador.
+		$models = $this->normalize_openai_style_models( $response );
+
+		if ( empty( $models ) ) {
+			return new WP_Error( 'models_empty', __( 'O provedor não retornou modelos para esta chave.', 'oraculo-tainacan' ) );
+		}
+
+		return $models;
+	}
+
+	/**
+	 * {@inheritdoc}
+	 */
 	public function generate_embedding( string $text, ?string $model = null ) {
 		return new WP_Error(
 			'not_supported',

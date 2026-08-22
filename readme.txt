@@ -4,7 +4,7 @@ Tags: tainacan, ai, search, rag, openai
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 2.3.0
+Stable tag: 2.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -111,6 +111,11 @@ OpenAI is the most tested option. Ollama is recommended for fully local, private
 Only the text content of your archived items is sent to the AI provider you configure. When using Ollama, everything stays local.
 
 == Changelog ==
+
+= 2.4.0 =
+* Feature: "Buscar modelos da conta" — every AI provider settings panel can query the provider's own /models endpoint with the key currently typed (even before saving) and list only the models that account's plan actually unlocks, instead of relying solely on the catalog hardcoded in the plugin. Works for OpenAI, Claude, Gemini, Groq, DeepSeek (real API query) and Ollama (installed models via /api/tags); the static catalog remains the fallback until a search is run
+* Security: API keys are now encrypted at rest (AES-256-CBC via wp_salt) instead of stored as plain text in wp_options; keys saved before this version keep working unchanged (the decryption path already handled both formats — this release is what starts actually encrypting on save)
+* Dev: new AIProviderInterface::list_remote_models() implemented by all six providers; new wp_ajax_oraculo_list_models endpoint
 
 = 2.3.0 =
 * Feature: automatic indexing — new and edited items are queued on save and indexed in the background, so they become searchable within minutes instead of waiting for a manual reindex

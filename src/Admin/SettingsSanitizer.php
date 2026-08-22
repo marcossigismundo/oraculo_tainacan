@@ -62,8 +62,13 @@ class SettingsSanitizer {
 
 		foreach ( $api_keys as $key ) {
 			if ( isset( $input[ $key ] ) && $input[ $key ] !== '••••••••' && ! empty( $input[ $key ] ) ) {
-				$sanitized[ $key ] = sanitize_text_field( (string) $input[ $key ] );
+				// Prefixo 'enc:' é a convenção que AbstractAIProvider::get_api_key()
+				// já reconhece para descriptografar — só faltava alguém gravar
+				// nesse formato. Chave nunca fica em texto puro na wp_options.
+				$sanitized[ $key ] = 'enc:' . \Oraculo_Tainacan\encrypt_value( sanitize_text_field( (string) $input[ $key ] ) );
 			} else {
+				// Placeholder ou campo vazio: mantém o valor já salvo (já
+				// criptografado, se veio de um save feito após esta mudança).
 				$sanitized[ $key ] = $current[ $key ] ?? '';
 			}
 		}

@@ -508,4 +508,32 @@ abstract class AbstractAIProvider implements AIProviderInterface {
 			),
 		);
 	}
+
+	/**
+	 * Normaliza a resposta de um endpoint /models no formato OpenAI
+	 *
+	 * Formato `{"data":[{"id":"...", "display_name"?:"..."}]}`, compartilhado
+	 * por OpenAI, Groq, DeepSeek (dialeto OpenAI) e Anthropic (mesma forma,
+	 * com display_name preenchido). Ordena por ID para saída previsível.
+	 *
+	 * @param array $data Corpo já decodificado da resposta.
+	 * @return array Lista [['id' => string, 'name' => string], ...].
+	 */
+	protected function normalize_openai_style_models( array $data ): array {
+		$models = array();
+
+		foreach ( (array) ( $data['data'] ?? array() ) as $item ) {
+			if ( ! is_array( $item ) || empty( $item['id'] ) ) {
+				continue;
+			}
+			$models[] = array(
+				'id'   => (string) $item['id'],
+				'name' => (string) ( $item['display_name'] ?? $item['id'] ),
+			);
+		}
+
+		usort( $models, static fn( $a, $b ) => strcmp( $a['id'], $b['id'] ) );
+
+		return $models;
+	}
 }

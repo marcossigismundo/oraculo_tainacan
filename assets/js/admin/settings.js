@@ -92,6 +92,77 @@
 			});
 		});
 
+		// Buscar modelos que a conta desta chave realmente libera (não o
+		// catálogo estático embutido no plugin). Funciona antes de salvar:
+		// usa o que estiver digitado no campo de chave/URL do mesmo painel.
+		$('.oraculo-fetch-models').on('click', function(e) {
+			e.preventDefault();
+			var button = $(this);
+			var provider = button.data('provider');
+			var panel = button.closest('.oraculo-provider-settings');
+			var status = $('.oraculo-fetch-models-status[data-provider="' + provider + '"]');
+			var isOllama = provider === 'ollama';
+
+			var apiKey = isOllama ? '' : (panel.find('input[type="password"]').val() || '').trim();
+			var ollamaUrl = isOllama ? (panel.find('input[name="oraculo_tainacan_options[ollama_url]"]').val() || '').trim() : '';
+
+			button.prop('disabled', true);
+			status.removeClass('oraculo-fetch-error oraculo-fetch-ok').text(s.fetchingModels || 'Buscando...');
+
+			$.ajax({
+				url: cfg.ajaxUrl,
+				type: 'POST',
+				dataType: 'json',
+				data: {
+					action: 'oraculo_list_models',
+					provider: provider,
+					api_key: apiKey,
+					ollama_url: ollamaUrl,
+					nonce: cfg.nonce
+				},
+				success: function(response) {
+					button.prop('disabled', false);
+					if (!response || !response.success) {
+						var msg = (response && response.data && response.data.message) || s.fetchModelsError || 'Erro';
+						status.addClass('oraculo-fetch-error').text('❌ ' + msg);
+						return;
+					}
+
+					var models = response.data.models || [];
+
+					if (isOllama) {
+						var datalist = $('#oraculo-ollama-models-list');
+						datalist.empty();
+						models.forEach(function(m) {
+							datalist.append($('<option>').attr('value', m.id));
+						});
+					} else {
+						var select = panel.find('select.oraculo-model-select[data-provider="' + provider + '"]');
+						var current = select.val();
+						select.empty();
+						models.forEach(function(m) {
+							var label = m.name || m.id;
+							select.append($('<option>').attr('value', m.id).text(label));
+						});
+						// Mantém o modelo já selecionado se a conta ainda o libera;
+						// senão cai no primeiro da lista buscada.
+						if (models.some(function(m) { return m.id === current; })) {
+							select.val(current);
+						} else if (models.length) {
+							select.val(models[0].id);
+						}
+					}
+
+					var countMsg = (s.modelsFound || '%d modelo(s) encontrado(s) nesta conta.').replace('%d', models.length);
+					status.addClass('oraculo-fetch-ok').text('✅ ' + countMsg);
+				},
+				error: function(xhr, statusText, error) {
+					button.prop('disabled', false);
+					status.addClass('oraculo-fetch-error').text('❌ ' + (s.connError || 'Erro de conexão') + ': ' + error);
+				}
+			});
+		});
+
 		// Clear cache
 		$('#clear-cache').on('click', function() {
 			var button = $(this);
