@@ -584,8 +584,11 @@
                 // WP_Error do permission_callback (nonce 401, rate-limit 429,
                 // teto global 503, recurso desativado 403) chega como
                 // {code, message, data:{status}} — sem o envelope success/data.
+                // Já o handler de busca devolve 400 com {success:false, error} —
+                // sem ler `error` aqui, a mensagem real (ex: provedor mal
+                // configurado) era descartada e só sobrava o texto genérico.
                 if (!envelope.ok || (payload && payload.code && payload.message)) {
-                    self.renderError((payload && payload.message) || config.strings.error);
+                    self.renderError((payload && (payload.message || payload.error)) || config.strings.error);
                     return;
                 }
 

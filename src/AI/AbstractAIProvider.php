@@ -482,11 +482,17 @@ abstract class AbstractAIProvider implements AIProviderInterface {
 	protected function prepare_options( array $options ): array {
 		$plugin_options = \Oraculo_Tainacan\Oraculo_Tainacan::get_options();
 
+		// O modelo configurado na instância (vindo das opções salvas, via
+		// factory) tem precedência; o primeiro do catálogo é só o último
+		// recurso. Antes o catálogo[0] era injetado incondicionalmente aqui,
+		// então o `$options['model'] ?? get_config(...)` dos providers nunca
+		// caía no modelo escolhido pelo usuário — todo chat rodava no primeiro
+		// modelo do catálogo, qualquer que fosse a configuração.
 		return array_merge(
 			array(
-				'model'       => $this->get_available_models()[0]['id'] ?? '',
-				'max_tokens'  => $plugin_options['max_tokens'] ?? 2000,
-				'temperature' => $plugin_options['temperature'] ?? 0.7,
+				'model'       => $this->get_config( 'model', $this->get_available_models()[0]['id'] ?? '' ),
+				'max_tokens'  => $this->get_config( 'max_tokens', $plugin_options['max_tokens'] ?? 2000 ),
+				'temperature' => $this->get_config( 'temperature', $plugin_options['temperature'] ?? 0.7 ),
 			),
 			$options
 		);

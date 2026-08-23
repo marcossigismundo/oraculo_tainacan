@@ -4,7 +4,7 @@ Tags: tainacan, ai, search, rag, openai
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 2.4.0
+Stable tag: 2.4.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -111,6 +111,11 @@ OpenAI is the most tested option. Ollama is recommended for fully local, private
 Only the text content of your archived items is sent to the AI provider you configure. When using Ollama, everything stays local.
 
 == Changelog ==
+
+= 2.4.1 =
+* Fix: chat/search always ran on the first model of the provider catalog, silently ignoring the model chosen in settings — prepare_options() injected catalog[0] unconditionally, so the configured model never won. Exposed when 2.4.0 reordered the OpenAI catalog and every install started calling GPT-5.2 regardless of configuration
+* Fix: OpenAI reasoning-family models (GPT-5.x, o1/o3/o4) rejected requests with `max_tokens`/custom `temperature` — the provider now sends `max_completion_tokens` (and omits temperature) for those families, with an adaptive retry that fixes the parameters when the API reports unsupported_parameter for models newer than this version
+* Fix: the AI search tab showed the generic "Não foi possível concluir a busca" instead of the real backend error (the 400 payload uses `error`, which the error branch never read)
 
 = 2.4.0 =
 * Feature: "Buscar modelos da conta" — every AI provider settings panel can query the provider's own /models endpoint with the key currently typed (even before saving) and list only the models that account's plan actually unlocks, instead of relying solely on the catalog hardcoded in the plugin. Works for OpenAI, Claude, Gemini, Groq, DeepSeek (real API query) and Ollama (installed models via /api/tags); the static catalog remains the fallback until a search is run

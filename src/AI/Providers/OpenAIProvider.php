@@ -401,12 +401,7 @@ class OpenAIProvider extends AbstractAIProvider {
 
 		$formatted_messages = $this->format_messages( $messages, $system_prompt );
 
-		$body = array(
-			'model'       => $model,
-			'messages'    => $formatted_messages,
-			'max_tokens'  => $options['max_tokens'],
-			'temperature' => $options['temperature'],
-		);
+		$body = $this->build_chat_body( $model, $formatted_messages, $options );
 
 		// Adicionar opções extras se fornecidas
 		if ( isset( $options['top_p'] ) ) {
@@ -419,11 +414,7 @@ class OpenAIProvider extends AbstractAIProvider {
 			$body['frequency_penalty'] = $options['frequency_penalty'];
 		}
 
-		$response = $this->make_request_with_retry(
-			self::API_BASE_URL . '/chat/completions',
-			$body,
-			$this->get_headers()
-		);
+		$response = $this->chat_request_with_param_fallback( $body );
 
 		if ( is_wp_error( $response ) ) {
 			return $response;
@@ -473,13 +464,8 @@ class OpenAIProvider extends AbstractAIProvider {
 			$system_prompt
 		);
 
-		$body = array(
-			'model'       => $model,
-			'messages'    => $messages,
-			'max_tokens'  => $options['max_tokens'],
-			'temperature' => $options['temperature'],
-			'stream'      => true,
-		);
+		$body           = $this->build_chat_body( $model, $messages, $options );
+		$body['stream'] = true;
 
 		// Usar cURL para streaming
         // phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_init -- WP HTTP API lacks streaming callback support required for SSE.
@@ -563,6 +549,81 @@ class OpenAIProvider extends AbstractAIProvider {
 	 */
 	public function get_model_limit( string $model ): int {
 		return self::MODELS[ $model ]['context'] ?? 4096;
+	}
+
+	/**
+	 * Monta o corpo do chat/completions no formato que o modelo aceita
+	 *
+	 * Modelos de raciocínio (família GPT-5 e o-series: o1, o3, o4...) rejeitam
+	 * `max_tokens` (exigem `max_completion_tokens`) e recusam qualquer
+	 * `temperature` diferente do padrão — enviar o formato clássico rende
+	 * `unsupported_parameter` (HTTP 400) e derruba a busca inteira. Detectar
+	 * a família pelo nome cobre os modelos conhecidos; o fallback em
+	 * chat_request_with_param_fallback() cobre os lançados depois.
+	 *
+	 * @param string $model    ID do modelo.
+	 * @param array  $messages Mensagens já formatadas.
+	 * @param array  $options  Opções preparadas (max_tokens, temperature).
+	 * @return array
+	 */
+	private function build_chat_body( string $model, array $messages, array $options ): array {
+		$body = array(
+			'model'    => $model,
+			'messages' => $messages,
+		);
+
+		if ( preg_match( '/^(gpt-5|o\d)/i', $model ) ) {
+			$body['max_completion_tokens'] = $options['max_tokens'];
+			// Sem temperature: modelos de raciocínio só aceitam o valor padrão.
+		} else {
+			$body['max_tokens']  = $options['max_tokens'];
+			$body['temperature'] = $options['temperature'];
+		}
+
+		return $body;
+	}
+
+	/**
+	 * Envia o chat/completions, adaptando parâmetros que o modelo recusar
+	 *
+	 * Rede de segurança para modelos que a detecção por nome não conhece:
+	 * quando a API devolve `unsupported_parameter`/`unsupported_value` para
+	 * `max_tokens` ou `temperature`, ajusta o corpo (troca por
+	 * `max_completion_tokens` / remove a temperature) e reenvia — no máximo
+	 * duas adaptações, uma por parâmetro.
+	 *
+	 * @param array $body Corpo da requisição.
+	 * @return array|WP_Error
+	 */
+	private function chat_request_with_param_fallback( array $body ) {
+		for ( $attempt = 0; $attempt < 3; $attempt++ ) {
+			$response = $this->make_request_with_retry(
+				self::API_BASE_URL . '/chat/completions',
+				$body,
+				$this->get_headers()
+			);
+
+			if ( ! is_wp_error( $response ) ) {
+				return $response;
+			}
+
+			$message = $response->get_error_message();
+
+			if ( isset( $body['max_tokens'] ) && preg_match( '/max_tokens.+max_completion_tokens/i', $message ) ) {
+				$body['max_completion_tokens'] = $body['max_tokens'];
+				unset( $body['max_tokens'] );
+				continue;
+			}
+
+			if ( isset( $body['temperature'] ) && false !== stripos( $message, "'temperature'" ) ) {
+				unset( $body['temperature'] );
+				continue;
+			}
+
+			return $response;
+		}
+
+		return $response;
 	}
 
 	/**
