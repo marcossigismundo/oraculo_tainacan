@@ -357,7 +357,11 @@ abstract class AbstractAIProvider implements AIProviderInterface {
 	 * @return bool
 	 */
 	protected function has_api_key( string $key_name = 'api_key' ): bool {
-		return ! empty( $this->config[ $key_name ] );
+		// Valida a chave DESCRIPTOGRAFADA, não o valor bruto: um 'enc:...'
+		// corrompido (que decifra para vazio) contava como "configurado" e o
+		// provedor mandava um Bearer vazio para a API em vez de avisar logo
+		// que a chave precisa ser reconfigurada.
+		return '' !== $this->get_api_key( $key_name );
 	}
 
 	/**
@@ -369,12 +373,19 @@ abstract class AbstractAIProvider implements AIProviderInterface {
 	protected function get_api_key( string $key_name = 'api_key' ): string {
 		$key = $this->config[ $key_name ] ?? '';
 
-		// Verificar se está criptografada (base64 + prefixo específico)
-		if ( strpos( $key, 'enc:' ) === 0 ) {
-			return \Oraculo_Tainacan\decrypt_value( substr( $key, 4 ) );
+		// Descriptografa em camadas, não uma vez só: saves feitos pela 2.4.x
+		// podiam gravar a chave duplamente criptografada (o sanitize manual do
+		// AJAX + o sanitize_callback do register_setting rodavam no mesmo
+		// update_option). O laço cura esses valores no ato — sem exigir que o
+		// usuário digite a chave de novo. O guarda limita a profundidade e o
+		// laço para sozinho se a descriptografia devolver vazio (valor corrompido).
+		$guard = 0;
+		while ( is_string( $key ) && 0 === strpos( $key, 'enc:' ) && $guard < 5 ) {
+			$key = \Oraculo_Tainacan\decrypt_value( substr( $key, 4 ) );
+			++$guard;
 		}
 
-		return $key;
+		return is_string( $key ) ? $key : '';
 	}
 
 	/**

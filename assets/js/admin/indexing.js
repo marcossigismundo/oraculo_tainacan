@@ -57,14 +57,18 @@
 						var data = response.data;
 						var indexedItems = data.indexed_items || 0;
 						var percentage = data.percentage || 100;
+						// Tudo falhou = falha, não sucesso — status/ícone/cor coerentes.
+						var allFailed = data.status === 'failed' || (indexedItems === 0 && (data.failed_items || 0) > 0);
 
 						// Atualizar UI
 						row.find('.indexed-count').text(indexedItems.toLocaleString ? indexedItems.toLocaleString() : indexedItems);
 						row.find('.oraculo-progress-fill').css('width', percentage + '%');
 						row.find('.oraculo-progress-text').text(percentage + '%');
-						row.find('.oraculo-status').removeClass().addClass('oraculo-status oraculo-status-completed').text(s.completed || 'OK');
+						row.find('.oraculo-status').removeClass()
+							.addClass('oraculo-status ' + (allFailed ? 'oraculo-status-error' : 'oraculo-status-completed'))
+							.text(allFailed ? (s.error || 'Erro') : (s.completed || 'OK'));
 
-						addLog('✅ ' + (data.message || s.indexDone), 'success');
+						addLog((allFailed ? '❌ ' : '✅ ') + (data.message || s.indexDone), allFailed ? 'error' : 'success');
 
 						if (data.failed_items > 0) {
 							addLog('⚠️ ' + data.failed_items + ' ' + s.itemsFailed, 'error');

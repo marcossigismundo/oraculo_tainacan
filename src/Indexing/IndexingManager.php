@@ -107,20 +107,31 @@ class IndexingManager {
 		// cacheado um índice parcial. Forçar aqui aposenta essas chaves.
 		\Oraculo_Tainacan\force_bump_index_version();
 
+		// "Concluída!" com zero itens indexados é mentira reconfortante: quando
+		// tudo falhou (chave inválida, provedor fora do ar), o resultado é
+		// falha e a mensagem precisa apontar a causa provável.
+		$all_failed = 0 === $result['success'] && $result['failed'] > 0;
+
 		return array(
 			'collection_id'   => $collection_id,
 			'collection_name' => $collection['name'],
 			'total_items'     => $total_items,
 			'indexed_items'   => $result['success'],
 			'failed_items'    => $result['failed'],
-			'status'          => 'completed',
+			'status'          => $all_failed ? 'failed' : 'completed',
 			'percentage'      => 100,
-			'message'         => sprintf(
-				/* translators: 1: number of items successfully indexed, 2: total number of items */
-				__( 'Indexação concluída! %1$d de %2$d itens indexados.', 'oraculo-tainacan' ),
-				$result['success'],
-				$total_items
-			),
+			'message'         => $all_failed
+				? sprintf(
+					/* translators: %d: total number of items that failed to index */
+					__( 'A indexação falhou: nenhum dos %d itens pôde ser indexado. Verifique a chave de API do provedor de embeddings (detalhes abaixo).', 'oraculo-tainacan' ),
+					$total_items
+				)
+				: sprintf(
+					/* translators: 1: number of items successfully indexed, 2: total number of items */
+					__( 'Indexação concluída! %1$d de %2$d itens indexados.', 'oraculo-tainacan' ),
+					$result['success'],
+					$total_items
+				),
 			'errors'          => $result['errors'],
 		);
 	}

@@ -3,7 +3,7 @@
  * Plugin Name: Oráculo Tainacan
  * Plugin URI: https://github.com/tainacan/oraculo-tainacan
  * Description: Sistema avançado de busca em linguagem natural com IA para acervos Tainacan. Integra RAG (Retrieval-Augmented Generation) com múltiplos provedores de IA.
- * Version: 2.5.0
+ * Version: 2.5.1
  * Author: Tainacan Community
  * Author URI: https://tainacan.org
  * License: GPL-2.0+
@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Constantes do plugin
-define( 'ORACULO_TAINACAN_VERSION', '2.5.0' );
+define( 'ORACULO_TAINACAN_VERSION', '2.5.1' );
 define( 'ORACULO_TAINACAN_FILE', __FILE__ );
 define( 'ORACULO_TAINACAN_PATH', plugin_dir_path( __FILE__ ) );
 define( 'ORACULO_TAINACAN_URL', plugin_dir_url( __FILE__ ) );
@@ -902,7 +902,15 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 			$factory     = new AI\AIProviderFactory();
 			$ai_provider = $factory->create( $provider );
 			$result      = $ai_provider->test_connection();
-			wp_send_json_success( $result );
+
+			// O envelope precisa refletir o resultado do teste: mandar
+			// wp_send_json_success com ['success' => false] fazia o JS exibir
+			// "✅" na frente de uma mensagem de falha de autenticação.
+			if ( ! empty( $result['success'] ) ) {
+				wp_send_json_success( $result );
+			} else {
+				wp_send_json_error( $result );
+			}
 		} catch ( \Exception $e ) {
 			wp_send_json_error( array( 'message' => $e->getMessage() ) );
 		}

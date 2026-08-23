@@ -4,7 +4,7 @@ Tags: tainacan, ai, search, rag, openai
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 2.5.0
+Stable tag: 2.5.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -111,6 +111,12 @@ OpenAI is the most tested option. Ollama is recommended for fully local, private
 Only the text content of your archived items is sent to the AI provider you configure. When using Ollama, everything stays local.
 
 == Changelog ==
+
+= 2.5.1 =
+* Fix: API keys were double-encrypted on save — register_setting() wires the same sanitizer as the option sanitize_callback, so the admin save encrypted once manually and update_option() encrypted the already-encrypted value again; one decryption pass then sent the literal "enc:..." string to the provider ("Incorrect API key provided: enc:..."). Encryption is now idempotent (an enc: value is never re-encrypted) and get_api_key() decrypts in layers, healing keys already stored double-encrypted without requiring re-entry
+* Fix: is_configured() now validates the decrypted key — a corrupted enc: value no longer counts as configured (it used to send an empty Bearer to the API instead of saying the key needs reconfiguring)
+* Fix: "Testar Conexão" showed a ✅ in front of authentication failures — the AJAX envelope now reflects the actual test result
+* Fix: indexing that fails for every item no longer reports "Indexação concluída!" in green — it reports a failure pointing at the embeddings provider key, and the collection status shows an error state
 
 = 2.5.0 =
 * Change: the CLIP visual search backend is now selected as an AI provider card ("Busca Visual (CLIP)"), side by side with OpenAI/Claude/etc., instead of a separate "search backend" select buried in the General tab. Its panel carries the API URL, model (with "fetch models from server") and test connection; picking it routes search through CLIP and disables chat with an explanatory message. Stored configs using the old search_backend option keep working and are migrated on the next save

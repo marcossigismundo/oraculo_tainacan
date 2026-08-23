@@ -62,10 +62,17 @@ class SettingsSanitizer {
 
 		foreach ( $api_keys as $key ) {
 			if ( isset( $input[ $key ] ) && $input[ $key ] !== '••••••••' && ! empty( $input[ $key ] ) ) {
-				// Prefixo 'enc:' é a convenção que AbstractAIProvider::get_api_key()
-				// já reconhece para descriptografar — só faltava alguém gravar
-				// nesse formato. Chave nunca fica em texto puro na wp_options.
-				$sanitized[ $key ] = 'enc:' . \Oraculo_Tainacan\encrypt_value( sanitize_text_field( (string) $input[ $key ] ) );
+				$raw = sanitize_text_field( (string) $input[ $key ] );
+
+				// Idempotência obrigatória: register_settings() registra este
+				// sanitizer como sanitize_callback da opção, então TODO
+				// update_option() o executa de novo sobre o valor já sanitizado.
+				// Sem esta guarda, o save do admin criptografava duas vezes
+				// (manual + callback) e o get_api_key() de uma passada só
+				// mandava "enc:..." literal para o provedor.
+				$sanitized[ $key ] = ( 0 === strpos( $raw, 'enc:' ) )
+					? $raw
+					: 'enc:' . \Oraculo_Tainacan\encrypt_value( $raw );
 			} else {
 				// Placeholder ou campo vazio: mantém o valor já salvo (já
 				// criptografado, se veio de um save feito após esta mudança).
