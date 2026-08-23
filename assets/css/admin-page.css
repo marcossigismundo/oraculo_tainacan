@@ -795,6 +795,10 @@
     background: var(--oraculo-gradient-accent);
     opacity: 0;
     transition: var(--oraculo-transition);
+    /* Decorativo. Sendo position:absolute, pinta ACIMA do conteúdo estático do
+       card e, sem isto, capturava todos os cliques — o radio nunca recebia o
+       clique e a troca de provedor parecia "travada". */
+    pointer-events: none;
 }
 
 .oraculo-provider-card:hover {

@@ -15,6 +15,7 @@ use Oraculo_Tainacan\AI\Providers\DeepSeekProvider;
 use Oraculo_Tainacan\AI\Providers\OllamaProvider;
 use Oraculo_Tainacan\AI\Providers\GroqProvider;
 use Oraculo_Tainacan\AI\Providers\ClaudeProvider;
+use Oraculo_Tainacan\AI\Providers\ClipProvider;
 
 /**
  * Factory para instanciar provedores de IA
@@ -33,6 +34,7 @@ class AIProviderFactory {
 		'ollama'   => OllamaProvider::class,
 		'groq'     => GroqProvider::class,
 		'claude'   => ClaudeProvider::class,
+		'clip'     => ClipProvider::class,
 	);
 
 	/**
@@ -201,6 +203,13 @@ class AIProviderFactory {
 					)
 				);
 
+			case 'clip':
+				return array(
+					'base_url' => $options['clip_api_url'] ?? '',
+					'model'    => $options['clip_api_model'] ?? 'ViT-L-14',
+					'timeout'  => $options['clip_api_timeout'] ?? 60,
+				);
+
 			default:
 				return $common;
 		}
@@ -257,6 +266,8 @@ class AIProviderFactory {
 				return ! empty( $options['groq_api_key'] );
 			case 'claude':
 				return ! empty( $options['claude_api_key'] );
+			case 'clip':
+				return ! empty( $options['clip_api_url'] );
 			default:
 				return false;
 		}

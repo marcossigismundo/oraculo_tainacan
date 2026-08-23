@@ -49,14 +49,14 @@ $by_collection   = $analytics->get_stats_by_collection( $period );
 		<div class="oraculo-stat-card">
 			<span class="stat-icon">🔍</span>
 			<div class="stat-content">
-				<span class="stat-value"><?php echo number_format( $stats['total_searches'] ); ?></span>
+				<span class="stat-value"><?php echo number_format( (int) $stats['total_searches'] ); ?></span>
 				<span class="stat-label"><?php esc_html_e( 'Total de Buscas', 'oraculo-tainacan' ); ?></span>
 			</div>
 		</div>
 		<div class="oraculo-stat-card">
 			<span class="stat-icon">👤</span>
 			<div class="stat-content">
-				<span class="stat-value"><?php echo number_format( $stats['unique_users'] ); ?></span>
+				<span class="stat-value"><?php echo number_format( (int) $stats['unique_users'] ); ?></span>
 				<span class="stat-label"><?php esc_html_e( 'Usuários Únicos', 'oraculo-tainacan' ); ?></span>
 			</div>
 		</div>
@@ -77,14 +77,14 @@ $by_collection   = $analytics->get_stats_by_collection( $period );
 		<div class="oraculo-stat-card">
 			<span class="stat-icon">⚡</span>
 			<div class="stat-content">
-				<span class="stat-value"><?php echo number_format( $stats['avg_response_time_ms'] ); ?>ms</span>
+				<span class="stat-value"><?php echo number_format( (float) $stats['avg_response_time_ms'] ); ?>ms</span>
 				<span class="stat-label"><?php esc_html_e( 'Tempo Médio', 'oraculo-tainacan' ); ?></span>
 			</div>
 		</div>
 		<div class="oraculo-stat-card">
 			<span class="stat-icon">🪙</span>
 			<div class="stat-content">
-				<span class="stat-value"><?php echo number_format( $stats['total_tokens'] ); ?></span>
+				<span class="stat-value"><?php echo number_format( (int) $stats['total_tokens'] ); ?></span>
 				<span class="stat-label"><?php esc_html_e( 'Tokens Usados', 'oraculo-tainacan' ); ?></span>
 			</div>
 		</div>
@@ -111,7 +111,7 @@ $by_collection   = $analytics->get_stats_by_collection( $period );
 								<td title="<?php echo esc_attr( $search['query_text'] ); ?>">
 									<?php echo esc_html( wp_trim_words( $search['query_text'], 6 ) ); ?>
 								</td>
-								<td><?php echo number_format( $search['count'] ); ?></td>
+								<td><?php echo number_format( (int) $search['count'] ); ?></td>
 								<td>
 									<span class="feedback-positive">👍 <?php echo (int) $search['positive']; ?></span>
 									<span class="feedback-negative">👎 <?php echo (int) $search['negative']; ?></span>
@@ -142,7 +142,7 @@ $by_collection   = $analytics->get_stats_by_collection( $period );
 								<td title="<?php echo esc_attr( $search['query_text'] ); ?>">
 									<?php echo esc_html( wp_trim_words( $search['query_text'], 8 ) ); ?>
 								</td>
-								<td><?php echo number_format( $search['count'] ); ?></td>
+								<td><?php echo number_format( (int) $search['count'] ); ?></td>
 							</tr>
 						<?php endforeach; ?>
 					</tbody>
@@ -182,8 +182,8 @@ $by_collection   = $analytics->get_stats_by_collection( $period );
 						<?php foreach ( $model_usage as $usage ) : ?>
 							<tr>
 								<td><?php echo esc_html( $usage['model_used'] ); ?></td>
-								<td><?php echo number_format( $usage['count'] ); ?></td>
-								<td><?php echo number_format( $usage['total_tokens'] ); ?></td>
+								<td><?php echo number_format( (int) $usage['count'] ); ?></td>
+								<td><?php echo number_format( (int) $usage['total_tokens'] ); ?></td>
 							</tr>
 						<?php endforeach; ?>
 					</tbody>
@@ -196,7 +196,7 @@ $by_collection   = $analytics->get_stats_by_collection( $period );
 			<h2><?php esc_html_e( 'Estimativa de Custos', 'oraculo-tainacan' ); ?></h2>
 			<div class="cost-estimate">
 				<div class="cost-total">
-					<span class="cost-value">$<?php echo number_format( $cost_estimate['total_cost_usd'], 4 ); ?></span>
+					<span class="cost-value">$<?php echo number_format( (float) $cost_estimate['total_cost_usd'], 4 ); ?></span>
 					<span class="cost-label"><?php esc_html_e( 'Custo Estimado (USD)', 'oraculo-tainacan' ); ?></span>
 				</div>
 				<?php if ( ! empty( $cost_estimate['by_model'] ) ) : ?>
@@ -206,8 +206,8 @@ $by_collection   = $analytics->get_stats_by_collection( $period );
 							<?php foreach ( $cost_estimate['by_model'] as $model ) : ?>
 								<li>
 									<strong><?php echo esc_html( $model['model'] ); ?>:</strong>
-									$<?php echo number_format( $model['estimated_cost'], 4 ); ?>
-									(<?php echo number_format( $model['tokens'] ); ?> tokens)
+									$<?php echo number_format( (float) $model['estimated_cost'], 4 ); ?>
+									(<?php echo number_format( (int) $model['tokens'] ); ?> tokens)
 								</li>
 							<?php endforeach; ?>
 						</ul>

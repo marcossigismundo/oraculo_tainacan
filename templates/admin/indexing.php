@@ -27,7 +27,7 @@ $queue_pending  = $auto_indexer->count_pending();
 	<!-- Estatísticas Gerais -->
 	<div class="oraculo-stats-grid">
 		<div class="oraculo-stat-card">
-			<span class="stat-value"><?php echo number_format( $vector_stats['total_vectors'] ); ?></span>
+			<span class="stat-value"><?php echo number_format( (int) $vector_stats['total_vectors'] ); ?></span>
 			<span class="stat-label"><?php esc_html_e( 'Vetores Totais', 'oraculo-tainacan' ); ?></span>
 		</div>
 		<div class="oraculo-stat-card">
@@ -35,7 +35,7 @@ $queue_pending  = $auto_indexer->count_pending();
 			<span class="stat-label"><?php esc_html_e( 'Coleções Indexadas', 'oraculo-tainacan' ); ?></span>
 		</div>
 		<div class="oraculo-stat-card">
-			<span class="stat-value"><?php echo number_format( $vector_stats['total_tokens'] ); ?></span>
+			<span class="stat-value"><?php echo number_format( (int) $vector_stats['total_tokens'] ); ?></span>
 			<span class="stat-label"><?php esc_html_e( 'Tokens Armazenados', 'oraculo-tainacan' ); ?></span>
 		</div>
 		<div class="oraculo-stat-card">
@@ -80,8 +80,8 @@ $queue_pending  = $auto_indexer->count_pending();
 								<br><small><?php echo esc_html( wp_trim_words( $collection['description'], 10 ) ); ?></small>
 							<?php endif; ?>
 						</td>
-						<td class="column-total"><?php echo number_format( $collection['items_count'] ); ?></td>
-						<td class="column-indexed indexed-count"><?php echo number_format( $indexed ); ?></td>
+						<td class="column-total"><?php echo number_format( (int) $collection['items_count'] ); ?></td>
+						<td class="column-indexed indexed-count"><?php echo number_format( (int) $indexed ); ?></td>
 						<td class="column-progress">
 							<div class="oraculo-progress-bar">
 								<div class="oraculo-progress-fill" style="width: <?php echo esc_attr( $percentage ); ?>%"></div>

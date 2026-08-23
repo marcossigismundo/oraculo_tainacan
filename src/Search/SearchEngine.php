@@ -440,7 +440,14 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados. S
 	 * @return bool
 	 */
 	private function use_clip_backend(): bool {
-		if ( ( $this->options['search_backend'] ?? 'local' ) !== 'clip' ) {
+		// O CLIP agora é selecionado como provedor de IA (card, igual aos
+		// demais). O search_backend antigo é aceito por compatibilidade com
+		// configurações salvas pela 2.3.x/2.4.0, onde era um select próprio
+		// na aba Geral.
+		$is_clip = 'clip' === ( $this->options['ai_provider'] ?? '' )
+			|| 'clip' === ( $this->options['search_backend'] ?? '' );
+
+		if ( ! $is_clip ) {
 			return false;
 		}
 

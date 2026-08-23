@@ -135,8 +135,12 @@ class SettingsSanitizer {
 		$sanitized['index_fields'] = array_values( array_map( 'sanitize_text_field', (array) $index_fields ) );
 
 		// Busca visual (AI API CLIP do IBRAM)
-		$backend                     = sanitize_text_field( $input['search_backend'] ?? 'local' );
-		$sanitized['search_backend'] = in_array( $backend, array( 'local', 'clip' ), true ) ? $backend : 'local';
+		// O backend de busca é derivado do provedor selecionado: o CLIP virou
+		// um card de provedor como os demais (o select "Backend de Busca" da
+		// aba Geral foi removido). Derivar aqui também migra configurações
+		// antigas: quem tinha search_backend=clip salvo mas escolher outro
+		// provedor no card volta ao backend local automaticamente.
+		$sanitized['search_backend'] = ( 'clip' === $sanitized['ai_provider'] ) ? 'clip' : 'local';
 		$sanitized['clip_api_url']   = esc_url_raw( $input['clip_api_url'] ?? '' );
 		$sanitized['clip_api_model'] = sanitize_text_field( $input['clip_api_model'] ?? 'ViT-L-14' );
 

@@ -39,6 +39,20 @@
 			$('#provider-settings-' + provider).show();
 		});
 
+		// O card inteiro seleciona o provedor (o CSS já sinaliza com
+		// cursor:pointer): clicar na descrição/área fora do label marca o
+		// radio e dispara o change acima. Cliques no próprio label/radio
+		// seguem o fluxo nativo para não disparar duas vezes.
+		$('.oraculo-provider-card').on('click', function(e) {
+			if ($(e.target).closest('label, input').length) {
+				return;
+			}
+			var radio = $(this).find('input[type="radio"]');
+			if (radio.length && !radio.prop('checked')) {
+				radio.prop('checked', true).trigger('change');
+			}
+		});
+
 		// Sliders
 		$('#temperature-slider').on('input', function() {
 			$('#temperature-value').text($(this).val());
@@ -101,10 +115,11 @@
 			var provider = button.data('provider');
 			var panel = button.closest('.oraculo-provider-settings');
 			var status = $('.oraculo-fetch-models-status[data-provider="' + provider + '"]');
-			var isOllama = provider === 'ollama';
+			// Provedores por URL (sem API key): Ollama e CLIP.
+			var isUrlProvider = provider === 'ollama' || provider === 'clip';
 
-			var apiKey = isOllama ? '' : (panel.find('input[type="password"]').val() || '').trim();
-			var ollamaUrl = isOllama ? (panel.find('input[name="oraculo_tainacan_options[ollama_url]"]').val() || '').trim() : '';
+			var apiKey = isUrlProvider ? '' : (panel.find('input[type="password"]').val() || '').trim();
+			var ollamaUrl = isUrlProvider ? (panel.find('input[type="url"]').val() || '').trim() : '';
 
 			button.prop('disabled', true);
 			status.removeClass('oraculo-fetch-error oraculo-fetch-ok').text(s.fetchingModels || 'Buscando...');
@@ -130,8 +145,8 @@
 
 					var models = response.data.models || [];
 
-					if (isOllama) {
-						var datalist = $('#oraculo-ollama-models-list');
+					if (isUrlProvider) {
+						var datalist = $('#oraculo-' + provider + '-models-list');
 						datalist.empty();
 						models.forEach(function(m) {
 							datalist.append($('<option>').attr('value', m.id));

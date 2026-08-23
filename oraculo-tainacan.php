@@ -3,7 +3,7 @@
  * Plugin Name: Oráculo Tainacan
  * Plugin URI: https://github.com/tainacan/oraculo-tainacan
  * Description: Sistema avançado de busca em linguagem natural com IA para acervos Tainacan. Integra RAG (Retrieval-Augmented Generation) com múltiplos provedores de IA.
- * Version: 2.4.1
+ * Version: 2.5.0
  * Author: Tainacan Community
  * Author URI: https://tainacan.org
  * License: GPL-2.0+
@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Constantes do plugin
-define( 'ORACULO_TAINACAN_VERSION', '2.4.1' );
+define( 'ORACULO_TAINACAN_VERSION', '2.5.0' );
 define( 'ORACULO_TAINACAN_FILE', __FILE__ );
 define( 'ORACULO_TAINACAN_PATH', plugin_dir_path( __FILE__ ) );
 define( 'ORACULO_TAINACAN_URL', plugin_dir_url( __FILE__ ) );
@@ -936,9 +936,13 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 		$is_mask = '' === $submitted || (bool) preg_match( '/^[*\x{2022}\x{25CF}]+$/u', $submitted );
 		$config  = array();
 
-		if ( 'ollama' === $provider_id ) {
-			// Ollama não tem chave; o campo relevante é a URL do servidor.
-			$config['base_url'] = '' !== $ollama_url ? $ollama_url : (string) ( $current['ollama_url'] ?? '' );
+		if ( in_array( $provider_id, array( 'ollama', 'clip' ), true ) ) {
+			// Provedores por URL (sem chave): o campo relevante é o endereço do
+			// servidor. O JS envia a URL digitada no painel via ollama_url.
+			$stored_url         = 'clip' === $provider_id
+				? (string) ( $current['clip_api_url'] ?? '' )
+				: (string) ( $current['ollama_url'] ?? '' );
+			$config['base_url'] = '' !== $ollama_url ? $ollama_url : $stored_url;
 		} else {
 			// Placeholder/vazio -> usa o valor já salvo (get_api_key() descriptografa
 			// sozinho se estiver no formato 'enc:...'); valor digitado vai como

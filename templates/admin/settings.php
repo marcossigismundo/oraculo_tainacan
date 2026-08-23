@@ -97,8 +97,9 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
 				foreach ( $providers as $provider ) :
 					$pid = $provider['id'];
 
-					// Ollama é local (URL + nomes livres de modelo); painel próprio abaixo.
-					if ( 'ollama' === $pid ) {
+					// Ollama e CLIP são serviços por URL (sem API key e com nomes
+					// livres de modelo); têm painéis próprios abaixo.
+					if ( in_array( $pid, array( 'ollama', 'clip' ), true ) ) {
 						continue;
 					}
 
@@ -241,49 +242,53 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
 					</table>
 				</div>
 
+				<div class="oraculo-provider-settings" id="provider-settings-clip" style="<?php echo $options['ai_provider'] === 'clip' ? '' : 'display:none;'; ?>">
+					<h3><?php esc_html_e( 'Busca Visual (CLIP) — AI API do IBRAM', 'oraculo-tainacan' ); ?></h3>
+					<p class="description">
+						<?php esc_html_e( 'Busca por similaridade visual entre texto e imagens (CLIP + pgvector). Neste modo a busca em linguagem natural roda no espaço visual e restrições como "século 21" viram filtros de metadado; não há resposta gerada por IA — os resultados são as obras mais próximas da consulta. O chat fica indisponível.', 'oraculo-tainacan' ); ?>
+					</p>
+					<table class="form-table">
+						<tr>
+							<th><?php esc_html_e( 'URL da AI API', 'oraculo-tainacan' ); ?></th>
+							<td>
+								<input type="url"
+										name="oraculo_tainacan_options[clip_api_url]"
+										value="<?php echo esc_attr( $options['clip_api_url'] ?? '' ); ?>"
+										class="regular-text"
+										placeholder="http://localhost:8000">
+								<button type="button" class="button oraculo-test-connection" data-provider="clip">
+									<?php esc_html_e( 'Testar Conexão', 'oraculo-tainacan' ); ?>
+								</button>
+								<p class="description"><?php esc_html_e( 'Endereço do serviço FastAPI (sem barra final).', 'oraculo-tainacan' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th><?php esc_html_e( 'Modelo CLIP', 'oraculo-tainacan' ); ?></th>
+							<td>
+								<input type="text"
+										name="oraculo_tainacan_options[clip_api_model]"
+										value="<?php echo esc_attr( $options['clip_api_model'] ?? 'ViT-L-14' ); ?>"
+										class="regular-text"
+										list="oraculo-clip-models-list"
+										placeholder="ViT-L-14">
+								<datalist id="oraculo-clip-models-list"></datalist>
+								<button type="button" class="button oraculo-fetch-models" data-provider="clip">
+									<?php esc_html_e( 'Buscar modelos do servidor', 'oraculo-tainacan' ); ?>
+								</button>
+								<p class="description">
+									<?php esc_html_e( 'Deve ser um dos modelos carregados no servidor (GET /v1/models). Indexação e busca precisam usar o mesmo modelo — e a dimensão do vetor precisa bater com o schema do banco (ViT-L-14 = 768).', 'oraculo-tainacan' ); ?>
+								</p>
+								<p class="oraculo-fetch-models-status" data-provider="clip"></p>
+							</td>
+						</tr>
+					</table>
+				</div>
+
 			</div>
 
 			<!-- Tab: Geral -->
 			<div class="oraculo-tab-content" id="tab-general">
 				<h2><?php esc_html_e( 'Configurações Gerais', 'oraculo-tainacan' ); ?></h2>
-
-				<h3><?php esc_html_e( 'Busca Visual (AI API — CLIP)', 'oraculo-tainacan' ); ?></h3>
-				<p class="description">
-					<?php esc_html_e( 'Integração com a AI API do IBRAM (CLIP + pgvector). No modo CLIP, a busca em linguagem natural roda no espaço visual imagem-texto e restrições como "século 21" viram filtros de metadado. Não há resposta gerada por IA: os resultados são as obras mais próximas da consulta.', 'oraculo-tainacan' ); ?>
-				</p>
-				<table class="form-table">
-					<tr>
-						<th><?php esc_html_e( 'Backend de Busca', 'oraculo-tainacan' ); ?></th>
-						<td>
-							<select name="oraculo_tainacan_options[search_backend]">
-								<option value="local" <?php selected( $options['search_backend'] ?? 'local', 'local' ); ?>>
-									<?php esc_html_e( 'Local (embeddings de texto + resposta com IA)', 'oraculo-tainacan' ); ?>
-								</option>
-								<option value="clip" <?php selected( $options['search_backend'] ?? 'local', 'clip' ); ?>>
-									<?php esc_html_e( 'AI API CLIP (busca visual, sem resposta gerada)', 'oraculo-tainacan' ); ?>
-								</option>
-							</select>
-						</td>
-					</tr>
-					<tr>
-						<th><?php esc_html_e( 'URL da AI API', 'oraculo-tainacan' ); ?></th>
-						<td>
-							<input type="url" name="oraculo_tainacan_options[clip_api_url]"
-									value="<?php echo esc_attr( $options['clip_api_url'] ?? '' ); ?>"
-									class="regular-text" placeholder="http://localhost:8000">
-							<p class="description"><?php esc_html_e( 'Endereço do serviço FastAPI (sem barra final). Vazio desliga a integração.', 'oraculo-tainacan' ); ?></p>
-						</td>
-					</tr>
-					<tr>
-						<th><?php esc_html_e( 'Modelo CLIP', 'oraculo-tainacan' ); ?></th>
-						<td>
-							<input type="text" name="oraculo_tainacan_options[clip_api_model]"
-									value="<?php echo esc_attr( $options['clip_api_model'] ?? 'ViT-L-14' ); ?>"
-									class="regular-text">
-							<p class="description"><?php esc_html_e( 'Deve ser um dos modelos carregados no servidor (GET /v1/models). Indexação e busca precisam usar o mesmo modelo.', 'oraculo-tainacan' ); ?></p>
-						</td>
-					</tr>
-				</table>
 
 				<table class="form-table">
 					<tr>

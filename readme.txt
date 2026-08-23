@@ -4,7 +4,7 @@ Tags: tainacan, ai, search, rag, openai
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 2.4.1
+Stable tag: 2.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -111,6 +111,12 @@ OpenAI is the most tested option. Ollama is recommended for fully local, private
 Only the text content of your archived items is sent to the AI provider you configure. When using Ollama, everything stays local.
 
 == Changelog ==
+
+= 2.5.0 =
+* Change: the CLIP visual search backend is now selected as an AI provider card ("Busca Visual (CLIP)"), side by side with OpenAI/Claude/etc., instead of a separate "search backend" select buried in the General tab. Its panel carries the API URL, model (with "fetch models from server") and test connection; picking it routes search through CLIP and disables chat with an explanatory message. Stored configs using the old search_backend option keep working and are migrated on the next save
+* Fix: provider cards were unclickable — the decorative ::before overlay (position:absolute, full card) painted above the static content and swallowed every click, so the radio never toggled. The overlay is now pointer-events:none and the whole card selects the provider on click, matching its cursor:pointer affordance
+* Fix: the Analytics tab died with a critical error as soon as it had real data — the templates declare strict_types and passed the string counts coming from wpdb straight into number_format(), a TypeError on PHP 8. All number_format() calls in the admin templates now cast explicitly (also latent in the Indexing and Debug tabs)
+* Fix: the Debug tab fataled on a call to detect_environment(), a helper that never existed; it now reports the environment via the real is_hostinger()/is_xampp() detectors
 
 = 2.4.1 =
 * Fix: chat/search always ran on the first model of the provider catalog, silently ignoring the model chosen in settings — prepare_options() injected catalog[0] unconditionally, so the configured model never won. Exposed when 2.4.0 reordered the OpenAI catalog and every install started calling GPT-5.2 regardless of configuration
