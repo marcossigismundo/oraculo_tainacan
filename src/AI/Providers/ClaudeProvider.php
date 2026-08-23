@@ -31,40 +31,40 @@ class ClaudeProvider extends AbstractAIProvider {
 	 * Modelos disponíveis
 	 */
 	private const MODELS = array(
-		'claude-opus-4-5-20251101' => array(
-			'name'         => 'Claude Opus 4.5',
-			'context'      => 200000,
-			'input_price'  => 0.015,
-			'output_price' => 0.075,
-			'description'  => 'Modelo mais avançado para tarefas complexas',
+		"claude-opus-5"             => array(
+			"name"         => "Claude Opus 5",
+			"context"      => 200000,
+			"input_price"  => 0.005,
+			"output_price" => 0.025,
+			"description"  => "Modelo mais avançado para tarefas complexas",
 		),
-		'claude-sonnet-4-20250514' => array(
-			'name'         => 'Claude Sonnet 4',
-			'context'      => 200000,
-			'input_price'  => 0.003,
-			'output_price' => 0.015,
-			'description'  => 'Equilíbrio ideal entre qualidade e velocidade',
+		"claude-sonnet-5"           => array(
+			"name"         => "Claude Sonnet 5",
+			"context"      => 200000,
+			"input_price"  => 0.003,
+			"output_price" => 0.015,
+			"description"  => "Equilíbrio ideal entre qualidade e velocidade",
 		),
-		'claude-3-5-sonnet-latest' => array(
-			'name'         => 'Claude 3.5 Sonnet',
-			'context'      => 200000,
-			'input_price'  => 0.003,
-			'output_price' => 0.015,
-			'description'  => 'Versão anterior estável',
+		"claude-haiku-4-5-20251001" => array(
+			"name"         => "Claude Haiku 4.5",
+			"context"      => 200000,
+			"input_price"  => 0.001,
+			"output_price" => 0.005,
+			"description"  => "Modelo rápido e econômico",
 		),
-		'claude-3-5-haiku-latest'  => array(
-			'name'         => 'Claude 3.5 Haiku',
-			'context'      => 200000,
-			'input_price'  => 0.0008,
-			'output_price' => 0.004,
-			'description'  => 'Modelo rápido e econômico',
+		"claude-opus-4-5-20251101"  => array(
+			"name"         => "Claude Opus 4.5 (legado)",
+			"context"      => 200000,
+			"input_price"  => 0.005,
+			"output_price" => 0.025,
+			"description"  => "Geração anterior; mantido por compatibilidade",
 		),
-		'claude-3-opus-latest'     => array(
-			'name'         => 'Claude 3 Opus',
-			'context'      => 200000,
-			'input_price'  => 0.015,
-			'output_price' => 0.075,
-			'description'  => 'Modelo Claude 3 mais capaz',
+		"claude-3-5-haiku-latest"   => array(
+			"name"         => "Claude 3.5 Haiku (legado)",
+			"context"      => 200000,
+			"input_price"  => 0.0008,
+			"output_price" => 0.004,
+			"description"  => "Geração anterior econômica; mantido por compatibilidade",
 		),
 	);
 
@@ -159,6 +159,41 @@ class ClaudeProvider extends AbstractAIProvider {
 	/**
 	 * {@inheritdoc}
 	 */
+	public function list_remote_models() {
+		$key = $this->get_api_key();
+
+		if ( '' === $key ) {
+			return new WP_Error( 'not_configured', __( 'Chave de API não configurada.', 'oraculo-tainacan' ) );
+		}
+
+		$response = $this->make_request(
+			self::API_BASE_URL . '/models?limit=100',
+			array(),
+			array(
+				'x-api-key'         => $key,
+				'anthropic-version' => self::API_VERSION,
+			),
+			'GET'
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		// Mesma forma de resposta do dialeto OpenAI (lista de objetos com id
+		// e display_name), então reaproveita o mesmo normalizador.
+		$models = $this->normalize_openai_style_models( $response );
+
+		if ( empty( $models ) ) {
+			return new WP_Error( 'models_empty', __( 'O provedor não retornou modelos para esta chave.', 'oraculo-tainacan' ) );
+		}
+
+		return $models;
+	}
+
+	/**
+	 * {@inheritdoc}
+	 */
 	public function generate_embedding( string $text, ?string $model = null ) {
 		return new WP_Error(
 			'not_supported',
@@ -201,7 +236,7 @@ class ClaudeProvider extends AbstractAIProvider {
 		}
 
 		$options = $this->prepare_options( $options );
-		$model   = $options['model'] ?? $this->get_config( 'model', 'claude-3-5-sonnet-latest' );
+		$model   = $options['model'] ?? $this->get_config( 'model', 'claude-sonnet-5' );
 
 		// Claude usa formato diferente - sem role 'system' nas mensagens
 		$formatted_messages = array();
@@ -282,7 +317,7 @@ class ClaudeProvider extends AbstractAIProvider {
 		}
 
 		$options = $this->prepare_options( $options );
-		$model   = $options['model'] ?? $this->get_config( 'model', 'claude-3-5-sonnet-latest' );
+		$model   = $options['model'] ?? $this->get_config( 'model', 'claude-sonnet-5' );
 
 		$body = array(
 			'model'      => $model,

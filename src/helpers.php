@@ -327,13 +327,19 @@ function format_tainacan_item( \Tainacan\Entities\Item $item ): array {
 		}
 	}
 
+	// get_collection() devolve NULL quando a coleção foi excluída antes do item.
+	// Sem esta guarda, indexar um item órfão vira fatal — invisível no fluxo
+	// manual (admin vê o erro), silencioso no worker de fila, que roda em cron.
+	$collection      = $item->get_collection();
+	$collection_name = ( $collection instanceof \Tainacan\Entities\Collection ) ? (string) $collection->get_name() : '';
+
 	return array(
 		'id'              => $item->get_id(),
 		'title'           => $item->get_title(),
 		'description'     => $item->get_description(),
 		'url'             => get_permalink( $item->get_id() ),
 		'collection_id'   => $item->get_collection_id(),
-		'collection_name' => $item->get_collection()->get_name(),
+		'collection_name' => $collection_name,
 		'thumbnail'       => get_the_post_thumbnail_url( $item->get_id(), 'medium' ),
 		'metadata'        => $metadata,
 		'created_at'      => $item->get_creation_date(),
@@ -779,4 +785,103 @@ function get_collections_indexing_status(): array {
     // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 
 	return $status;
+}
+
+/**
+ * Retorna a versão corrente do índice vetorial.
+ *
+ * A versão participa das chaves de cache de busca/sugestões. Bumpar a versão
+ * invalida logicamente todo o cache derivado do índice sem precisar varrer
+ * transients um a um — as chaves antigas simplesmente expiram sozinhas.
+ *
+ * @return int
+ */
+function get_index_version(): int {
+	return max( 1, (int) get_option( 'oraculo_index_version', 1 ) );
+}
+
+/**
+ * Guarda o estado "há escrita de índice pendente de invalidação" no request.
+ *
+ * Funções nomeadas não compartilham `static` entre si, daí este acessador único.
+ *
+ * @param bool|null $set Novo valor, ou null apenas para ler.
+ * @return bool Estado corrente (antes da escrita, quando $set é informado).
+ */
+function index_version_dirty( ?bool $set = null ): bool {
+	static $dirty = false;
+
+	$previous = $dirty;
+
+	if ( null !== $set ) {
+		$dirty = $set;
+	}
+
+	return $previous;
+}
+
+/**
+ * Marca o índice como alterado; o incremento efetivo ocorre no shutdown.
+ *
+ * Adiar até o fim do request é o que torna a invalidação correta, não só barata:
+ * incrementar na primeira escrita deixaria de fora as seguintes. Num bulk edit
+ * que despublica vinte obras, uma busca concorrente cachearia já sob a versão
+ * nova enquanto as outras dezenove ainda estavam sendo removidas — e esse cache
+ * sobreviveria até o TTL. No shutdown, toda escrita do request já aconteceu.
+ *
+ * Operações longas com risco de timeout (indexação completa, lote do worker)
+ * fecham o próprio ciclo com force_bump_index_version(), sem depender do hook.
+ *
+ * @return void
+ */
+function bump_index_version(): void {
+	if ( index_version_dirty( true ) ) {
+		return;
+	}
+
+	// Prioridade 1: antes de qualquer trabalho pesado registrado no shutdown.
+	add_action( 'shutdown', __NAMESPACE__ . '\\flush_index_version', 1 );
+}
+
+/**
+ * Aplica no shutdown o incremento marcado por bump_index_version().
+ *
+ * @return void
+ */
+function flush_index_version(): void {
+	if ( ! index_version_dirty() ) {
+		return;
+	}
+
+	force_bump_index_version();
+}
+
+/**
+ * Incrementa a versão do índice imediatamente.
+ *
+ * Usado para fechar operações longas, onde esperar o shutdown seria arriscado
+ * (timeout de PHP mata o processo sem rodar o hook) ou tarde demais (o worker
+ * pode encadear outro lote no mesmo processo).
+ *
+ * @return void
+ */
+function force_bump_index_version(): void {
+	index_version_dirty( false );
+
+	// autoload = false: lida apenas nos caminhos de busca/indexação, nunca no bootstrap.
+	update_option( 'oraculo_index_version', get_index_version() + 1, false );
+}
+
+/**
+ * Invalida todo o cache derivado do índice vetorial após uma escrita.
+ *
+ * Combina a limpeza do object-cache group com o bump da versão do índice, que
+ * é o que efetivamente aposenta os transients de busca/sugestões. Chamada por
+ * todos os caminhos de escrita do VectorStore.
+ *
+ * @return void
+ */
+function invalidate_index_caches(): void {
+	oraculo_tainacan_flush_cache();
+	bump_index_version();
 }

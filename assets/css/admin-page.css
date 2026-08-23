@@ -795,6 +795,10 @@
     background: var(--oraculo-gradient-accent);
     opacity: 0;
     transition: var(--oraculo-transition);
+    /* Decorativo. Sendo position:absolute, pinta ACIMA do conteúdo estático do
+       card e, sem isto, capturava todos os cliques — o radio nunca recebia o
+       clique e a troca de provedor parecia "travada". */
+    pointer-events: none;
 }
 
 .oraculo-provider-card:hover {
@@ -1769,6 +1773,19 @@
     background: var(--oraculo-bg);
     border-radius: var(--oraculo-radius);
     border: 1px solid var(--oraculo-border-light);
+}
+
+.oraculo-fetch-models-status {
+    margin: 6px 0 0;
+    font-size: 13px;
+}
+
+.oraculo-fetch-models-status.oraculo-fetch-ok {
+    color: #1e7e34;
+}
+
+.oraculo-fetch-models-status.oraculo-fetch-error {
+    color: #c0392b;
 }
 
 /* Suggested Questions */

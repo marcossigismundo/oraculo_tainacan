@@ -4,7 +4,7 @@ Tags: tainacan, ai, search, rag, openai
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 2.2.0
+Stable tag: 2.5.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -112,7 +112,45 @@ Only the text content of your archived items is sent to the AI provider you conf
 
 == Changelog ==
 
-= 2.2.0 =
+= 2.5.1 =
+* Fix: API keys were double-encrypted on save — register_setting() wires the same sanitizer as the option sanitize_callback, so the admin save encrypted once manually and update_option() encrypted the already-encrypted value again; one decryption pass then sent the literal "enc:..." string to the provider ("Incorrect API key provided: enc:..."). Encryption is now idempotent (an enc: value is never re-encrypted) and get_api_key() decrypts in layers, healing keys already stored double-encrypted without requiring re-entry
+* Fix: is_configured() now validates the decrypted key — a corrupted enc: value no longer counts as configured (it used to send an empty Bearer to the API instead of saying the key needs reconfiguring)
+* Fix: "Testar Conexão" showed a ✅ in front of authentication failures — the AJAX envelope now reflects the actual test result
+* Fix: indexing that fails for every item no longer reports "Indexação concluída!" in green — it reports a failure pointing at the embeddings provider key, and the collection status shows an error state
+
+= 2.5.0 =
+* Change: the CLIP visual search backend is now selected as an AI provider card ("Busca Visual (CLIP)"), side by side with OpenAI/Claude/etc., instead of a separate "search backend" select buried in the General tab. Its panel carries the API URL, model (with "fetch models from server") and test connection; picking it routes search through CLIP and disables chat with an explanatory message. Stored configs using the old search_backend option keep working and are migrated on the next save
+* Fix: provider cards were unclickable — the decorative ::before overlay (position:absolute, full card) painted above the static content and swallowed every click, so the radio never toggled. The overlay is now pointer-events:none and the whole card selects the provider on click, matching its cursor:pointer affordance
+* Fix: the Analytics tab died with a critical error as soon as it had real data — the templates declare strict_types and passed the string counts coming from wpdb straight into number_format(), a TypeError on PHP 8. All number_format() calls in the admin templates now cast explicitly (also latent in the Indexing and Debug tabs)
+* Fix: the Debug tab fataled on a call to detect_environment(), a helper that never existed; it now reports the environment via the real is_hostinger()/is_xampp() detectors
+
+= 2.4.1 =
+* Fix: chat/search always ran on the first model of the provider catalog, silently ignoring the model chosen in settings — prepare_options() injected catalog[0] unconditionally, so the configured model never won. Exposed when 2.4.0 reordered the OpenAI catalog and every install started calling GPT-5.2 regardless of configuration
+* Fix: OpenAI reasoning-family models (GPT-5.x, o1/o3/o4) rejected requests with `max_tokens`/custom `temperature` — the provider now sends `max_completion_tokens` (and omits temperature) for those families, with an adaptive retry that fixes the parameters when the API reports unsupported_parameter for models newer than this version
+* Fix: the AI search tab showed the generic "Não foi possível concluir a busca" instead of the real backend error (the 400 payload uses `error`, which the error branch never read)
+
+= 2.4.0 =
+* Feature: "Buscar modelos da conta" — every AI provider settings panel can query the provider's own /models endpoint with the key currently typed (even before saving) and list only the models that account's plan actually unlocks, instead of relying solely on the catalog hardcoded in the plugin. Works for OpenAI, Claude, Gemini, Groq, DeepSeek (real API query) and Ollama (installed models via /api/tags); the static catalog remains the fallback until a search is run
+* Security: API keys are now encrypted at rest (AES-256-CBC via wp_salt) instead of stored as plain text in wp_options; keys saved before this version keep working unchanged (the decryption path already handled both formats — this release is what starts actually encrypting on save)
+* Dev: new AIProviderInterface::list_remote_models() implemented by all six providers; new wp_ajax_oraculo_list_models endpoint
+
+= 2.3.0 =
+* Feature: automatic indexing — new and edited items are queued on save and indexed in the background, so they become searchable within minutes instead of waiting for a manual reindex
+* Feature: items sent to trash, unpublished or deleted are removed from the index immediately, so search no longer returns items visitors cannot open
+* Feature: daily reconciliation cron re-syncs the index with the collection (backup restores, direct imports, items that exhausted retries) and removes orphan vectors
+* Feature: CLIP visual search backend — optional integration with the IBRAM AI API (FastAPI + pgvector). Natural language queries run in the CLIP image-text space and temporal constraints ("obras do século 21") are parsed into metadata filters; item images are indexed remotely with normalized facets (year/decade/century/collection). No AI-generated answer in this mode: results are the closest works, with a deterministic summary
+* Feature: queue status card and "process now" button on the indexing screen; new WP-CLI commands `wp oraculo queue <status|process|reconcile>` and `wp oraculo clip <health|models|search|index>`
+* Fix: search and suggestion caches are now versioned by the index, so a freshly indexed item shows up right away instead of after the cache TTL (up to 1 hour)
+* Fix: `wp oraculo index` no longer aborts on a call to a non-existent method; it now reports the result of the (already synchronous) indexing run
+* Fix: indexing an item whose collection was deleted no longer raises a fatal error
+* Fix: the "Campos para Indexar" checkboxes and batch size on the indexing screen now persist to the options the indexer actually reads (they previously wrote orphan options), and the embeddings-provider select is honored by the provider factory
+* Dev: new filters `oraculo_tainacan_auto_index_enabled`, `oraculo_tainacan_index_delay` and `oraculo_tainacan_queue_batch_size`
+* New: Tainacan theme integration — an "AI Search" tab injected next to the default search field on all Tainacan items lists, with AI answer panel, suggested questions, related items grid and deep link support (?oraculo_q=question); new settings tab "Tema Tainacan"
+* Fix: unchecking "show sources" / "show similarity" now persists; the missing key used to fall back to the default instead of false
+* Fix: settings sanitization unified in SettingsSanitizer for both the admin form and the REST /settings endpoint; options absent from the submitted form keep their stored value instead of being wiped
+* Cleanup: the legacy admin bundle (assets/js/admin.js, assets/css/admin.css and the OraculoAdmin localized object) is gone
+
+= 2.1.0 =
 * Security: escape all dynamic content injected into HTML by the widgets (AI responses, item titles/snippets, error messages); markdown links restricted to safe URL schemes
 * Security: REST endpoints hardened — nonce + per-IP rate limit on public search/chat/feedback, conversation ownership checks, admin-only health endpoint, argument schemas everywhere
 * Security: admin page menu requires manage_options; remote image download via WordPress HTTP API

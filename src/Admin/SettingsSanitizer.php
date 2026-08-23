@@ -62,21 +62,33 @@ class SettingsSanitizer {
 
 		foreach ( $api_keys as $key ) {
 			if ( isset( $input[ $key ] ) && $input[ $key ] !== '••••••••' && ! empty( $input[ $key ] ) ) {
-				$sanitized[ $key ] = sanitize_text_field( (string) $input[ $key ] );
+				$raw = sanitize_text_field( (string) $input[ $key ] );
+
+				// Idempotência obrigatória: register_settings() registra este
+				// sanitizer como sanitize_callback da opção, então TODO
+				// update_option() o executa de novo sobre o valor já sanitizado.
+				// Sem esta guarda, o save do admin criptografava duas vezes
+				// (manual + callback) e o get_api_key() de uma passada só
+				// mandava "enc:..." literal para o provedor.
+				$sanitized[ $key ] = ( 0 === strpos( $raw, 'enc:' ) )
+					? $raw
+					: 'enc:' . \Oraculo_Tainacan\encrypt_value( $raw );
 			} else {
+				// Placeholder ou campo vazio: mantém o valor já salvo (já
+				// criptografado, se veio de um save feito após esta mudança).
 				$sanitized[ $key ] = $current[ $key ] ?? '';
 			}
 		}
 
 		// Modelos
-		$sanitized['openai_model']           = $text( 'openai_model', 'gpt-4o-mini' );
-		$sanitized['openai_embedding_model'] = $text( 'openai_embedding_model', 'text-embedding-ada-002' );
-		$sanitized['gemini_model']           = $text( 'gemini_model', 'gemini-1.5-flash' );
+		$sanitized['openai_model']           = $text( 'openai_model', 'gpt-5-mini' );
+		$sanitized['openai_embedding_model'] = $text( 'openai_embedding_model', 'text-embedding-3-small' );
+		$sanitized['gemini_model']           = $text( 'gemini_model', 'gemini-2.5-flash' );
 		$sanitized['deepseek_model']         = $text( 'deepseek_model', 'deepseek-chat' );
 		$sanitized['ollama_model']           = $text( 'ollama_model', 'llama3.2' );
 		$sanitized['ollama_embedding_model'] = $text( 'ollama_embedding_model', 'nomic-embed-text' );
 		$sanitized['groq_model']             = $text( 'groq_model', 'llama-3.3-70b-versatile' );
-		$sanitized['claude_model']           = $text( 'claude_model', 'claude-3-5-sonnet-latest' );
+		$sanitized['claude_model']           = $text( 'claude_model', 'claude-sonnet-5' );
 
 		$sanitized['ollama_url'] = esc_url_raw(
 			(string) ( $input['ollama_url'] ?? $current['ollama_url'] ?? 'http://localhost:11434' )
@@ -128,6 +140,19 @@ class SettingsSanitizer {
 		// Campos de indexação
 		$index_fields              = $input['index_fields'] ?? $current['index_fields'] ?? array( 'title', 'description' );
 		$sanitized['index_fields'] = array_values( array_map( 'sanitize_text_field', (array) $index_fields ) );
+
+		// Busca visual (AI API CLIP do IBRAM)
+		// O backend de busca é derivado do provedor selecionado: o CLIP virou
+		// um card de provedor como os demais (o select "Backend de Busca" da
+		// aba Geral foi removido). Derivar aqui também migra configurações
+		// antigas: quem tinha search_backend=clip salvo mas escolher outro
+		// provedor no card volta ao backend local automaticamente.
+		$sanitized['search_backend'] = ( 'clip' === $sanitized['ai_provider'] ) ? 'clip' : 'local';
+		$sanitized['clip_api_url']   = esc_url_raw( $input['clip_api_url'] ?? '' );
+		$sanitized['clip_api_model'] = sanitize_text_field( $input['clip_api_model'] ?? 'ViT-L-14' );
+
+		$sanitized['clip_api_timeout'] = absint( $input['clip_api_timeout'] ?? 60 );
+		$sanitized['clip_api_timeout'] = max( 5, min( 300, $sanitized['clip_api_timeout'] ) );
 
 		// Aparência
 		$appearance              = $input['appearance'] ?? $current['appearance'] ?? array();

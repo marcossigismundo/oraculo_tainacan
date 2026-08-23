@@ -81,95 +81,119 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
 				</div>
 
 				<!-- Configurações específicas de cada provedor -->
-				<div class="oraculo-provider-settings" id="provider-settings-openai" style="<?php echo $options['ai_provider'] === 'openai' ? '' : 'display:none;'; ?>">
-					<h3>OpenAI (ChatGPT)</h3>
+				<?php
+				// Painéis gerados do catálogo de cada provedor (get_available_providers()):
+				// um painel por provedor, sempre com campo de API key e select de modelos.
+				// Antes só OpenAI/Gemini/Ollama tinham painel — selecionar Claude, Groq ou
+				// DeepSeek deixava o formulário sem campo algum para configurá-los.
+				$oraculo_key_links = array(
+					'openai'   => 'https://platform.openai.com/api-keys',
+					'gemini'   => 'https://aistudio.google.com/app/apikey',
+					'deepseek' => 'https://platform.deepseek.com/api_keys',
+					'groq'     => 'https://console.groq.com/keys',
+					'claude'   => 'https://console.anthropic.com/settings/keys',
+				);
+
+				foreach ( $providers as $provider ) :
+					$pid = $provider['id'];
+
+					// Ollama e CLIP são serviços por URL (sem API key e com nomes
+					// livres de modelo); têm painéis próprios abaixo.
+					if ( in_array( $pid, array( 'ollama', 'clip' ), true ) ) {
+						continue;
+					}
+
+					$key_option    = $pid . '_api_key';
+					$model_option  = $pid . '_model';
+					$catalog       = (array) ( $provider['models'] ?? array() );
+					$catalog_ids   = array_column( $catalog, 'id' );
+					$current_model = (string) ( $options[ $model_option ] ?? ( $catalog_ids[0] ?? '' ) );
+					?>
+				<div class="oraculo-provider-settings" id="provider-settings-<?php echo esc_attr( $pid ); ?>"
+						style="<?php echo $options['ai_provider'] === $pid ? '' : 'display:none;'; ?>">
+					<h3><?php echo esc_html( $provider['name'] ); ?></h3>
 					<table class="form-table">
 						<tr>
 							<th><?php esc_html_e( 'API Key', 'oraculo-tainacan' ); ?></th>
 							<td>
 								<input type="password"
-										name="oraculo_tainacan_options[openai_api_key]"
-										value="<?php echo ! empty( $options['openai_api_key'] ) ? '••••••••' : ''; ?>"
+										name="oraculo_tainacan_options[<?php echo esc_attr( $key_option ); ?>]"
+										value="<?php echo ! empty( $options[ $key_option ] ) ? '••••••••' : ''; ?>"
 										class="regular-text"
-										placeholder="sk-...">
-								<button type="button" class="button oraculo-test-connection" data-provider="openai">
+										autocomplete="new-password">
+								<button type="button" class="button oraculo-test-connection" data-provider="<?php echo esc_attr( $pid ); ?>">
 									<?php esc_html_e( 'Testar Conexão', 'oraculo-tainacan' ); ?>
 								</button>
+								<?php if ( isset( $oraculo_key_links[ $pid ] ) ) : ?>
 								<p class="description">
-									<a href="https://platform.openai.com/api-keys" target="_blank">
+									<a href="<?php echo esc_url( $oraculo_key_links[ $pid ] ); ?>" target="_blank" rel="noopener noreferrer">
 										<?php esc_html_e( 'Obter API Key', 'oraculo-tainacan' ); ?>
 									</a>
 								</p>
+								<?php endif; ?>
 							</td>
 						</tr>
 						<tr>
 							<th><?php esc_html_e( 'Modelo de Chat', 'oraculo-tainacan' ); ?></th>
 							<td>
-								<select name="oraculo_tainacan_options[openai_model]">
-									<?php
-									$openai_models = array(
-										'gpt-4o'        => 'GPT-4o (Recomendado)',
-										'gpt-4o-mini'   => 'GPT-4o Mini (Econômico)',
-										'gpt-4-turbo'   => 'GPT-4 Turbo',
-										'gpt-4'         => 'GPT-4',
-										'gpt-3.5-turbo' => 'GPT-3.5 Turbo',
-										'o1'            => 'o1 (Raciocínio)',
-										'o1-mini'       => 'o1 Mini',
-									);
-									foreach ( $openai_models as $id => $name ) :
-										?>
-									<option value="<?php echo esc_attr( $id ); ?>" <?php selected( $options['openai_model'] ?? 'gpt-4o-mini', $id ); ?>>
-										<?php echo esc_html( $name ); ?>
+								<select name="oraculo_tainacan_options[<?php echo esc_attr( $model_option ); ?>]"
+										class="oraculo-model-select" data-provider="<?php echo esc_attr( $pid ); ?>">
+									<?php if ( '' !== $current_model && ! in_array( $current_model, $catalog_ids, true ) ) : ?>
+										<?php // Modelo salvo fora do catálogo atual: manter selecionável para não trocar silenciosamente ao salvar. ?>
+										<option value="<?php echo esc_attr( $current_model ); ?>" selected>
+											<?php
+											printf(
+												/* translators: %s: model id currently saved in the settings */
+												esc_html__( '%s (configurado)', 'oraculo-tainacan' ),
+												esc_html( $current_model )
+											);
+											?>
+										</option>
+									<?php endif; ?>
+									<?php foreach ( $catalog as $model ) : ?>
+									<option value="<?php echo esc_attr( $model['id'] ); ?>" <?php selected( $current_model, $model['id'] ); ?>>
+										<?php echo esc_html( $model['name'] ); ?>
+										<?php if ( ! empty( $model['description'] ) ) : ?>
+											— <?php echo esc_html( $model['description'] ); ?>
+										<?php endif; ?>
 									</option>
 									<?php endforeach; ?>
 								</select>
+								<button type="button" class="button oraculo-fetch-models" data-provider="<?php echo esc_attr( $pid ); ?>">
+									<?php esc_html_e( 'Buscar modelos da conta', 'oraculo-tainacan' ); ?>
+								</button>
+								<p class="description">
+									<?php esc_html_e( 'Consulta a API com a chave acima (mesmo sem salvar) e mostra os modelos que esta conta realmente libera — útil quando o plano ainda não tem acesso a um modelo novo, ou já tem a algum lançado depois desta versão do plugin.', 'oraculo-tainacan' ); ?>
+								</p>
+								<p class="oraculo-fetch-models-status" data-provider="<?php echo esc_attr( $pid ); ?>"></p>
 							</td>
 						</tr>
+						<?php if ( ! empty( $provider['embedding_models'] ) ) : ?>
 						<tr>
 							<th><?php esc_html_e( 'Modelo de Embedding', 'oraculo-tainacan' ); ?></th>
 							<td>
-								<select name="oraculo_tainacan_options[openai_embedding_model]">
-									<option value="text-embedding-ada-002" <?php selected( $options['openai_embedding_model'] ?? '', 'text-embedding-ada-002' ); ?>>Ada 002 (Padrão)</option>
-									<option value="text-embedding-3-small" <?php selected( $options['openai_embedding_model'] ?? '', 'text-embedding-3-small' ); ?>>Embedding 3 Small (Econômico)</option>
-									<option value="text-embedding-3-large" <?php selected( $options['openai_embedding_model'] ?? '', 'text-embedding-3-large' ); ?>>Embedding 3 Large (Melhor qualidade)</option>
+								<select name="oraculo_tainacan_options[<?php echo esc_attr( $pid ); ?>_embedding_model]">
+									<?php
+									$embedding_current = (string) ( $options[ $pid . '_embedding_model' ] ?? '' );
+									foreach ( $provider['embedding_models'] as $model ) :
+										?>
+									<option value="<?php echo esc_attr( $model['id'] ); ?>" <?php selected( $embedding_current, $model['id'] ); ?>>
+										<?php echo esc_html( $model['name'] ); ?>
+										<?php if ( ! empty( $model['description'] ) ) : ?>
+											— <?php echo esc_html( $model['description'] ); ?>
+										<?php endif; ?>
+									</option>
+									<?php endforeach; ?>
 								</select>
-							</td>
-						</tr>
-					</table>
-				</div>
-
-				<div class="oraculo-provider-settings" id="provider-settings-gemini" style="<?php echo $options['ai_provider'] === 'gemini' ? '' : 'display:none;'; ?>">
-					<h3>Google Gemini</h3>
-					<table class="form-table">
-						<tr>
-							<th><?php esc_html_e( 'API Key', 'oraculo-tainacan' ); ?></th>
-							<td>
-								<input type="password"
-										name="oraculo_tainacan_options[gemini_api_key]"
-										value="<?php echo ! empty( $options['gemini_api_key'] ) ? '••••••••' : ''; ?>"
-										class="regular-text">
-								<button type="button" class="button oraculo-test-connection" data-provider="gemini">
-									<?php esc_html_e( 'Testar Conexão', 'oraculo-tainacan' ); ?>
-								</button>
 								<p class="description">
-									<a href="https://aistudio.google.com/app/apikey" target="_blank">
-										<?php esc_html_e( 'Obter API Key', 'oraculo-tainacan' ); ?>
-									</a>
+									<?php esc_html_e( 'Atenção: trocar o modelo de embedding exige reindexar todo o acervo — vetores de modelos diferentes não são comparáveis.', 'oraculo-tainacan' ); ?>
 								</p>
 							</td>
 						</tr>
-						<tr>
-							<th><?php esc_html_e( 'Modelo', 'oraculo-tainacan' ); ?></th>
-							<td>
-								<select name="oraculo_tainacan_options[gemini_model]">
-									<option value="gemini-2.0-flash-exp" <?php selected( $options['gemini_model'] ?? '', 'gemini-2.0-flash-exp' ); ?>>Gemini 2.0 Flash (Experimental)</option>
-									<option value="gemini-1.5-pro" <?php selected( $options['gemini_model'] ?? '', 'gemini-1.5-pro' ); ?>>Gemini 1.5 Pro</option>
-									<option value="gemini-1.5-flash" <?php selected( $options['gemini_model'] ?? '', 'gemini-1.5-flash' ); ?>>Gemini 1.5 Flash</option>
-								</select>
-							</td>
-						</tr>
+						<?php endif; ?>
 					</table>
 				</div>
+				<?php endforeach; ?>
 
 				<div class="oraculo-provider-settings" id="provider-settings-ollama" style="<?php echo $options['ai_provider'] === 'ollama' ? '' : 'display:none;'; ?>">
 					<h3>Ollama (Local)</h3>
@@ -193,7 +217,16 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
 										name="oraculo_tainacan_options[ollama_model]"
 										value="<?php echo esc_attr( $options['ollama_model'] ?? 'llama3.2' ); ?>"
 										class="regular-text"
+										list="oraculo-ollama-models-list"
 										placeholder="llama3.2">
+								<datalist id="oraculo-ollama-models-list"></datalist>
+								<button type="button" class="button oraculo-fetch-models" data-provider="ollama">
+									<?php esc_html_e( 'Buscar modelos instalados', 'oraculo-tainacan' ); ?>
+								</button>
+								<p class="description">
+									<?php esc_html_e( 'Lista os modelos já baixados neste servidor Ollama (ollama pull).', 'oraculo-tainacan' ); ?>
+								</p>
+								<p class="oraculo-fetch-models-status" data-provider="ollama"></p>
 							</td>
 						</tr>
 						<tr>
@@ -209,7 +242,48 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
 					</table>
 				</div>
 
-				<!-- Adicione configurações similares para outros provedores... -->
+				<div class="oraculo-provider-settings" id="provider-settings-clip" style="<?php echo $options['ai_provider'] === 'clip' ? '' : 'display:none;'; ?>">
+					<h3><?php esc_html_e( 'Busca Visual (CLIP) — AI API do IBRAM', 'oraculo-tainacan' ); ?></h3>
+					<p class="description">
+						<?php esc_html_e( 'Busca por similaridade visual entre texto e imagens (CLIP + pgvector). Neste modo a busca em linguagem natural roda no espaço visual e restrições como "século 21" viram filtros de metadado; não há resposta gerada por IA — os resultados são as obras mais próximas da consulta. O chat fica indisponível.', 'oraculo-tainacan' ); ?>
+					</p>
+					<table class="form-table">
+						<tr>
+							<th><?php esc_html_e( 'URL da AI API', 'oraculo-tainacan' ); ?></th>
+							<td>
+								<input type="url"
+										name="oraculo_tainacan_options[clip_api_url]"
+										value="<?php echo esc_attr( $options['clip_api_url'] ?? '' ); ?>"
+										class="regular-text"
+										placeholder="http://localhost:8000">
+								<button type="button" class="button oraculo-test-connection" data-provider="clip">
+									<?php esc_html_e( 'Testar Conexão', 'oraculo-tainacan' ); ?>
+								</button>
+								<p class="description"><?php esc_html_e( 'Endereço do serviço FastAPI (sem barra final).', 'oraculo-tainacan' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th><?php esc_html_e( 'Modelo CLIP', 'oraculo-tainacan' ); ?></th>
+							<td>
+								<input type="text"
+										name="oraculo_tainacan_options[clip_api_model]"
+										value="<?php echo esc_attr( $options['clip_api_model'] ?? 'ViT-L-14' ); ?>"
+										class="regular-text"
+										list="oraculo-clip-models-list"
+										placeholder="ViT-L-14">
+								<datalist id="oraculo-clip-models-list"></datalist>
+								<button type="button" class="button oraculo-fetch-models" data-provider="clip">
+									<?php esc_html_e( 'Buscar modelos do servidor', 'oraculo-tainacan' ); ?>
+								</button>
+								<p class="description">
+									<?php esc_html_e( 'Deve ser um dos modelos carregados no servidor (GET /v1/models). Indexação e busca precisam usar o mesmo modelo — e a dimensão do vetor precisa bater com o schema do banco (ViT-L-14 = 768).', 'oraculo-tainacan' ); ?>
+								</p>
+								<p class="oraculo-fetch-models-status" data-provider="clip"></p>
+							</td>
+						</tr>
+					</table>
+				</div>
+
 			</div>
 
 			<!-- Tab: Geral -->

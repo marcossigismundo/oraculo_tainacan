@@ -26,54 +26,47 @@ class OpenAIProvider extends AbstractAIProvider {
 	 * Modelos disponíveis com informações
 	 */
 	private const MODELS = array(
-		'gpt-4o'        => array(
-			'name'         => 'GPT-4o',
-			'context'      => 128000,
-			'input_price'  => 0.0025,
-			'output_price' => 0.01,
-			'description'  => 'Modelo mais capaz, recomendado para tarefas complexas',
+		"gpt-5.2"      => array(
+			"name"         => "GPT-5.2",
+			"context"      => 400000,
+			"input_price"  => 0.00125,
+			"output_price" => 0.01,
+			"description"  => "Modelo topo de linha atual, melhor qualidade",
 		),
-		'gpt-4o-mini'   => array(
-			'name'         => 'GPT-4o Mini',
-			'context'      => 128000,
-			'input_price'  => 0.00015,
-			'output_price' => 0.0006,
-			'description'  => 'Versão econômica do GPT-4o, ótimo custo-benefício',
+		"gpt-5.1"      => array(
+			"name"         => "GPT-5.1",
+			"context"      => 400000,
+			"input_price"  => 0.00125,
+			"output_price" => 0.01,
+			"description"  => "Geração anterior do topo de linha",
 		),
-		'gpt-4-turbo'   => array(
-			'name'         => 'GPT-4 Turbo',
-			'context'      => 128000,
-			'input_price'  => 0.01,
-			'output_price' => 0.03,
-			'description'  => 'GPT-4 com contexto estendido',
+		"gpt-5-mini"   => array(
+			"name"         => "GPT-5 Mini",
+			"context"      => 400000,
+			"input_price"  => 0.00025,
+			"output_price" => 0.002,
+			"description"  => "Ótimo custo-benefício, recomendado para RAG",
 		),
-		'gpt-4'         => array(
-			'name'         => 'GPT-4',
-			'context'      => 8192,
-			'input_price'  => 0.03,
-			'output_price' => 0.06,
-			'description'  => 'Modelo GPT-4 original',
+		"gpt-5-nano"   => array(
+			"name"         => "GPT-5 Nano",
+			"context"      => 400000,
+			"input_price"  => 0.00005,
+			"output_price" => 0.0004,
+			"description"  => "O mais rápido e econômico da família GPT-5",
 		),
-		'gpt-3.5-turbo' => array(
-			'name'         => 'GPT-3.5 Turbo',
-			'context'      => 16385,
-			'input_price'  => 0.0005,
-			'output_price' => 0.0015,
-			'description'  => 'Modelo rápido e econômico',
+		"gpt-4o"       => array(
+			"name"         => "GPT-4o (legado)",
+			"context"      => 128000,
+			"input_price"  => 0.0025,
+			"output_price" => 0.01,
+			"description"  => "Geração anterior; mantido por compatibilidade",
 		),
-		'o1'            => array(
-			'name'         => 'o1',
-			'context'      => 200000,
-			'input_price'  => 0.015,
-			'output_price' => 0.06,
-			'description'  => 'Modelo de raciocínio avançado',
-		),
-		'o1-mini'       => array(
-			'name'         => 'o1 Mini',
-			'context'      => 128000,
-			'input_price'  => 0.003,
-			'output_price' => 0.012,
-			'description'  => 'Versão menor do modelo de raciocínio',
+		"gpt-4o-mini"  => array(
+			"name"         => "GPT-4o Mini (legado)",
+			"context"      => 128000,
+			"input_price"  => 0.00015,
+			"output_price" => 0.0006,
+			"description"  => "Geração anterior econômica; mantido por compatibilidade",
 		),
 	);
 
@@ -119,7 +112,7 @@ class OpenAIProvider extends AbstractAIProvider {
 	 * {@inheritdoc}
 	 */
 	public function get_description(): string {
-		return __( 'Provedor oficial da OpenAI. Inclui GPT-4o, GPT-4 e GPT-3.5 Turbo.', 'oraculo-tainacan' );
+		return __( 'Provedor oficial da OpenAI. Inclui a família GPT-5 e modelos legados GPT-4o.', 'oraculo-tainacan' );
 	}
 
 	/**
@@ -201,6 +194,36 @@ class OpenAIProvider extends AbstractAIProvider {
 				'models_available' => count( $response['data'] ?? array() ),
 			),
 		);
+	}
+
+	/**
+	 * {@inheritdoc}
+	 */
+	public function list_remote_models() {
+		$key = $this->get_api_key();
+
+		if ( '' === $key ) {
+			return new WP_Error( 'not_configured', __( 'Chave de API não configurada.', 'oraculo-tainacan' ) );
+		}
+
+		$response = $this->make_request(
+			self::API_BASE_URL . '/models',
+			array(),
+			array( 'Authorization' => 'Bearer ' . $key ),
+			'GET'
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		$models = $this->normalize_openai_style_models( $response );
+
+		if ( empty( $models ) ) {
+			return new WP_Error( 'models_empty', __( 'O provedor não retornou modelos para esta chave.', 'oraculo-tainacan' ) );
+		}
+
+		return $models;
 	}
 
 	/**
@@ -374,16 +397,11 @@ class OpenAIProvider extends AbstractAIProvider {
 		}
 
 		$options = $this->prepare_options( $options );
-		$model   = $options['model'] ?? $this->get_config( 'model', 'gpt-4o-mini' );
+		$model   = $options['model'] ?? $this->get_config( 'model', 'gpt-5-mini' );
 
 		$formatted_messages = $this->format_messages( $messages, $system_prompt );
 
-		$body = array(
-			'model'       => $model,
-			'messages'    => $formatted_messages,
-			'max_tokens'  => $options['max_tokens'],
-			'temperature' => $options['temperature'],
-		);
+		$body = $this->build_chat_body( $model, $formatted_messages, $options );
 
 		// Adicionar opções extras se fornecidas
 		if ( isset( $options['top_p'] ) ) {
@@ -396,11 +414,7 @@ class OpenAIProvider extends AbstractAIProvider {
 			$body['frequency_penalty'] = $options['frequency_penalty'];
 		}
 
-		$response = $this->make_request_with_retry(
-			self::API_BASE_URL . '/chat/completions',
-			$body,
-			$this->get_headers()
-		);
+		$response = $this->chat_request_with_param_fallback( $body );
 
 		if ( is_wp_error( $response ) ) {
 			return $response;
@@ -438,7 +452,7 @@ class OpenAIProvider extends AbstractAIProvider {
 		}
 
 		$options = $this->prepare_options( $options );
-		$model   = $options['model'] ?? $this->get_config( 'model', 'gpt-4o-mini' );
+		$model   = $options['model'] ?? $this->get_config( 'model', 'gpt-5-mini' );
 
 		$messages = $this->format_messages(
 			array(
@@ -450,13 +464,8 @@ class OpenAIProvider extends AbstractAIProvider {
 			$system_prompt
 		);
 
-		$body = array(
-			'model'       => $model,
-			'messages'    => $messages,
-			'max_tokens'  => $options['max_tokens'],
-			'temperature' => $options['temperature'],
-			'stream'      => true,
-		);
+		$body           = $this->build_chat_body( $model, $messages, $options );
+		$body['stream'] = true;
 
 		// Usar cURL para streaming
         // phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_init -- WP HTTP API lacks streaming callback support required for SSE.
@@ -540,6 +549,81 @@ class OpenAIProvider extends AbstractAIProvider {
 	 */
 	public function get_model_limit( string $model ): int {
 		return self::MODELS[ $model ]['context'] ?? 4096;
+	}
+
+	/**
+	 * Monta o corpo do chat/completions no formato que o modelo aceita
+	 *
+	 * Modelos de raciocínio (família GPT-5 e o-series: o1, o3, o4...) rejeitam
+	 * `max_tokens` (exigem `max_completion_tokens`) e recusam qualquer
+	 * `temperature` diferente do padrão — enviar o formato clássico rende
+	 * `unsupported_parameter` (HTTP 400) e derruba a busca inteira. Detectar
+	 * a família pelo nome cobre os modelos conhecidos; o fallback em
+	 * chat_request_with_param_fallback() cobre os lançados depois.
+	 *
+	 * @param string $model    ID do modelo.
+	 * @param array  $messages Mensagens já formatadas.
+	 * @param array  $options  Opções preparadas (max_tokens, temperature).
+	 * @return array
+	 */
+	private function build_chat_body( string $model, array $messages, array $options ): array {
+		$body = array(
+			'model'    => $model,
+			'messages' => $messages,
+		);
+
+		if ( preg_match( '/^(gpt-5|o\d)/i', $model ) ) {
+			$body['max_completion_tokens'] = $options['max_tokens'];
+			// Sem temperature: modelos de raciocínio só aceitam o valor padrão.
+		} else {
+			$body['max_tokens']  = $options['max_tokens'];
+			$body['temperature'] = $options['temperature'];
+		}
+
+		return $body;
+	}
+
+	/**
+	 * Envia o chat/completions, adaptando parâmetros que o modelo recusar
+	 *
+	 * Rede de segurança para modelos que a detecção por nome não conhece:
+	 * quando a API devolve `unsupported_parameter`/`unsupported_value` para
+	 * `max_tokens` ou `temperature`, ajusta o corpo (troca por
+	 * `max_completion_tokens` / remove a temperature) e reenvia — no máximo
+	 * duas adaptações, uma por parâmetro.
+	 *
+	 * @param array $body Corpo da requisição.
+	 * @return array|WP_Error
+	 */
+	private function chat_request_with_param_fallback( array $body ) {
+		for ( $attempt = 0; $attempt < 3; $attempt++ ) {
+			$response = $this->make_request_with_retry(
+				self::API_BASE_URL . '/chat/completions',
+				$body,
+				$this->get_headers()
+			);
+
+			if ( ! is_wp_error( $response ) ) {
+				return $response;
+			}
+
+			$message = $response->get_error_message();
+
+			if ( isset( $body['max_tokens'] ) && preg_match( '/max_tokens.+max_completion_tokens/i', $message ) ) {
+				$body['max_completion_tokens'] = $body['max_tokens'];
+				unset( $body['max_tokens'] );
+				continue;
+			}
+
+			if ( isset( $body['temperature'] ) && false !== stripos( $message, "'temperature'" ) ) {
+				unset( $body['temperature'] );
+				continue;
+			}
+
+			return $response;
+		}
+
+		return $response;
 	}
 
 	/**

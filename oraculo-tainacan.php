@@ -3,7 +3,7 @@
  * Plugin Name: Oráculo Tainacan
  * Plugin URI: https://github.com/tainacan/oraculo-tainacan
  * Description: Sistema avançado de busca em linguagem natural com IA para acervos Tainacan. Integra RAG (Retrieval-Augmented Generation) com múltiplos provedores de IA.
- * Version: 2.2.0
+ * Version: 2.5.1
  * Author: Tainacan Community
  * Author URI: https://tainacan.org
  * License: GPL-2.0+
@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Constantes do plugin
-define( 'ORACULO_TAINACAN_VERSION', '2.2.0' );
+define( 'ORACULO_TAINACAN_VERSION', '2.5.1' );
 define( 'ORACULO_TAINACAN_FILE', __FILE__ );
 define( 'ORACULO_TAINACAN_PATH', plugin_dir_path( __FILE__ ) );
 define( 'ORACULO_TAINACAN_URL', plugin_dir_url( __FILE__ ) );
@@ -176,12 +176,14 @@ final class Oraculo_Tainacan {
 		add_action( 'wp_ajax_oraculo_index_collection', array( $this, 'ajax_index_collection' ) );
 		add_action( 'wp_ajax_oraculo_get_indexing_status', array( $this, 'ajax_get_indexing_status' ) );
 		add_action( 'wp_ajax_oraculo_test_connection', array( $this, 'ajax_test_connection' ) );
+		add_action( 'wp_ajax_oraculo_list_models', array( $this, 'ajax_list_models' ) );
 		add_action( 'wp_ajax_oraculo_clear_vectors', array( $this, 'ajax_clear_vectors' ) );
 		add_action( 'wp_ajax_oraculo_clear_all_vectors', array( $this, 'ajax_clear_all_vectors' ) );
 		add_action( 'wp_ajax_oraculo_optimize_db', array( $this, 'ajax_optimize_db' ) );
 		add_action( 'wp_ajax_oraculo_save_indexing_settings', array( $this, 'ajax_save_indexing_settings' ) );
 		add_action( 'wp_ajax_oraculo_save_settings', array( $this, 'ajax_save_settings' ) );
 		add_action( 'wp_ajax_oraculo_clear_cache', array( $this, 'ajax_clear_cache' ) );
+		add_action( 'wp_ajax_oraculo_process_queue', array( $this, 'ajax_process_queue' ) );
 
 		// Cron para indexação em background
 		add_action( 'oraculo_process_indexing_batch', array( $this, 'process_indexing_batch' ) );
@@ -219,6 +221,18 @@ final class Oraculo_Tainacan {
 			wp_schedule_event( time(), 'daily', 'oraculo_cleanup_old_data' );
 		}
 
+		// Worker da fila de indexação automática. O schedule custom só existe
+		// depois do filtro cron_schedules, por isso o registro explícito aqui;
+		// AutoIndexer::ensure_scheduled() cobre upgrades, onde activate() não roda.
+		// phpcs:ignore WordPress.WP.CronInterval.ChangeDetected -- Same callback registered by AutoIndexer::register(); re-added here because activation runs before the plugin's own filter is attached. Interval rationale documented at the callback.
+		add_filter( 'cron_schedules', array( new Indexing\AutoIndexer(), 'register_cron_schedule' ) );
+		if ( ! wp_next_scheduled( Indexing\AutoIndexer::CRON_HOOK ) ) {
+			wp_schedule_event( time(), Indexing\AutoIndexer::CRON_SCHEDULE, Indexing\AutoIndexer::CRON_HOOK );
+		}
+		if ( ! wp_next_scheduled( Indexing\AutoIndexer::CRON_RECONCILE ) ) {
+			wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', Indexing\AutoIndexer::CRON_RECONCILE );
+		}
+
 		// Flush rewrite rules
 		flush_rewrite_rules();
 
@@ -233,6 +247,13 @@ final class Oraculo_Tainacan {
 		// Limpar cron jobs
 		wp_clear_scheduled_hook( 'oraculo_process_indexing_batch' );
 		wp_clear_scheduled_hook( 'oraculo_cleanup_old_data' );
+		wp_clear_scheduled_hook( Indexing\AutoIndexer::CRON_HOOK );
+		wp_clear_scheduled_hook( Indexing\AutoIndexer::CRON_HOOK, array( 'kick' ) );
+		wp_clear_scheduled_hook( Indexing\AutoIndexer::CRON_RECONCILE );
+
+		// Sem isto, um lock deixado por um worker interrompido bloquearia a fila
+		// por LOCK_TIMEOUT depois da reativação.
+		delete_option( 'oraculo_index_queue_lock' );
 
 		// Limpar transients
 		$this->clear_all_transients();
@@ -445,10 +466,14 @@ final class Oraculo_Tainacan {
 		$defaults = array(
 			'ai_provider'            => 'openai',
 			'openai_api_key'         => '',
-			'openai_model'           => 'gpt-4o-mini',
-			'openai_embedding_model' => 'text-embedding-ada-002',
+			'openai_model'           => 'gpt-5-mini',
+			'openai_embedding_model' => 'text-embedding-3-small',
 			'gemini_api_key'         => '',
-			'gemini_model'           => 'gemini-1.5-pro',
+			'gemini_model'           => 'gemini-2.5-flash',
+			'claude_api_key'         => '',
+			'claude_model'           => 'claude-sonnet-5',
+			'groq_api_key'           => '',
+			'groq_model'             => 'llama-3.3-70b-versatile',
 			'deepseek_api_key'       => '',
 			'deepseek_model'         => 'deepseek-chat',
 			'ollama_url'             => 'http://localhost:11434',
@@ -477,6 +502,11 @@ final class Oraculo_Tainacan {
 				__( 'Quais coleções estão disponíveis?', 'oraculo-tainacan' ),
 			),
 			'index_fields'           => array( 'title', 'description' ),
+			// Busca visual via AI API do IBRAM (CLIP + pgvector). URL vazia = desligado.
+			'search_backend'         => 'local',
+			'clip_api_url'           => '',
+			'clip_api_model'         => 'ViT-L-14',
+			'clip_api_timeout'       => 60,
 			'appearance'             => array(
 				'primary_color'   => '#1f2f56',
 				'accent_color'    => '#b5e0e3',
@@ -579,6 +609,11 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 		$this->services['chat']      = new Chat\ChatEngine();
 		$this->services['indexing']  = new Indexing\IndexingManager();
 		$this->services['analytics'] = new Analytics\AnalyticsManager();
+
+		// Indexação automática: mantém o índice vetorial em dia conforme o
+		// acervo muda. Só registra hooks aqui — nada de chamada de IA no save.
+		$this->services['auto_indexer'] = new Indexing\AutoIndexer();
+		$this->services['auto_indexer']->register();
 
 		// Aba "Busca com IA" nas listagens de itens do Tainacan (injeção client-side).
 		$this->services['theme_integration'] = new Frontend\ThemeIntegration();
@@ -867,8 +902,78 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 			$factory     = new AI\AIProviderFactory();
 			$ai_provider = $factory->create( $provider );
 			$result      = $ai_provider->test_connection();
-			wp_send_json_success( $result );
+
+			// O envelope precisa refletir o resultado do teste: mandar
+			// wp_send_json_success com ['success' => false] fazia o JS exibir
+			// "✅" na frente de uma mensagem de falha de autenticação.
+			if ( ! empty( $result['success'] ) ) {
+				wp_send_json_success( $result );
+			} else {
+				wp_send_json_error( $result );
+			}
 		} catch ( \Exception $e ) {
+			wp_send_json_error( array( 'message' => $e->getMessage() ) );
+		}
+	}
+
+	/**
+	 * Handler AJAX: consulta o endpoint de modelos do provedor com a chave
+	 * digitada (ou a já salva) e devolve o que a conta realmente libera
+	 *
+	 * Funciona antes de salvar: o operador digita uma chave nova, clica em
+	 * "Buscar modelos" e vê o catálogo daquela conta sem precisar submeter o
+	 * formulário primeiro. Campo vazio ou com a máscara "••••••••" usa a
+	 * chave já configurada para o provedor.
+	 */
+	public function ajax_list_models(): void {
+		check_ajax_referer( 'oraculo_admin', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permissão negada.', 'oraculo-tainacan' ) ) );
+		}
+
+		$provider_id = sanitize_text_field( wp_unslash( $_POST['provider'] ?? '' ) );
+		$submitted   = isset( $_POST['api_key'] ) ? sanitize_text_field( wp_unslash( $_POST['api_key'] ) ) : '';
+		$ollama_url  = isset( $_POST['ollama_url'] ) ? esc_url_raw( wp_unslash( $_POST['ollama_url'] ) ) : '';
+
+		if ( '' === $provider_id ) {
+			wp_send_json_error( array( 'message' => __( 'Provedor inválido.', 'oraculo-tainacan' ) ) );
+		}
+
+		$current = self::get_options();
+		$is_mask = '' === $submitted || (bool) preg_match( '/^[*\x{2022}\x{25CF}]+$/u', $submitted );
+		$config  = array();
+
+		if ( in_array( $provider_id, array( 'ollama', 'clip' ), true ) ) {
+			// Provedores por URL (sem chave): o campo relevante é o endereço do
+			// servidor. O JS envia a URL digitada no painel via ollama_url.
+			$stored_url         = 'clip' === $provider_id
+				? (string) ( $current['clip_api_url'] ?? '' )
+				: (string) ( $current['ollama_url'] ?? '' );
+			$config['base_url'] = '' !== $ollama_url ? $ollama_url : $stored_url;
+		} else {
+			// Placeholder/vazio -> usa o valor já salvo (get_api_key() descriptografa
+			// sozinho se estiver no formato 'enc:...'); valor digitado vai como
+			// texto puro mesmo, pois ainda não foi persistido nem criptografado.
+			$config['api_key'] = $is_mask ? (string) ( $current[ $provider_id . '_api_key' ] ?? '' ) : $submitted;
+		}
+
+		try {
+			$factory     = new AI\AIProviderFactory();
+			$ai_provider = $factory->create( $provider_id, $config );
+			$models      = $ai_provider->list_remote_models();
+
+			if ( is_wp_error( $models ) ) {
+				wp_send_json_error( array( 'message' => $models->get_error_message() ) );
+			}
+
+			wp_send_json_success(
+				array(
+					'models' => $models,
+					'count'  => count( $models ),
+				)
+			);
+		} catch ( \Throwable $e ) {
 			wp_send_json_error( array( 'message' => $e->getMessage() ) );
 		}
 	}
@@ -979,14 +1084,25 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 			$allowed_settings_keys = array( 'batch_size', 'embedding_provider', 'auto_index', 'index_title', 'index_description', 'index_metadata', 'index_document' );
 			$settings              = array_intersect_key( $settings, array_flip( $allowed_settings_keys ) );
 
-			// Salvar configurações
-			update_option( 'oraculo_batch_size', absint( $settings['batch_size'] ?? 10 ) );
+			$batch_size = max( 1, min( 100, absint( $settings['batch_size'] ?? 10 ) ) );
+
+			// Checkboxes → index_fields no array principal de opções, que é o
+			// que IndexingManager efetivamente lê. As opções soltas
+			// oraculo_index_* eram gravadas aqui e não eram lidas por nada.
+			$index_fields = array();
+			foreach ( array( 'title', 'description', 'metadata', 'document' ) as $field ) {
+				if ( ! empty( $settings[ 'index_' . $field ] ) ) {
+					$index_fields[] = $field;
+				}
+			}
+
+			self::update_option( 'batch_size', $batch_size );
+			self::update_option( 'index_fields', $index_fields );
+
+			// Opções standalone consumidas por AutoIndexer e AIProviderFactory.
+			update_option( 'oraculo_batch_size', $batch_size );
 			update_option( 'oraculo_embedding_provider', sanitize_text_field( $settings['embedding_provider'] ?? 'openai' ) );
 			update_option( 'oraculo_auto_index', ! empty( $settings['auto_index'] ) );
-			update_option( 'oraculo_index_title', ! empty( $settings['index_title'] ) );
-			update_option( 'oraculo_index_description', ! empty( $settings['index_description'] ) );
-			update_option( 'oraculo_index_metadata', ! empty( $settings['index_metadata'] ) );
-			update_option( 'oraculo_index_document', ! empty( $settings['index_document'] ) );
 
 			wp_send_json_success(
 				array(
@@ -1064,11 +1180,40 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 	}
 
 	/**
-	 * Processa batch de indexação (cron)
+	 * Handler AJAX do botão "Processar fila agora" (tela de indexação)
+	 */
+	public function ajax_process_queue(): void {
+		check_ajax_referer( 'oraculo_admin', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permissão negada.', 'oraculo-tainacan' ) ) );
+		}
+
+		$auto_indexer = $this->services['auto_indexer'] ?? new Indexing\AutoIndexer();
+		$summary      = $auto_indexer->process_queue();
+
+		if ( ! empty( $summary['locked'] ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'A fila já está sendo processada em segundo plano. Tente novamente em instantes.', 'oraculo-tainacan' ),
+				)
+			);
+		}
+
+		wp_send_json_success( $summary );
+	}
+
+	/**
+	 * Processa batch de indexação (cron legado)
+	 *
+	 * O hook oraculo_process_indexing_batch nunca chegou a ser agendado e
+	 * chamava IndexingManager::process_next_batch(), método inexistente — se
+	 * algum agendamento residual disparasse, era fatal. Agora delega ao worker
+	 * da fila, que é o mecanismo real de indexação em background.
 	 */
 	public function process_indexing_batch(): void {
-		if ( isset( $this->services['indexing'] ) ) {
-			$this->services['indexing']->process_next_batch();
+		if ( isset( $this->services['auto_indexer'] ) ) {
+			$this->services['auto_indexer']->process_queue();
 		}
 	}
 

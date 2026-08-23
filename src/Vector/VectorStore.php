@@ -96,7 +96,7 @@ class VectorStore {
 				array( '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s' ),
 				array( '%d' )
 			);
-			\Oraculo_Tainacan\oraculo_tainacan_flush_cache();
+			\Oraculo_Tainacan\invalidate_index_caches();
 
 			return $result !== false ? (int) $existing : new WP_Error( 'update_failed', __( 'Falha ao atualizar vetor.', 'oraculo-tainacan' ) );
 		}
@@ -108,7 +108,7 @@ class VectorStore {
 			$record,
 			array( '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s' )
 		);
-		\Oraculo_Tainacan\oraculo_tainacan_flush_cache();
+		\Oraculo_Tainacan\invalidate_index_caches();
 
 		return $result !== false ? $wpdb->insert_id : new WP_Error( 'insert_failed', __( 'Falha ao inserir vetor.', 'oraculo-tainacan' ) );
 	}
@@ -342,7 +342,7 @@ class VectorStore {
 			),
 			array( '%d', '%d' )
 		);
-		\Oraculo_Tainacan\oraculo_tainacan_flush_cache();
+		\Oraculo_Tainacan\invalidate_index_caches();
 
 		return $result !== false;
 	}
@@ -362,7 +362,7 @@ class VectorStore {
 			array( 'collection_id' => $collection_id ),
 			array( '%d' )
 		);
-		\Oraculo_Tainacan\oraculo_tainacan_flush_cache();
+		\Oraculo_Tainacan\invalidate_index_caches();
 
 		return (int) $result;
 	}
@@ -495,7 +495,7 @@ class VectorStore {
 			)
 		);
         // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-		\Oraculo_Tainacan\oraculo_tainacan_flush_cache();
+		\Oraculo_Tainacan\invalidate_index_caches();
 		return $result;
 	}
 

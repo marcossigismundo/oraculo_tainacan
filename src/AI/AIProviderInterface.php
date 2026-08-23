@@ -72,6 +72,20 @@ interface AIProviderInterface {
 	public function test_connection(): array;
 
 	/**
+	 * Lista os modelos que a conta desta chave de API realmente libera
+	 *
+	 * Consulta o endpoint de modelos do provedor (não o catálogo estático de
+	 * get_available_models()): o que volta reflete o plano/tier pago da conta,
+	 * incluindo modelos lançados depois desta versão do plugin ou fora do
+	 * catálogo embutido. Usa a chave/URL já passadas em configure() — para
+	 * consultar com uma chave ainda não salva, instancie via
+	 * AIProviderFactory::create($id, ['api_key' => $chave]) antes de chamar.
+	 *
+	 * @return array|WP_Error Lista [['id' => string, 'name' => string], ...].
+	 */
+	public function list_remote_models();
+
+	/**
 	 * Gera embedding para um texto
 	 *
 	 * @param string      $text

@@ -103,31 +103,20 @@ class Commands extends WP_CLI_Command {
 			WP_CLI::error( $result->get_error_message() );
 		}
 
-		WP_CLI::log( 'Indexação iniciada. Processando...' );
+		// start_indexing() é síncrono e já processa a coleção inteira: o loop de
+		// batches que existia aqui chamava process_next_batch(), método que nunca
+		// existiu em IndexingManager — o comando quebrava neste ponto.
+		WP_CLI::success(
+			sprintf(
+				'Indexação concluída! %d de %d itens indexados (%d falhas).',
+				(int) $result['indexed_items'],
+				(int) $result['total_items'],
+				(int) $result['failed_items']
+			)
+		);
 
-		// Processar batches em loop
-		$progress = \WP_CLI\Utils\make_progress_bar( 'Indexando', $collection['items_count'] );
-
-		while ( true ) {
-			$status = $indexing->process_next_batch( $collection_id );
-
-			if ( $status['status'] === 'completed' ) {
-				$progress->finish();
-				WP_CLI::success( "Indexação concluída! {$status['processed']} itens indexados." );
-				break;
-			}
-
-			if ( $status['status'] === 'error' ) {
-				$progress->finish();
-				WP_CLI::error( "Erro: {$status['error']}" );
-			}
-
-			if ( isset( $status['processed'] ) ) {
-				$progress->tick( $status['processed'] );
-			}
-
-			// Pequena pausa para não sobrecarregar
-			usleep( 100000 );
+		foreach ( array_slice( (array) ( $result['errors'] ?? array() ), 0, 10 ) as $error ) {
+			WP_CLI::warning( is_array( $error ) ? wp_json_encode( $error ) : (string) $error );
 		}
 	}
 
@@ -554,6 +543,154 @@ class Commands extends WP_CLI_Command {
 			WP_CLI::success( "Dados exportados para: {$output}" );
 		} else {
 			WP_CLI::log( $data );
+		}
+	}
+
+	/**
+	 * Gerencia a fila de indexação automática.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <acao>
+	 * : Ação a executar: status, process ou reconcile.
+	 *
+	 * ## EXEMPLOS
+	 *
+	 *     wp oraculo queue status
+	 *     wp oraculo queue process
+	 *     wp oraculo queue reconcile
+	 *
+	 * @param array $args
+	 * @param array $assoc_args
+	 */
+	public function queue( $args, $assoc_args ) {
+		$action       = $args[0] ?? 'status';
+		$auto_indexer = new \Oraculo_Tainacan\Indexing\AutoIndexer();
+
+		switch ( $action ) {
+			case 'status':
+				WP_CLI::log( 'Itens pendentes na fila: ' . $auto_indexer->count_pending() );
+				$next = wp_next_scheduled( \Oraculo_Tainacan\Indexing\AutoIndexer::CRON_HOOK );
+				WP_CLI::log( 'Próxima passada do worker: ' . ( $next ? gmdate( 'Y-m-d H:i:s', $next ) . ' UTC' : 'não agendada' ) );
+				break;
+
+			case 'process':
+				$summary = $auto_indexer->process_queue();
+				if ( ! empty( $summary['locked'] ) ) {
+					WP_CLI::error( 'A fila já está sendo processada por outro worker.' );
+				}
+				WP_CLI::log( wp_json_encode( $summary, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ) );
+				WP_CLI::success( 'Lote processado.' );
+				break;
+
+			case 'reconcile':
+				$summary = $auto_indexer->reconcile();
+				WP_CLI::log( wp_json_encode( $summary, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ) );
+				WP_CLI::success( 'Reconciliação concluída.' );
+				break;
+
+			default:
+				WP_CLI::error( "Ação inválida: {$action}. Use: status, process, reconcile" );
+		}
+	}
+
+	/**
+	 * Testa e opera a integração com a AI API CLIP do IBRAM.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <acao>
+	 * : Ação a executar: health, models, search ou index.
+	 *
+	 * [<consulta>]
+	 * : Consulta em linguagem natural (para a ação search) ou ID do item (para index).
+	 *
+	 * [--top_k=<n>]
+	 * : Máximo de resultados na busca (padrão 10).
+	 *
+	 * ## EXEMPLOS
+	 *
+	 *     wp oraculo clip health
+	 *     wp oraculo clip models
+	 *     wp oraculo clip search "obras do século 21 que são de vidro"
+	 *     wp oraculo clip index 366435
+	 *
+	 * @param array $args
+	 * @param array $assoc_args
+	 */
+	public function clip( $args, $assoc_args ) {
+		$action = $args[0] ?? 'health';
+		$client = new \Oraculo_Tainacan\Vector\ClipApiClient();
+
+		if ( ! $client->is_configured() ) {
+			WP_CLI::error( 'AI API não configurada. Defina a URL em Configurações > Busca Visual (CLIP).' );
+		}
+
+		switch ( $action ) {
+			case 'health':
+				$result = $client->health();
+				if ( is_wp_error( $result ) ) {
+					WP_CLI::error( $result->get_error_message() );
+				}
+				WP_CLI::success( 'AI API saudável (modelo configurado: ' . $client->get_model() . ').' );
+				break;
+
+			case 'models':
+				$models = $client->list_models();
+				if ( is_wp_error( $models ) ) {
+					WP_CLI::error( $models->get_error_message() );
+				}
+				foreach ( $models as $model ) {
+					WP_CLI::log( sprintf( '%-20s %s dim', $model['id'] ?? '?', $model['dimensions'] ?? '?' ) );
+				}
+				break;
+
+			case 'search':
+				$query = $args[1] ?? '';
+				if ( '' === trim( $query ) ) {
+					WP_CLI::error( 'Informe a consulta: wp oraculo clip search "sua busca"' );
+				}
+
+				$parsed = \Oraculo_Tainacan\Search\QueryParser::parse( $query );
+				WP_CLI::log( 'Texto para o CLIP : ' . $parsed['clean_query'] );
+				WP_CLI::log( 'Filtro extraído   : ' . ( empty( $parsed['filter'] ) ? '(nenhum)' : wp_json_encode( $parsed['filter'] ) ) );
+
+				$top_k = (int) \WP_CLI\Utils\get_flag_value( $assoc_args, 'top_k', 10 );
+				$rows  = $client->search_text( $parsed['clean_query'], $top_k, $parsed['filter'] );
+				if ( is_wp_error( $rows ) ) {
+					WP_CLI::error( $rows->get_error_message() );
+				}
+
+				foreach ( $rows as $row ) {
+					WP_CLI::log(
+						sprintf(
+							'#%-8s score %.3f  %s',
+							$row['id'],
+							$row['score'],
+							$row['metadata']['title'] ?? ''
+						)
+					);
+				}
+				WP_CLI::success( count( $rows ) . ' resultado(s).' );
+				break;
+
+			case 'index':
+				$item_id = (int) ( $args[1] ?? 0 );
+				if ( $item_id <= 0 ) {
+					WP_CLI::error( 'Informe o ID do item: wp oraculo clip index <id>' );
+				}
+
+				$clip_indexer = new \Oraculo_Tainacan\Indexing\ClipIndexer( $client );
+				\Oraculo_Tainacan\Indexing\ClipIndexer::reset_item( $item_id );
+				$result = $clip_indexer->index_item( $item_id );
+				if ( is_wp_error( $result ) ) {
+					WP_CLI::error( $result->get_error_message() );
+				}
+				WP_CLI::success( 'Item #' . $item_id . ': ' . $result );
+				break;
+
+			default:
+				WP_CLI::error( "Ação inválida: {$action}. Use: health, models, search, index" );
 		}
 	}
 }

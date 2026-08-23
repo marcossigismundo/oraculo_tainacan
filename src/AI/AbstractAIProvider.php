@@ -357,7 +357,11 @@ abstract class AbstractAIProvider implements AIProviderInterface {
 	 * @return bool
 	 */
 	protected function has_api_key( string $key_name = 'api_key' ): bool {
-		return ! empty( $this->config[ $key_name ] );
+		// Valida a chave DESCRIPTOGRAFADA, não o valor bruto: um 'enc:...'
+		// corrompido (que decifra para vazio) contava como "configurado" e o
+		// provedor mandava um Bearer vazio para a API em vez de avisar logo
+		// que a chave precisa ser reconfigurada.
+		return '' !== $this->get_api_key( $key_name );
 	}
 
 	/**
@@ -369,12 +373,19 @@ abstract class AbstractAIProvider implements AIProviderInterface {
 	protected function get_api_key( string $key_name = 'api_key' ): string {
 		$key = $this->config[ $key_name ] ?? '';
 
-		// Verificar se está criptografada (base64 + prefixo específico)
-		if ( strpos( $key, 'enc:' ) === 0 ) {
-			return \Oraculo_Tainacan\decrypt_value( substr( $key, 4 ) );
+		// Descriptografa em camadas, não uma vez só: saves feitos pela 2.4.x
+		// podiam gravar a chave duplamente criptografada (o sanitize manual do
+		// AJAX + o sanitize_callback do register_setting rodavam no mesmo
+		// update_option). O laço cura esses valores no ato — sem exigir que o
+		// usuário digite a chave de novo. O guarda limita a profundidade e o
+		// laço para sozinho se a descriptografia devolver vazio (valor corrompido).
+		$guard = 0;
+		while ( is_string( $key ) && 0 === strpos( $key, 'enc:' ) && $guard < 5 ) {
+			$key = \Oraculo_Tainacan\decrypt_value( substr( $key, 4 ) );
+			++$guard;
 		}
 
-		return $key;
+		return is_string( $key ) ? $key : '';
 	}
 
 	/**
@@ -482,11 +493,17 @@ abstract class AbstractAIProvider implements AIProviderInterface {
 	protected function prepare_options( array $options ): array {
 		$plugin_options = \Oraculo_Tainacan\Oraculo_Tainacan::get_options();
 
+		// O modelo configurado na instância (vindo das opções salvas, via
+		// factory) tem precedência; o primeiro do catálogo é só o último
+		// recurso. Antes o catálogo[0] era injetado incondicionalmente aqui,
+		// então o `$options['model'] ?? get_config(...)` dos providers nunca
+		// caía no modelo escolhido pelo usuário — todo chat rodava no primeiro
+		// modelo do catálogo, qualquer que fosse a configuração.
 		return array_merge(
 			array(
-				'model'       => $this->get_available_models()[0]['id'] ?? '',
-				'max_tokens'  => $plugin_options['max_tokens'] ?? 2000,
-				'temperature' => $plugin_options['temperature'] ?? 0.7,
+				'model'       => $this->get_config( 'model', $this->get_available_models()[0]['id'] ?? '' ),
+				'max_tokens'  => $this->get_config( 'max_tokens', $plugin_options['max_tokens'] ?? 2000 ),
+				'temperature' => $this->get_config( 'temperature', $plugin_options['temperature'] ?? 0.7 ),
 			),
 			$options
 		);
@@ -507,5 +524,33 @@ abstract class AbstractAIProvider implements AIProviderInterface {
 				( $usage['completion_tokens'] ?? $usage['output_tokens'] ?? 0 )
 			),
 		);
+	}
+
+	/**
+	 * Normaliza a resposta de um endpoint /models no formato OpenAI
+	 *
+	 * Formato `{"data":[{"id":"...", "display_name"?:"..."}]}`, compartilhado
+	 * por OpenAI, Groq, DeepSeek (dialeto OpenAI) e Anthropic (mesma forma,
+	 * com display_name preenchido). Ordena por ID para saída previsível.
+	 *
+	 * @param array $data Corpo já decodificado da resposta.
+	 * @return array Lista [['id' => string, 'name' => string], ...].
+	 */
+	protected function normalize_openai_style_models( array $data ): array {
+		$models = array();
+
+		foreach ( (array) ( $data['data'] ?? array() ) as $item ) {
+			if ( ! is_array( $item ) || empty( $item['id'] ) ) {
+				continue;
+			}
+			$models[] = array(
+				'id'   => (string) $item['id'],
+				'name' => (string) ( $item['display_name'] ?? $item['id'] ),
+			);
+		}
+
+		usort( $models, static fn( $a, $b ) => strcmp( $a['id'], $b['id'] ) );
+
+		return $models;
 	}
 }

@@ -11,6 +11,7 @@ namespace Oraculo_Tainacan\Search;
 
 use Oraculo_Tainacan\AI\AIProviderFactory;
 use Oraculo_Tainacan\Vector\VectorStore;
+use Oraculo_Tainacan\Search\QueryParser;
 use WP_Error;
 
 /**
@@ -63,6 +64,12 @@ class SearchEngine {
 		$query = trim( $query );
 		if ( empty( $query ) ) {
 			return new WP_Error( 'empty_query', __( 'A pergunta não pode estar vazia.', 'oraculo-tainacan' ) );
+		}
+
+		// Backend CLIP (AI API do IBRAM): busca visual sem LLM — os resultados
+		// vêm do espaço conjunto imagem-texto e a "resposta" é determinística.
+		if ( $this->use_clip_backend() ) {
+			return $this->clip_search( $query, $collection_ids, $options );
 		}
 
 		// Verificar cache
@@ -414,9 +421,279 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados. S
 			'query'       => strtolower( trim( $query ) ),
 			'collections' => $collection_ids,
 			'provider'    => $this->options['ai_provider'] ?? 'openai',
+			// Backend e modelo participam da chave: alternar local ↔ CLIP nas
+			// configurações não pode servir resultado do outro backend.
+			'backend'     => $this->options['search_backend'] ?? 'local',
+			'clip_model'  => $this->options['clip_api_model'] ?? '',
+			// Versão do índice: qualquer escrita de vetor a incrementa, aposentando
+			// as chaves antigas. Sem isso, um item novo só aparecia na busca depois
+			// que o transient expirasse (cache_duration, padrão 1h).
+			'index'       => \Oraculo_Tainacan\get_index_version(),
 		);
 
 		return 'oraculo_search_' . md5( wp_json_encode( $data ) );
+	}
+
+	/**
+	 * O backend de busca configurado é o CLIP remoto?
+	 *
+	 * @return bool
+	 */
+	private function use_clip_backend(): bool {
+		// O CLIP agora é selecionado como provedor de IA (card, igual aos
+		// demais). O search_backend antigo é aceito por compatibilidade com
+		// configurações salvas pela 2.3.x/2.4.0, onde era um select próprio
+		// na aba Geral.
+		$is_clip = 'clip' === ( $this->options['ai_provider'] ?? '' )
+			|| 'clip' === ( $this->options['search_backend'] ?? '' );
+
+		if ( ! $is_clip ) {
+			return false;
+		}
+
+		return ( new \Oraculo_Tainacan\Vector\ClipApiClient( $this->options ) )->is_configured();
+	}
+
+	/**
+	 * Busca via AI API do IBRAM (CLIP + pgvector), sem LLM
+	 *
+	 * Fluxo: QueryParser separa o que é visual do que é restrição estruturada
+	 * ("obras do século 21 que são de vidro" → texto "obras de vidro" + filtro
+	 * {century:"21"}); o texto vai ao encoder CLIP do servidor e o filtro é
+	 * aplicado por igualdade sobre os metadados gravados na indexação remota.
+	 *
+	 * Limites do servidor absorvidos aqui:
+	 * - Filtro é igualdade única → várias coleções e intervalos de anos são
+	 *   pós-filtrados em PHP (pedindo top_k maior para ter sobra).
+	 * - Zero resultados com filtro temporal → repete sem o filtro e sinaliza
+	 *   `filter_relaxed`, para a UI explicar em vez de devolver vazio.
+	 *
+	 * @param string $query          Consulta em linguagem natural.
+	 * @param array  $collection_ids Coleções (vazio = todas).
+	 * @param array  $options        Opções (max_results, no_cache).
+	 * @return array|WP_Error Mesma forma de resposta do backend local.
+	 */
+	private function clip_search( string $query, array $collection_ids, array $options ) {
+		$start_time = microtime( true );
+
+		$cache_key = $this->get_cache_key( $query, $collection_ids );
+		$cached    = get_transient( $cache_key );
+		if ( false !== $cached && empty( $options['no_cache'] ) ) {
+			$cached['from_cache'] = true;
+			return $cached;
+		}
+
+		$client      = new \Oraculo_Tainacan\Vector\ClipApiClient( $this->options );
+		$parsed      = QueryParser::parse( $query );
+		$max_results = (int) ( $options['max_results'] ?? $this->options['max_results'] ?? 10 );
+
+		$filter = $parsed['filter'];
+
+		// Coleção única entra no filtro do servidor; várias exigem pós-filtro
+		// (igualdade única do lado de lá).
+		$post_filter_collections = array();
+		if ( 1 === count( $collection_ids ) ) {
+			$filter['collection_id'] = (string) (int) reset( $collection_ids );
+		} elseif ( count( $collection_ids ) > 1 ) {
+			$post_filter_collections = array_map( 'intval', $collection_ids );
+		}
+
+		$needs_post_filter = ! empty( $post_filter_collections ) || null !== $parsed['year_range'];
+		$top_k             = $needs_post_filter ? min( 50, $max_results * 5 ) : $max_results;
+
+		$rows = $client->search_text( $parsed['clean_query'], $top_k, $filter );
+		if ( is_wp_error( $rows ) ) {
+			return $rows;
+		}
+
+		// Relaxamento: filtro temporal sem nenhum resultado geralmente indica
+		// acervo sem a faceta preenchida, não ausência de obras. Repetir sem o
+		// temporal (mantendo coleção) e avisar é mais útil que vazio seco.
+		$filter_relaxed = false;
+		if ( empty( $rows ) && ! empty( $parsed['filter'] ) ) {
+			$relaxed = array_diff_key( $filter, $parsed['filter'] );
+			$rows    = $client->search_text( $parsed['clean_query'], $top_k, $relaxed );
+			if ( is_wp_error( $rows ) ) {
+				return $rows;
+			}
+			$filter_relaxed = true;
+		}
+
+		// Pós-filtros que o servidor não expressa.
+		if ( ! empty( $post_filter_collections ) ) {
+			$rows = array_values(
+				array_filter(
+					$rows,
+					static fn( $row ) => in_array( (int) ( $row['metadata']['collection_id'] ?? 0 ), $post_filter_collections, true )
+				)
+			);
+		}
+
+		if ( null !== $parsed['year_range'] && ! $filter_relaxed ) {
+			list( $min_year, $max_year ) = $parsed['year_range'];
+
+			$in_range = array_values(
+				array_filter(
+					$rows,
+					static function ( $row ) use ( $min_year, $max_year ) {
+						$year = (int) ( $row['metadata']['year'] ?? 0 );
+						return $year >= $min_year && $year <= $max_year;
+					}
+				)
+			);
+
+			// Intervalo zerou tudo → mesmo tratamento do filtro de igualdade.
+			if ( empty( $in_range ) && ! empty( $rows ) ) {
+				$filter_relaxed = true;
+			} else {
+				$rows = $in_range;
+			}
+		}
+
+		$items = $this->resolve_clip_items( $rows, $max_results, $query );
+
+		$response_time = (int) round( ( microtime( true ) - $start_time ) * 1000 );
+
+		$result = array(
+			'query'            => $query,
+			'response'         => $this->build_clip_response_text( $parsed, count( $items ), $filter_relaxed ),
+			'items'            => $items,
+			'total_results'    => count( $items ),
+			'usage'            => array(),
+			'model'            => 'clip:' . $client->get_model(),
+			'cost'             => 0,
+			'response_time_ms' => $response_time,
+			'search_id'        => wp_generate_uuid4(),
+			'from_cache'       => false,
+			'backend'          => 'clip',
+			'applied_filter'   => $filter_relaxed ? array() : $parsed['filter'],
+			'filter_relaxed'   => $filter_relaxed,
+		);
+
+		$cache_duration = $this->options['cache_duration'] ?? 3600;
+		set_transient( $cache_key, $result, $cache_duration );
+
+		$this->log_search( $result, $collection_ids );
+
+		return $result;
+	}
+
+	/**
+	 * Converte resultados remotos (external_id) em itens Tainacan exibíveis
+	 *
+	 * Valida cada ID contra o WordPress: só itens publicados e que ainda são
+	 * itens Tainacan entram — o índice remoto é INSERT-only e pode reter
+	 * registros de itens já removidos do acervo.
+	 *
+	 * @param array  $rows        Linhas de ClipApiClient::search_text().
+	 * @param int    $max_results Corte final.
+	 * @param string $query       Consulta original (para o snippet).
+	 * @return array Itens no mesmo formato de format_items().
+	 */
+	private function resolve_clip_items( array $rows, int $max_results, string $query ): array {
+		$items = array();
+
+		foreach ( $rows as $row ) {
+			if ( count( $items ) >= $max_results ) {
+				break;
+			}
+
+			$item_id = (int) $row['id'];
+			$post    = get_post( $item_id );
+
+			if ( ! ( $post instanceof \WP_Post ) || 'publish' !== $post->post_status ) {
+				continue;
+			}
+
+			$collection_id = \Oraculo_Tainacan\Indexing\AutoIndexer::get_collection_id_from_post_type( (string) $post->post_type );
+			if ( $collection_id <= 0 ) {
+				continue;
+			}
+
+			$collection      = get_post( $collection_id );
+			$collection_name = ( $collection instanceof \WP_Post ) ? $collection->post_title : '';
+
+			$description = wp_strip_all_tags( (string) $post->post_content );
+
+			$items[] = array(
+				'id'              => $item_id,
+				'title'           => get_the_title( $post ),
+				'snippet'         => '' !== $description ? \Oraculo_Tainacan\generate_snippet( $description, $query ) : '',
+				'url'             => (string) get_permalink( $post ),
+				'thumbnail'       => (string) get_the_post_thumbnail_url( $item_id, 'medium' ),
+				'collection_id'   => $collection_id,
+				'collection_name' => $collection_name,
+				'similarity'      => round( ( $row['score'] ?? 0 ) * 100, 1 ),
+				'metadata'        => (array) ( $row['metadata'] ?? array() ),
+			);
+		}
+
+		return $items;
+	}
+
+	/**
+	 * Texto de resposta determinístico do backend CLIP (sem LLM)
+	 *
+	 * @param array $parsed         Saída do QueryParser.
+	 * @param int   $total          Itens encontrados.
+	 * @param bool  $filter_relaxed O filtro temporal foi descartado?
+	 * @return string
+	 */
+	private function build_clip_response_text( array $parsed, int $total, bool $filter_relaxed ): string {
+		if ( 0 === $total ) {
+			return __( 'Não encontrei obras no acervo que correspondam à sua busca. Tente reformular usando termos visuais (material, cor, tipo de objeto).', 'oraculo-tainacan' );
+		}
+
+		$text = sprintf(
+			/* translators: 1: number of results found, 2: the visual search terms extracted from the query */
+			_n( 'Encontrei %1$d obra no acervo para "%2$s".', 'Encontrei %1$d obras no acervo para "%2$s".', $total, 'oraculo-tainacan' ),
+			$total,
+			$parsed['clean_query']
+		);
+
+		$facet_label = $this->describe_temporal_filter( $parsed );
+
+		if ( '' !== $facet_label && ! $filter_relaxed ) {
+			/* translators: %s: human-readable temporal filter, e.g. "século 21" */
+			$text .= ' ' . sprintf( __( 'Filtro aplicado: %s.', 'oraculo-tainacan' ), $facet_label );
+		}
+
+		if ( $filter_relaxed && '' !== $facet_label ) {
+			/* translators: %s: human-readable temporal filter that returned no results */
+			$text .= ' ' . sprintf( __( 'Nenhuma obra atendia ao filtro "%s"; exibindo as mais próximas sem esse filtro.', 'oraculo-tainacan' ), $facet_label );
+		}
+
+		return $text;
+	}
+
+	/**
+	 * Rótulo humano do filtro temporal extraído
+	 *
+	 * @param array $parsed Saída do QueryParser.
+	 * @return string Vazio quando não há filtro temporal.
+	 */
+	private function describe_temporal_filter( array $parsed ): string {
+		if ( null !== $parsed['year_range'] ) {
+			/* translators: 1: start year, 2: end year */
+			return sprintf( __( 'entre %1$d e %2$d', 'oraculo-tainacan' ), $parsed['year_range'][0], $parsed['year_range'][1] );
+		}
+
+		if ( isset( $parsed['facets']['year'] ) ) {
+			/* translators: %s: a specific year */
+			return sprintf( __( 'ano %s', 'oraculo-tainacan' ), $parsed['facets']['year'] );
+		}
+
+		if ( isset( $parsed['facets']['decade'] ) ) {
+			/* translators: %s: a decade, e.g. 1980 */
+			return sprintf( __( 'década de %s', 'oraculo-tainacan' ), $parsed['facets']['decade'] );
+		}
+
+		if ( isset( $parsed['facets']['century'] ) ) {
+			/* translators: %s: a century number */
+			return sprintf( __( 'século %s', 'oraculo-tainacan' ), $parsed['facets']['century'] );
+		}
+
+		return '';
 	}
 
 	/**

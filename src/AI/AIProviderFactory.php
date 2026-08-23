@@ -15,6 +15,7 @@ use Oraculo_Tainacan\AI\Providers\DeepSeekProvider;
 use Oraculo_Tainacan\AI\Providers\OllamaProvider;
 use Oraculo_Tainacan\AI\Providers\GroqProvider;
 use Oraculo_Tainacan\AI\Providers\ClaudeProvider;
+use Oraculo_Tainacan\AI\Providers\ClipProvider;
 
 /**
  * Factory para instanciar provedores de IA
@@ -33,6 +34,7 @@ class AIProviderFactory {
 		'ollama'   => OllamaProvider::class,
 		'groq'     => GroqProvider::class,
 		'claude'   => ClaudeProvider::class,
+		'clip'     => ClipProvider::class,
 	);
 
 	/**
@@ -97,6 +99,14 @@ class AIProviderFactory {
 		// Provedores que suportam embeddings
 		$embedding_providers = array( 'openai', 'ollama' );
 
+		// A tela de indexação permite escolher um provedor de embeddings
+		// diferente do provedor de chat (ex: chat via Gemini, embeddings via
+		// Ollama local). Quando definido e válido, tem precedência.
+		$preferred = (string) get_option( 'oraculo_embedding_provider', '' );
+		if ( in_array( $preferred, $embedding_providers, true ) ) {
+			$provider_id = $preferred;
+		}
+
 		if ( ! in_array( $provider_id, $embedding_providers ) ) {
 			// Fallback para OpenAI se o provedor atual não suporta embeddings
 			if ( ! empty( $options['openai_api_key'] ) ) {
@@ -142,7 +152,7 @@ class AIProviderFactory {
 					$common,
 					array(
 						'api_key'         => $api_key,
-						'model'           => $options['openai_model'] ?? 'gpt-4o-mini',
+						'model'           => $options['openai_model'] ?? 'gpt-5-mini',
 						'embedding_model' => $options['openai_embedding_model'] ?? 'text-embedding-ada-002',
 					)
 				);
@@ -152,7 +162,7 @@ class AIProviderFactory {
 					$common,
 					array(
 						'api_key' => $options['gemini_api_key'] ?? '',
-						'model'   => $options['gemini_model'] ?? 'gemini-1.5-pro',
+						'model'   => $options['gemini_model'] ?? 'gemini-2.5-flash',
 					)
 				);
 
@@ -189,8 +199,15 @@ class AIProviderFactory {
 					$common,
 					array(
 						'api_key' => $options['claude_api_key'] ?? '',
-						'model'   => $options['claude_model'] ?? 'claude-3-5-sonnet-latest',
+						'model'   => $options['claude_model'] ?? 'claude-sonnet-5',
 					)
+				);
+
+			case 'clip':
+				return array(
+					'base_url' => $options['clip_api_url'] ?? '',
+					'model'    => $options['clip_api_model'] ?? 'ViT-L-14',
+					'timeout'  => $options['clip_api_timeout'] ?? 60,
 				);
 
 			default:
@@ -249,6 +266,8 @@ class AIProviderFactory {
 				return ! empty( $options['groq_api_key'] );
 			case 'claude':
 				return ! empty( $options['claude_api_key'] );
+			case 'clip':
+				return ! empty( $options['clip_api_url'] );
 			default:
 				return false;
 		}

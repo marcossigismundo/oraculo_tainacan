@@ -57,14 +57,18 @@
 						var data = response.data;
 						var indexedItems = data.indexed_items || 0;
 						var percentage = data.percentage || 100;
+						// Tudo falhou = falha, não sucesso — status/ícone/cor coerentes.
+						var allFailed = data.status === 'failed' || (indexedItems === 0 && (data.failed_items || 0) > 0);
 
 						// Atualizar UI
 						row.find('.indexed-count').text(indexedItems.toLocaleString ? indexedItems.toLocaleString() : indexedItems);
 						row.find('.oraculo-progress-fill').css('width', percentage + '%');
 						row.find('.oraculo-progress-text').text(percentage + '%');
-						row.find('.oraculo-status').removeClass().addClass('oraculo-status oraculo-status-completed').text(s.completed || 'OK');
+						row.find('.oraculo-status').removeClass()
+							.addClass('oraculo-status ' + (allFailed ? 'oraculo-status-error' : 'oraculo-status-completed'))
+							.text(allFailed ? (s.error || 'Erro') : (s.completed || 'OK'));
 
-						addLog('✅ ' + (data.message || s.indexDone), 'success');
+						addLog((allFailed ? '❌ ' : '✅ ') + (data.message || s.indexDone), allFailed ? 'error' : 'success');
 
 						if (data.failed_items > 0) {
 							addLog('⚠️ ' + data.failed_items + ' ' + s.itemsFailed, 'error');
@@ -195,6 +199,49 @@
 					} else {
 						addLog(s.error + ': ' + response.data.message, 'error');
 					}
+				}
+			});
+		});
+
+		// Processar fila de indexação automática agora
+		$('#oraculo-process-queue').on('click', function() {
+			var btn = $(this);
+
+			btn.prop('disabled', true);
+			addLog(s.queueProcessing || 'Processando fila...', 'info');
+
+			$.ajax({
+				url: cfg.ajaxUrl,
+				type: 'POST',
+				timeout: 300000,
+				data: {
+					action: 'oraculo_process_queue',
+					nonce: cfg.nonce
+				},
+				success: function(response) {
+					if (response.success) {
+						var d = response.data || {};
+						$('#oraculo-queue-count').text(d.remaining || 0);
+						addLog('✅ ' + (s.queueDone || 'Fila processada') + ': ' +
+							(d.indexed || 0) + ' ' + (s.queueIndexed || 'indexado(s)') + ', ' +
+							(d.failed || 0) + ' ' + (s.queueFailed || 'falha(s)') + ', ' +
+							(d.remaining || 0) + ' ' + (s.queueRemaining || 'restante(s)'), 'success');
+						if (typeof d.clip_sent !== 'undefined') {
+							addLog('CLIP: ' + d.clip_sent + ' ' + (s.clipSent || 'enviado(s)') + ', ' +
+								d.clip_failed + ' ' + (s.queueFailed || 'falha(s)'), d.clip_failed > 0 ? 'error' : 'info');
+						}
+						(d.errors || []).forEach(function(err) {
+							addLog('   → ' + (typeof err === 'string' ? err : JSON.stringify(err)), 'error');
+						});
+					} else {
+						addLog('⚠️ ' + ((response.data || {}).message || s.saveError), 'error');
+					}
+				},
+				error: function() {
+					addLog(s.saveError || 'Erro', 'error');
+				},
+				complete: function() {
+					btn.prop('disabled', false);
 				}
 			});
 		});

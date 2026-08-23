@@ -28,7 +28,11 @@ $env_info = array(
 	'cURL Enabled'           => extension_loaded( 'curl' ) ? 'Sim' : 'Não',
 	'JSON Enabled'           => extension_loaded( 'json' ) ? 'Sim' : 'Não',
 	'mbstring Enabled'       => extension_loaded( 'mbstring' ) ? 'Sim' : 'Não',
-	'Environment'            => \Oraculo_Tainacan\detect_environment(),
+	// detect_environment() nunca existiu em helpers.php — a aba inteira
+	// fatalava aqui. Os detectores reais são is_xampp()/is_hostinger()/etc.
+	'Environment'            => \Oraculo_Tainacan\is_hostinger() ? 'Hostinger'
+		: ( \Oraculo_Tainacan\is_xampp() ? 'XAMPP (dev)'
+		: ( \Oraculo_Tainacan\is_production() ? 'Produção' : 'Desenvolvimento' ) ),
 );
 
 // Status das tabelas
@@ -108,7 +112,7 @@ $recent_errors = get_option( 'oraculo_recent_errors', array() );
 									<span class="status-error">FALTANDO</span>
 								<?php endif; ?>
 							</td>
-							<td><?php echo number_format( $status['count'] ); ?></td>
+							<td><?php echo number_format( (int) $status['count'] ); ?></td>
 						</tr>
 					<?php endforeach; ?>
 				</tbody>
@@ -178,7 +182,7 @@ $recent_errors = get_option( 'oraculo_recent_errors', array() );
 							<tr>
 								<td><?php echo esc_html( wp_trim_words( $search['query_text'], 5 ) ); ?></td>
 								<td><?php echo (int) $search['results_count']; ?></td>
-								<td><?php echo number_format( $search['response_time_ms'] ); ?>ms</td>
+								<td><?php echo number_format( (float) $search['response_time_ms'] ); ?>ms</td>
 								<td><?php echo esc_html( $search['created_at'] ); ?></td>
 							</tr>
 						<?php endforeach; ?>
