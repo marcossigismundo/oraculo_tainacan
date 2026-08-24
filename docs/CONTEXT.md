@@ -1,7 +1,7 @@
 # Oráculo Tainacan — Contexto do Projeto
 
-> Snapshot da versão 2.4.0 (indexação automática + busca visual CLIP + descoberta
-> dinâmica de modelos de IA — branch `feature/auto-indexing-clip`)
+> Snapshot da versão 2.5.2 (indexação automática, CLIP como provedor, descoberta
+> dinâmica de modelos, chaves criptografadas — mergeado na `main`)
 
 Plugin WordPress que adiciona busca semântica (RAG) e chat com IA sobre acervos do Tainacan.
 Arquitetura orientada a serviços com múltiplos provedores de IA intercambiáveis.
@@ -13,12 +13,12 @@ Arquitetura orientada a serviços com múltiplos provedores de IA intercambiáve
 
 | Campo | Valor |
 |---|---|
-| Versão declarada (`oraculo-tainacan.php` e `readme.txt`) | **2.4.0** |
+| Versão declarada (`oraculo-tainacan.php` e `readme.txt`) | **2.5.2** |
 | PHP mínimo | **8.0** (`declare(strict_types=1)` em todos os arquivos) |
 | WordPress mínimo | 6.0 |
 | Text domain | `oraculo-tainacan` |
 | Namespace raiz | `Oraculo_Tainacan\` |
-| Repositório | `github.com/marcossigismundo/oraculo_tainacan`, branch `feature/auto-indexing-clip` |
+| Repositório | `github.com/marcossigismundo/oraculo_tainacan`, branch `main` (feature/auto-indexing-clip mergeada) |
 | Deploy de testes | `darkgreen-yak-751687.hostingersite.com/wp-content/plugins/oraculo-tainacan/` (pasta com **hífen**, diferente do diretório local `oraculo_tainacan`) |
 
 ## Estrutura de diretórios
@@ -33,13 +33,14 @@ src/
 │   ├── AIProviderInterface.php   inclui list_remote_models() (descoberta dinâmica)
 │   ├── AbstractAIProvider.php    get_api_key() descriptografa prefixo `enc:`; normalize_openai_style_models()
 │   ├── AIProviderFactory.php
-│   └── Providers/  (todos os 6 implementam list_remote_models())
+│   └── Providers/  (todos os 7 implementam list_remote_models())
 │       ├── OpenAIProvider.php   (gpt-5-mini default, text-embedding-3-small; GPT-5.x + GPT-4o legado)
 │       ├── GeminiProvider.php   (gemini-2.5-flash default; filtra por supportedGenerationMethods)
 │       ├── ClaudeProvider.php   (claude-sonnet-5 default; opção claude_api_key)
 │       ├── DeepSeekProvider.php (deepseek-chat + deepseek-reasoner/R1)
 │       ├── GroqProvider.php     (Llama 4 Maverick/Scout + legado 3.x)
-│       └── OllamaProvider.php   (local — nomic-embed-text; lista via /api/tags)
+│       ├── OllamaProvider.php   (local — nomic-embed-text; lista via /api/tags)
+│       └── ClipProvider.php     (fachada da AI API CLIP como card de provedor; sem chat)
 ├── API/RestController.php   19 rotas REST sob /oraculo/v1
 ├── Admin/
 │   ├── OraculoPage.php      Página admin via \Tainacan\Pages (único caminho)
@@ -239,18 +240,35 @@ Opções soltas (fora do array, lidas por `get_option()` direto): `oraculo_auto_
 (liga/desliga a fila automática), `oraculo_batch_size`, `oraculo_embedding_provider`
 (override do provedor de embeddings, independente do provedor de chat).
 
-**Sanitização**: ponto único em `Admin\SettingsSanitizer::sanitize()`, usado tanto pelo POST
-do admin (`oraculo_save_settings`) quanto pelo endpoint REST `/settings`. Allowlist por chave;
-chaves ausentes na entrada caem para o valor já armazenado (e só então para o padrão), de modo
-que um formulário parcial não apague o restante. Checkboxes são a exceção deliberada — ausência
-significa desmarcado.
+**Sanitização**: ponto único em `Admin\SettingsSanitizer::sanitize()`, usado pelo POST do
+admin (`oraculo_save_settings`), pelo endpoint REST `/settings` **e — crucial — pelo
+`sanitize_callback` registrado via `register_setting()`, que roda em TODO
+`update_option('oraculo_tainacan_options')`**, inclusive nos programáticos. Consequências
+de design (aprendidas por regressão em produção, 2.5.1/2.5.2):
 
-**API keys são criptografadas em repouso** (desde 2.4.0): `SettingsSanitizer` grava
-`enc:` + AES-256-CBC (chave derivada de `wp_salt('auth')`) em vez de texto puro;
-`AbstractAIProvider::get_api_key()` reconhece o prefixo `enc:` e descriptografa na
-hora de montar o header da requisição. Placeholder `••••••••` no campo preserva o
-valor já salvo sem re-criptografar. Retrocompatível: chave salva antes desta versão
-(sem o prefixo) continua funcionando, passa direto sem tentar decifrar.
+- Toda regra do sanitizer precisa ser **idempotente**: o próprio output dele volta como
+  input na segunda passada dentro do mesmo save. Foi assim que as API keys chegaram a ser
+  criptografadas duas vezes (o header enviava `enc:...` literal ao provedor).
+- **Checkboxes decidem pela PRESENÇA da chave, não pela ausência**: o formulário sempre
+  envia cada flag (input hidden `value="0"` + checkbox `value="1"`); chave ausente =
+  save parcial/programático → preserva o valor salvo, e só então o padrão. Ausência
+  tratada como "desmarcado" fazia qualquer gravação parcial desligar chat, busca e a aba
+  "Busca com IA" silenciosamente.
+
+**API keys são criptografadas em repouso** (desde 2.4.0; endurecido na 2.5.1):
+`SettingsSanitizer` grava `enc:` + AES-256-CBC (chave derivada de `wp_salt('auth')`) —
+idempotente: valor já `enc:` nunca é re-criptografado. `AbstractAIProvider::get_api_key()`
+descriptografa **em camadas** (laço limitado), o que cura valores que a 2.4.x chegou a
+gravar duplamente criptografados; `is_configured()` valida a chave já descriptografada.
+Placeholder `••••••••` no campo preserva o valor salvo. Chave antiga em texto puro (sem
+prefixo) passa direto.
+
+**Armadilha strict_types + `$wpdb`** (classe de bug recorrente — 3 incidentes em produção):
+todos os arquivos declaram `strict_types=1`, e o `$wpdb` devolve **tudo como string**.
+String do banco em parâmetro tipado `int`/`float` (ex.: `save_message(int $conversation_id)`
+recebendo o id de `get_row()`) ou em função nativa estrita (`number_format()` nos templates)
+é `TypeError` fatal — e só se manifesta com dados reais no banco, nunca em instalação vazia.
+Regra: **cast na origem**, no ponto único onde a linha sai do banco, não em cada uso.
 
 ## Integração com Tainacan (admin)
 
@@ -279,8 +297,12 @@ a responder "Momentaneamente indisponível". `wp-config.php` local tem
 Hostinger. Se ainda assim travar: apagar `.maintenance` na raiz do WP + `delete_option()`
 dos dois locks.
 
-**Suítes de teste** (scripts avulsos, não PHPUnit): `queue_test`, `e2e_test`, `success_test`
+**Suítes de teste** (scripts avulsos, não PHPUnit; todas usam `pre_http_request` para
+mockar provedores — não batem rede real): `queue_test`, `e2e_test`, `success_test`
 (fila/hooks/worker), `clip_test`/`clip_image_test` (mock HTTP local do backend CLIP,
-`php -S 127.0.0.1:8999`), `reconcile_test` (reconciliação diária) e `model_discovery_test`
-(descoberta de modelos + criptografia, via filtro `pre_http_request` do WordPress —
-não bate rede real). 130 asserções ao todo na branch atual.
+`php -S 127.0.0.1:8999`), `reconcile_test` (reconciliação diária), `model_discovery_test`
+(descoberta de modelos), `gpt5_params_test` (parâmetros GPT-5/o-series + modelo configurado),
+`ui_fixes_test` (fatais dos templates + CLIP como provedor), `encryption_cycle_test`
+(criptografia idempotente + cura de dupla criptografia, com o sanitize_callback do
+register_setting ativo — cenário que o CLI puro não reproduz) e `regression_fixes_test`
+(chat multi-turno + preservação de flags em saves parciais). 195 asserções ao todo na main.
