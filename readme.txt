@@ -4,7 +4,7 @@ Tags: tainacan, ai, search, rag, openai
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 2.5.2
+Stable tag: 2.5.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -111,6 +111,10 @@ OpenAI is the most tested option. Ollama is recommended for fully local, private
 Only the text content of your archived items is sent to the AI provider you configure. When using Ollama, everything stays local.
 
 == Changelog ==
+
+= 2.5.3 =
+* Fix: follow-up questions now stay grounded in the archive — the semantic search behind the chat used only the current message as its query, so referential follow-ups ("e quem escreveu?") retrieved nothing and the answer lost its archive grounding exactly on continuations. The retrieval query now carries the user's previous questions as topical anchor, and short follow-ups are no longer skipped by the word-count heuristic (only pure acknowledgements like "ok"/"obrigado" skip retrieval)
+* Fix: the current message no longer appears twice in the prompt (once in the history block, once as the current message) — history is fetched before saving the new message, freeing one of the ten context slots for real conversation history
 
 = 2.5.2 =
 * Fix: chat crashed with a critical error on the second message of every session — the conversation id read back from the database is a string, and passing it to the strictly-typed save_message()/history methods is a fatal TypeError under strict_types. Ids are now cast at the single point where the row is read

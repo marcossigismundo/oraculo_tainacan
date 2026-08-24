@@ -98,18 +98,27 @@ class ChatEngine {
 		}
 
 		try {
+			// Histórico ANTES de salvar a mensagem atual: assim ele contém só
+			// os turnos anteriores. Salvar primeiro fazia a mensagem aparecer
+			// duplicada no prompt (no HISTÓRICO e em "MENSAGEM DO USUÁRIO") e
+			// roubava um dos 10 slots de contexto real da conversa.
+			$history = $this->get_conversation_history( $conversation['id'], 10 );
+
 			// Salvar mensagem do usuário
 			$this->save_message( $conversation['id'], 'user', $message );
-
-			// Obter histórico recente
-			$history = $this->get_conversation_history( $conversation['id'], 10 );
 
 			// Buscar contexto relevante no acervo
 			$context = '';
 			$sources = array();
 
 			if ( $this->should_search_context( $message, $history ) ) {
-				$search_results = $this->search_engine->semantic_search( $message, $collection_ids, 5 );
+				// Follow-ups não têm âncora semântica sozinhos ("e quem
+				// escreveu?"): o embedding só da mensagem atual não recupera
+				// nada. A query de busca leva junto as últimas perguntas do
+				// usuário, para a continuação herdar o assunto da conversa.
+				$search_query = $this->build_search_query( $message, $history );
+
+				$search_results = $this->search_engine->semantic_search( $search_query, $collection_ids, 5 );
 
 				if ( ! is_wp_error( $search_results ) && ! empty( $search_results ) ) {
 					$context = $this->format_context( $search_results );
@@ -328,25 +337,55 @@ class ChatEngine {
 			return true;
 		}
 
-		// Verificar se é uma pergunta de follow-up simples
-		$simple_followups = array( 'sim', 'não', 'ok', 'certo', 'entendi', 'obrigado', 'obrigada' );
-		if ( in_array( strtolower( trim( $message ) ), $simple_followups ) ) {
-			return false;
+		// Só não busca em acknowledgements puros ("ok", "obrigado"...). Todo o
+		// resto busca — inclusive follow-ups curtos ("e o autor dele?"), que a
+		// heurística antiga de contagem de palavras descartava: são justamente
+		// as perguntas de continuação que mais precisam de contexto do acervo,
+		// e a query aumentada (build_search_query) lhes dá âncora semântica.
+		$simple_followups = array( 'sim', 'não', 'nao', 'ok', 'certo', 'entendi', 'obrigado', 'obrigada', 'valeu', 'legal', 'blz', 'beleza' );
+
+		return ! in_array( strtolower( trim( $message ) ), $simple_followups, true );
+	}
+
+	/**
+	 * Monta a query de recuperação semântica levando o assunto da conversa
+	 *
+	 * O embedding da mensagem isolada funciona para perguntas completas, mas
+	 * follow-ups referenciais ("e quem escreveu?", "me fale mais sobre ele")
+	 * não carregam o assunto — a busca voltava vazia e a resposta perdia o
+	 * fundamento no acervo exatamente nas continuações. Anexar as últimas
+	 * perguntas do usuário dá a âncora; quando a mensagem atual já é longa e
+	 * específica, ela domina o embedding e o sufixo não atrapalha.
+	 *
+	 * @param string $message Mensagem atual.
+	 * @param array  $history Histórico em ordem cronológica (role/content).
+	 * @return string
+	 */
+	private function build_search_query( string $message, array $history ): string {
+		if ( empty( $history ) ) {
+			return $message;
 		}
 
-		// Buscar se a mensagem é longa ou contém palavras-chave de busca
-		$search_keywords = array( 'mostre', 'encontre', 'busque', 'procure', 'quero', 'preciso', 'sobre', 'relacionado' );
-		foreach ( $search_keywords as $keyword ) {
-			if ( stripos( $message, $keyword ) !== false ) {
-				return true;
+		// Últimas 2 perguntas do usuário, mais recente primeiro, cap curto:
+		// é âncora de assunto, não um segundo corpo de busca.
+		$previous = array();
+		foreach ( array_reverse( $history ) as $msg ) {
+			if ( ( $msg['role'] ?? '' ) === 'user' && '' !== trim( (string) $msg['content'] ) ) {
+				$previous[] = \Oraculo_Tainacan\truncate_text( (string) $msg['content'], 150 );
+				if ( count( $previous ) >= 2 ) {
+					break;
+				}
 			}
 		}
 
-		// Buscar se a mensagem tem mais de 3 palavras significativas
-		$words             = preg_split( '/\s+/', $message );
-		$significant_words = array_filter( $words, fn( $w ) => strlen( $w ) > 3 );
+		if ( empty( $previous ) ) {
+			return $message;
+		}
 
-		return count( $significant_words ) > 3;
+		// Contexto anterior primeiro, pergunta atual por último (mais peso ao
+		// final na maioria dos encoders de embedding é irrelevante; o que
+		// importa é o assunto presente no texto).
+		return implode( ' ', array_reverse( $previous ) ) . ' ' . $message;
 	}
 
 	/**

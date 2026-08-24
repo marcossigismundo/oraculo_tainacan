@@ -1,6 +1,6 @@
 # Oráculo Tainacan — Contexto do Projeto
 
-> Snapshot da versão 2.5.2 (indexação automática, CLIP como provedor, descoberta
+> Snapshot da versão 2.5.3 (indexação automática, CLIP como provedor, descoberta
 > dinâmica de modelos, chaves criptografadas — mergeado na `main`)
 
 Plugin WordPress que adiciona busca semântica (RAG) e chat com IA sobre acervos do Tainacan.
@@ -13,7 +13,7 @@ Arquitetura orientada a serviços com múltiplos provedores de IA intercambiáve
 
 | Campo | Valor |
 |---|---|
-| Versão declarada (`oraculo-tainacan.php` e `readme.txt`) | **2.5.2** |
+| Versão declarada (`oraculo-tainacan.php` e `readme.txt`) | **2.5.3** |
 | PHP mínimo | **8.0** (`declare(strict_types=1)` em todos os arquivos) |
 | WordPress mínimo | 6.0 |
 | Text domain | `oraculo-tainacan` |
@@ -47,7 +47,8 @@ src/
 │   └── SettingsSanitizer.php   Sanitização única das opções (admin + REST); criptografa API keys
 ├── Analytics/AnalyticsManager.php
 ├── CLI/Commands.php         WP-CLI (`wp oraculo ...`)
-├── Chat/ChatEngine.php
+├── Chat/ChatEngine.php      Contexto: 10 últimas msgs no prompt; retrieval de follow-up
+│                            com query aumentada pelas perguntas anteriores do usuário
 ├── Features/
 │   ├── ConversationMemory.php  Summaries + fatos extraídos
 │   ├── DocumentProcessor.php
@@ -305,4 +306,6 @@ mockar provedores — não batem rede real): `queue_test`, `e2e_test`, `success_
 `ui_fixes_test` (fatais dos templates + CLIP como provedor), `encryption_cycle_test`
 (criptografia idempotente + cura de dupla criptografia, com o sanitize_callback do
 register_setting ativo — cenário que o CLI puro não reproduz) e `regression_fixes_test`
-(chat multi-turno + preservação de flags em saves parciais). 195 asserções ao todo na main.
+(chat multi-turno + preservação de flags em saves parciais) e `chat_context_test`
+(payloads capturados por turno: histórico chega ao LLM, follow-up herda o assunto na
+busca, sem duplicação da mensagem atual, limite de 10). 211 asserções ao todo na main.
