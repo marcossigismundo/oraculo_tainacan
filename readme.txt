@@ -4,7 +4,7 @@ Tags: tainacan, ai, search, rag, openai
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 2.5.3
+Stable tag: 2.6.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -111,6 +111,12 @@ OpenAI is the most tested option. Ollama is recommended for fully local, private
 Only the text content of your archived items is sent to the AI provider you configure. When using Ollama, everything stays local.
 
 == Changelog ==
+
+= 2.6.0 =
+* Feature: the chat assistant is now BIA — Bibliotecária de IA. The persona is injected structurally into the chat system prompt (filterable via oraculo_tainacan_chat_persona, applies even over prompts stored by previous versions), and the whole widget carries her identity: gradient book-monogram avatar (inline SVG, follows the appearance colors), name and role in the header with online status, named typing indicator ("BIA está pesquisando no acervo…") and a BIA-signed welcome
+* Feature: chat layout redesigned — clean light theme driven by the appearance color options, messenger-style bubbles with BIA's avatar, pill suggestion chips, refined sources block, focus ring on the input, smooth open/close, reduced-motion support and mobile full-screen behavior
+* Feature: flow improvements — "new conversation" button now available in the floating widget header (previously embedded-only), Esc closes the window, aria-live message log and labeled controls for screen readers
+* Both chat surfaces (floating widget and [oraculo_chat] shortcode) share the same visual system
 
 = 2.5.3 =
 * Fix: follow-up questions now stay grounded in the archive — the semantic search behind the chat used only the current message as its query, so referential follow-ups ("e quem escreveu?") retrieved nothing and the answer lost its archive grounding exactly on continuations. The retrieval query now carries the user's previous questions as topical anchor, and short follow-ups are no longer skipped by the word-count heuristic (only pure acknowledgements like "ok"/"obrigado" skip retrieval)

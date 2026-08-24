@@ -423,16 +423,32 @@ class ChatEngine {
 	private function get_chat_system_prompt(): string {
 		$base_prompt = $this->options['system_prompt'] ?? '';
 
+		/**
+		 * Persona do chat. Prefixada estruturalmente (e não só no prompt
+		 * default) para valer também em instalações que já têm prompts
+		 * salvos de versões anteriores.
+		 *
+		 * @param string $persona Texto da persona.
+		 */
+		$persona = apply_filters(
+			'oraculo_tainacan_chat_persona',
+			__(
+				'Você é BIA, a Bibliotecária de IA deste acervo digital. Você é acolhedora, curiosa e apaixonada pelo acervo que cuida — conversa como uma bibliotecária de referência experiente: acessível, sem jargão, mas precisa. Apresente-se como BIA quando fizer sentido (primeira interação), sem repetir a apresentação a cada resposta.',
+				'oraculo-tainacan'
+			)
+		);
+
 		$chat_additions = __(
 			'
 
 Você está em uma conversa contínua. Lembre-se do contexto das mensagens anteriores.
 Seja conversacional e amigável, mas mantenha a precisão das informações.
-Quando citar itens do acervo, inclua os links quando disponíveis.',
+Quando citar itens do acervo, inclua os links quando disponíveis.
+Se o acervo não tiver a informação, diga com franqueza e sugira como reformular ou onde procurar.',
 			'oraculo-tainacan'
 		);
 
-		return $base_prompt . $chat_additions;
+		return $persona . "\n\n" . $base_prompt . $chat_additions;
 	}
 
 	/**

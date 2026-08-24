@@ -30,48 +30,82 @@
             this.loadSession();
         },
 
+        // Avatar da BIA: monograma em círculo com gradiente (inline SVG — sem
+        // asset externo). Reutilizado no botão, no header e nas mensagens.
+        avatarSvg: function(size) {
+            return `
+                <svg class="oraculo-bia-avatar" viewBox="0 0 40 40" width="${size}" height="${size}" role="img" aria-hidden="true">
+                    <defs>
+                        <linearGradient id="oraculo-bia-grad" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0" stop-color="var(--oraculo-primary, #1f2f56)"/>
+                            <stop offset="1" stop-color="var(--oraculo-accent, #b5e0e3)"/>
+                        </linearGradient>
+                    </defs>
+                    <circle cx="20" cy="20" r="20" fill="url(#oraculo-bia-grad)"/>
+                    <path d="M11 13.5c0-1 .8-1.8 1.8-1.8h4.4c1.5 0 2.8.9 2.8 2.4v11.4c-.7-.9-1.8-1.4-3-1.4h-4.2c-1 0-1.8-.8-1.8-1.8v-8.8zm18 0c0-1-.8-1.8-1.8-1.8h-4.4c-1.5 0-2.8.9-2.8 2.4v11.4c.7-.9 1.8-1.4 3-1.4h4.2c1 0 1.8-.8 1.8-1.8v-8.8z"
+                        fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/>
+                    <circle cx="20" cy="30.6" r="1.4" fill="#fff"/>
+                </svg>
+            `;
+        },
+
         createWidget: function() {
             var position = OraculoFrontend.chatPosition || 'bottom-right';
+            var s = OraculoFrontend.strings || {};
+            var name = OraculoFrontend.assistantName || 'BIA';
+            var role = OraculoFrontend.assistantRole || 'Bibliotecária de IA';
 
-            // Chat Button
+            // Botão flutuante: avatar da BIA (vira X quando aberto)
             var buttonHtml = `
-                <button class="oraculo-chat-button ${position}" id="oraculo-chat-toggle">
-                    <svg class="chat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
-                    </svg>
-                    <svg class="close-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <button class="oraculo-chat-button ${position}" id="oraculo-chat-toggle"
+                        aria-label="${escapeHtml(s.openChat || 'Conversar com a BIA')}" aria-expanded="false">
+                    <span class="chat-icon">${this.avatarSvg(44)}</span>
+                    <svg class="close-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <line x1="18" y1="6" x2="6" y2="18"/>
                         <line x1="6" y1="6" x2="18" y2="18"/>
                     </svg>
                 </button>
             `;
 
-            // Chat Window
+            // Janela do chat
             var windowHtml = `
-                <div class="oraculo-chat-window ${position}" id="oraculo-chat-window">
+                <div class="oraculo-chat-window ${position}" id="oraculo-chat-window"
+                     role="dialog" aria-label="${escapeHtml(name)} — ${escapeHtml(role)}">
                     <div class="oraculo-chat-header">
-                        <div class="oraculo-chat-avatar">🔮</div>
-                        <div>
-                            <h3 class="oraculo-chat-title">Assistente do Acervo</h3>
-                            <p class="oraculo-chat-subtitle">Sempre disponível para ajudar</p>
+                        <div class="oraculo-chat-avatar">${this.avatarSvg(38)}</div>
+                        <div class="oraculo-chat-identity">
+                            <h3 class="oraculo-chat-title">${escapeHtml(name)}</h3>
+                            <p class="oraculo-chat-subtitle">
+                                <span class="oraculo-chat-status-dot" aria-hidden="true"></span>
+                                ${escapeHtml(role)} · ${escapeHtml(s.online || 'online')}
+                            </p>
                         </div>
-                        <button class="oraculo-chat-close" id="oraculo-chat-close">
-                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                        <button class="oraculo-chat-new" id="oraculo-chat-new"
+                                title="${escapeHtml(s.newConversation || 'Nova conversa')}"
+                                aria-label="${escapeHtml(s.newConversation || 'Nova conversa')}">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <polyline points="1 4 1 10 7 10"></polyline>
+                                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                            </svg>
+                        </button>
+                        <button class="oraculo-chat-close" id="oraculo-chat-close"
+                                aria-label="${escapeHtml(s.closeChat || 'Fechar conversa')}">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                 <line x1="18" y1="6" x2="6" y2="18"/>
                                 <line x1="6" y1="6" x2="18" y2="18"/>
                             </svg>
                         </button>
                     </div>
-                    <div class="oraculo-chat-messages" id="oraculo-chat-messages">
-                        ${this.getWelcomeHtml()}
-                    </div>
+                    <div class="oraculo-chat-messages" id="oraculo-chat-messages" role="log" aria-live="polite"></div>
                     <div class="oraculo-chat-input-container">
                         <form class="oraculo-chat-input-form" id="oraculo-chat-form">
                             <textarea class="oraculo-chat-input" id="oraculo-chat-input"
-                                placeholder="${escapeHtml(OraculoFrontend.strings.placeholder)}"
+                                placeholder="${escapeHtml(s.placeholder || 'Pergunte à BIA sobre o acervo…')}"
+                                aria-label="${escapeHtml(s.placeholder || 'Pergunte à BIA sobre o acervo…')}"
                                 rows="1"></textarea>
-                            <button type="submit" class="oraculo-chat-send" id="oraculo-chat-send">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <button type="submit" class="oraculo-chat-send" id="oraculo-chat-send"
+                                    aria-label="${escapeHtml(s.send || 'Enviar')}">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                     <line x1="22" y1="2" x2="11" y2="13"/>
                                     <polygon points="22 2 15 22 11 13 2 9 22 2"/>
                                 </svg>
@@ -89,18 +123,24 @@
             this.form = $('#oraculo-chat-form');
             this.input = $('#oraculo-chat-input');
             this.sendBtn = $('#oraculo-chat-send');
+
+            this.messages.html(this.getWelcomeHtml());
         },
 
         getWelcomeHtml: function() {
-            var welcomeMessage = OraculoFrontend.welcomeMessage || 'Olá! Como posso ajudá-lo a encontrar informações no acervo?';
+            var s = OraculoFrontend.strings || {};
+            var name = OraculoFrontend.assistantName || 'BIA';
+            var welcomeMessage = OraculoFrontend.welcomeMessage || s.defaultWelcome ||
+                'Oi! Eu sou a BIA, a bibliotecária de IA deste acervo. Posso ajudar a encontrar obras, autores e assuntos — é só perguntar.';
             var suggestions = OraculoFrontend.suggestedQuestions || [];
 
             var html = `
                 <div class="oraculo-chat-welcome">
-                    <div class="oraculo-chat-welcome-icon">👋</div>
+                    <div class="oraculo-chat-welcome-avatar">${this.avatarSvg(64)}</div>
+                    <div class="oraculo-chat-welcome-name">${escapeHtml(name)}</div>
                     <div class="oraculo-chat-welcome-text">${escapeHtml(welcomeMessage)}</div>
                     ${suggestions.length > 0 ? '<div class="oraculo-chat-suggestions">' +
-                        suggestions.map(s => `<button type="button" class="oraculo-chat-suggestion">${escapeHtml(s)}</button>`).join('') +
+                        suggestions.map(s2 => `<button type="button" class="oraculo-chat-suggestion">${escapeHtml(s2)}</button>`).join('') +
                     '</div>' : ''}
                 </div>
             `;
@@ -118,6 +158,19 @@
 
             $('#oraculo-chat-close').on('click', function() {
                 self.close();
+            });
+
+            // Nova conversa direto do header
+            $('#oraculo-chat-new').on('click', function() {
+                self.newConversation();
+                self.input.trigger('focus');
+            });
+
+            // Esc fecha a janela
+            $(document).on('keydown', function(e) {
+                if (e.key === 'Escape' && self.isOpen) {
+                    self.close();
+                }
             });
 
             // Form submit
@@ -174,14 +227,14 @@
 
         open: function() {
             this.window.addClass('open');
-            this.button.addClass('open');
+            this.button.addClass('open').attr('aria-expanded', 'true');
             this.isOpen = true;
-            this.input.focus();
+            this.input.trigger('focus');
         },
 
         close: function() {
             this.window.removeClass('open');
-            this.button.removeClass('open');
+            this.button.removeClass('open').attr('aria-expanded', 'false');
             this.isOpen = false;
         },
 
@@ -242,9 +295,16 @@
         addMessage: function(content, role, options) {
             options = options || {};
 
+            // Mensagens da BIA levam o avatar ao lado do balão.
+            var avatar = role === 'assistant'
+                ? '<div class="oraculo-message-avatar">' + this.avatarSvg(26) + '</div>'
+                : '';
+
             var html = `
-                <div class="oraculo-chat-message ${role}"
+                <div class="oraculo-chat-message ${role}${options.isError ? ' is-error' : ''}"
                      ${options.messageId ? 'data-message-id="' + escapeHtml(options.messageId) + '"' : ''}>
+                    ${avatar}
+                    <div class="oraculo-message-body">
                     <div class="oraculo-message-content">${this.formatMessage(content)}</div>
             `;
 
@@ -262,13 +322,13 @@
             if (role === 'assistant' && options.messageId && !options.isError) {
                 html += `
                     <div class="oraculo-message-feedback">
-                        <button data-feedback="positive" title="Útil">👍</button>
-                        <button data-feedback="negative" title="Não útil">👎</button>
+                        <button data-feedback="positive" title="Útil" aria-label="Resposta útil">👍</button>
+                        <button data-feedback="negative" title="Não útil" aria-label="Resposta não útil">👎</button>
                     </div>
                 `;
             }
 
-            html += '</div>';
+            html += '</div></div>';
 
             this.messages.append(html);
             this.scrollToBottom();
@@ -298,11 +358,14 @@
             this.isTyping = true;
             this.sendBtn.prop('disabled', true);
 
+            var s = OraculoFrontend.strings || {};
             var html = `
-                <div class="oraculo-chat-typing" id="oraculo-typing">
-                    <span></span>
-                    <span></span>
-                    <span></span>
+                <div class="oraculo-chat-typing-row" id="oraculo-typing">
+                    <div class="oraculo-message-avatar">${this.avatarSvg(26)}</div>
+                    <div class="oraculo-chat-typing">
+                        <span></span><span></span><span></span>
+                    </div>
+                    <span class="oraculo-chat-typing-label">${escapeHtml(s.typing || 'BIA está pesquisando no acervo…')}</span>
                 </div>
             `;
 

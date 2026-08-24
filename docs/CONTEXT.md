@@ -1,6 +1,6 @@
 # Oráculo Tainacan — Contexto do Projeto
 
-> Snapshot da versão 2.5.3 (indexação automática, CLIP como provedor, descoberta
+> Snapshot da versão 2.6.0 (indexação automática, CLIP como provedor, descoberta
 > dinâmica de modelos, chaves criptografadas — mergeado na `main`)
 
 Plugin WordPress que adiciona busca semântica (RAG) e chat com IA sobre acervos do Tainacan.
@@ -13,7 +13,7 @@ Arquitetura orientada a serviços com múltiplos provedores de IA intercambiáve
 
 | Campo | Valor |
 |---|---|
-| Versão declarada (`oraculo-tainacan.php` e `readme.txt`) | **2.5.3** |
+| Versão declarada (`oraculo-tainacan.php` e `readme.txt`) | **2.6.0** |
 | PHP mínimo | **8.0** (`declare(strict_types=1)` em todos os arquivos) |
 | WordPress mínimo | 6.0 |
 | Text domain | `oraculo-tainacan` |
@@ -47,8 +47,9 @@ src/
 │   └── SettingsSanitizer.php   Sanitização única das opções (admin + REST); criptografa API keys
 ├── Analytics/AnalyticsManager.php
 ├── CLI/Commands.php         WP-CLI (`wp oraculo ...`)
-├── Chat/ChatEngine.php      Contexto: 10 últimas msgs no prompt; retrieval de follow-up
-│                            com query aumentada pelas perguntas anteriores do usuário
+├── Chat/ChatEngine.php      Persona BIA (filtro oraculo_tainacan_chat_persona) prefixada ao
+│                            system prompt; contexto: 10 últimas msgs no prompt; retrieval
+│                            de follow-up com query aumentada pelas perguntas anteriores
 ├── Features/
 │   ├── ConversationMemory.php  Summaries + fatos extraídos
 │   ├── DocumentProcessor.php
@@ -68,7 +69,7 @@ src/
     ├── VectorStore.php         Upsert/similaridade sobre MySQL (backend local)
     └── ClipApiClient.php       Cliente HTTP da AI API do IBRAM (CLIP + pgvector)
 templates/
-├── chat-widget.php
+├── chat-widget.php          Chat da BIA (shortcode) — identidade/estilo espelham o flutuante
 ├── search-widget.php
 └── admin/ (dashboard, analytics, indexing, settings, debug)
 assets/

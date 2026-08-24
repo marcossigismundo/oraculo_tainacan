@@ -3,7 +3,7 @@
  * Plugin Name: Oráculo Tainacan
  * Plugin URI: https://github.com/tainacan/oraculo-tainacan
  * Description: Sistema avançado de busca em linguagem natural com IA para acervos Tainacan. Integra RAG (Retrieval-Augmented Generation) com múltiplos provedores de IA.
- * Version: 2.5.3
+ * Version: 2.6.0
  * Author: Tainacan Community
  * Author URI: https://tainacan.org
  * License: GPL-2.0+
@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Constantes do plugin
-define( 'ORACULO_TAINACAN_VERSION', '2.5.3' );
+define( 'ORACULO_TAINACAN_VERSION', '2.6.0' );
 define( 'ORACULO_TAINACAN_FILE', __FILE__ );
 define( 'ORACULO_TAINACAN_PATH', plugin_dir_path( __FILE__ ) );
 define( 'ORACULO_TAINACAN_URL', plugin_dir_url( __FILE__ ) );
@@ -495,7 +495,7 @@ final class Oraculo_Tainacan {
 			'system_prompt'          => $this->get_default_system_prompt(),
 			'search_prompt'          => $this->get_default_search_prompt(),
 			'chat_prompt'            => $this->get_default_chat_prompt(),
-			'welcome_message'        => __( 'Olá! Sou o assistente do acervo. Como posso ajudá-lo a encontrar informações?', 'oraculo-tainacan' ),
+			'welcome_message'        => __( 'Oi! Eu sou a BIA, a bibliotecária de IA deste acervo. Posso ajudar a encontrar obras, autores e assuntos — é só perguntar. 📚', 'oraculo-tainacan' ),
 			'suggested_questions'    => array(
 				__( 'Quais são os itens mais recentes do acervo?', 'oraculo-tainacan' ),
 				__( 'Mostre documentos sobre [tema]', 'oraculo-tainacan' ),
@@ -780,19 +780,27 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 				'enableChat'         => ! empty( $options['enable_chat'] ),
 				'enableSearch'       => ! empty( $options['enable_search'] ),
 				'chatPosition'       => $appearance['chat_position'] ?? 'bottom-right',
+				'assistantName'      => __( 'BIA', 'oraculo-tainacan' ),
+				'assistantRole'      => __( 'Bibliotecária de IA', 'oraculo-tainacan' ),
 				'welcomeMessage'     => $options['welcome_message'] ?? '',
 				'suggestedQuestions' => $options['suggested_questions'] ?? array(),
 				'strings'            => array(
-					'placeholder' => __( 'Digite sua pergunta...', 'oraculo-tainacan' ),
-					'send'        => __( 'Enviar', 'oraculo-tainacan' ),
-					'searching'   => __( 'Buscando...', 'oraculo-tainacan' ),
-					'thinking'    => __( 'Pensando...', 'oraculo-tainacan' ),
-					'error'       => __( 'Ocorreu um erro. Tente novamente.', 'oraculo-tainacan' ),
-					'noResults'   => __( 'Nenhum resultado encontrado.', 'oraculo-tainacan' ),
-					'helpful'     => __( 'Esta resposta foi útil?', 'oraculo-tainacan' ),
-					'yes'         => __( 'Sim', 'oraculo-tainacan' ),
-					'no'          => __( 'Não', 'oraculo-tainacan' ),
-					'sources'     => __( 'Fontes', 'oraculo-tainacan' ),
+					'placeholder'     => __( 'Pergunte à BIA sobre o acervo…', 'oraculo-tainacan' ),
+					'send'            => __( 'Enviar', 'oraculo-tainacan' ),
+					'searching'       => __( 'Buscando...', 'oraculo-tainacan' ),
+					'thinking'        => __( 'Pensando...', 'oraculo-tainacan' ),
+					'typing'          => __( 'BIA está pesquisando no acervo…', 'oraculo-tainacan' ),
+					'error'           => __( 'Ocorreu um erro. Tente novamente.', 'oraculo-tainacan' ),
+					'noResults'       => __( 'Nenhum resultado encontrado.', 'oraculo-tainacan' ),
+					'helpful'         => __( 'Esta resposta foi útil?', 'oraculo-tainacan' ),
+					'yes'             => __( 'Sim', 'oraculo-tainacan' ),
+					'no'              => __( 'Não', 'oraculo-tainacan' ),
+					'sources'         => __( 'Fontes do acervo', 'oraculo-tainacan' ),
+					'online'          => __( 'online', 'oraculo-tainacan' ),
+					'newConversation' => __( 'Nova conversa', 'oraculo-tainacan' ),
+					'openChat'        => __( 'Conversar com a BIA', 'oraculo-tainacan' ),
+					'closeChat'       => __( 'Fechar conversa', 'oraculo-tainacan' ),
+					'defaultWelcome'  => __( 'Oi! Eu sou a BIA, a bibliotecária de IA deste acervo. Posso ajudar a encontrar obras, autores e assuntos — é só perguntar. 📚', 'oraculo-tainacan' ),
 				),
 			)
 		);
