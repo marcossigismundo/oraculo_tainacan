@@ -4,7 +4,7 @@ Tags: tainacan, ai, search, rag, openai
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 2.5.1
+Stable tag: 2.5.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -111,6 +111,11 @@ OpenAI is the most tested option. Ollama is recommended for fully local, private
 Only the text content of your archived items is sent to the AI provider you configure. When using Ollama, everything stays local.
 
 == Changelog ==
+
+= 2.5.2 =
+* Fix: chat crashed with a critical error on the second message of every session — the conversation id read back from the database is a string, and passing it to the strictly-typed save_message()/history methods is a fatal TypeError under strict_types. Ids are now cast at the single point where the row is read
+* Fix: the "Busca com IA" tab silently disappeared from the site — the settings sanitizer (which register_setting also runs on every update_option) materialized theme_integration.enabled=false whenever a save did not carry the sub-array, permanently overriding the enabled-by-default behavior. Checkbox semantics are now key-presence based: the form always posts the key (hidden inputs added for all flags), and an absent key preserves the stored value instead of disabling features
+* Fix: the same absent-key protection now covers enable_chat/enable_search/enable_analytics/enable_feedback/debug_mode, which were one partial programmatic save away from being silently switched off
 
 = 2.5.1 =
 * Fix: API keys were double-encrypted on save — register_setting() wires the same sanitizer as the option sanitize_callback, so the admin save encrypted once manually and update_option() encrypted the already-encrypted value again; one decryption pass then sent the literal "enc:..." string to the provider ("Incorrect API key provided: enc:..."). Encryption is now idempotent (an enc: value is never re-encrypted) and get_api_key() decrypts in layers, healing keys already stored double-encrypted without requiring re-entry

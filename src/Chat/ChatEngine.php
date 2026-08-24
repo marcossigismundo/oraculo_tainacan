@@ -192,6 +192,12 @@ class ChatEngine {
         // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
 
 		if ( $conversation ) {
+			// O wpdb devolve tudo como string; com strict_types no arquivo,
+			// passar esse id a métodos tipados (save_message etc.) é TypeError
+			// fatal — o chat quebrava na SEGUNDA mensagem de toda sessão, quando
+			// a conversa já existia e o id vinha do banco em vez do insert_id.
+			$conversation['id']      = (int) $conversation['id'];
+			$conversation['user_id'] = (int) ( $conversation['user_id'] ?? 0 );
 			return $conversation;
 		}
 

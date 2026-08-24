@@ -113,13 +113,24 @@ class SettingsSanitizer {
 		$sanitized['request_timeout'] = absint( $input['request_timeout'] ?? $current['request_timeout'] ?? 120 );
 		$sanitized['cache_duration']  = absint( $input['cache_duration'] ?? $current['cache_duration'] ?? 3600 );
 
-		// Booleanos: checkbox ausente significa desmarcado, portanto não caem
-		// para o valor salvo — do contrário nunca seria possível desativá-los.
-		$sanitized['enable_chat']      = ! empty( $input['enable_chat'] );
-		$sanitized['enable_search']    = ! empty( $input['enable_search'] );
-		$sanitized['enable_analytics'] = ! empty( $input['enable_analytics'] );
-		$sanitized['enable_feedback']  = ! empty( $input['enable_feedback'] );
-		$sanitized['debug_mode']       = ! empty( $input['debug_mode'] );
+		// Booleanos de checkbox: a CHAVE presente decide (o formulário envia
+		// sempre a chave, via input hidden com valor 0, então desmarcar
+		// continua funcionando). Chave AUSENTE não é "desmarcado" — é um save
+		// parcial/programático (o sanitize_callback do register_setting roda
+		// em todo update_option), e aí o valor salvo é preservado. Sem isso,
+		// qualquer gravação parcial desligava chat/busca silenciosamente.
+		$bool = static function ( string $key, bool $default ) use ( $input, $current ): bool {
+			if ( array_key_exists( $key, $input ) ) {
+				return ! empty( $input[ $key ] );
+			}
+			return ! empty( $current[ $key ] ?? $default );
+		};
+
+		$sanitized['enable_chat']      = $bool( 'enable_chat', true );
+		$sanitized['enable_search']    = $bool( 'enable_search', true );
+		$sanitized['enable_analytics'] = $bool( 'enable_analytics', true );
+		$sanitized['enable_feedback']  = $bool( 'enable_feedback', true );
+		$sanitized['debug_mode']       = $bool( 'debug_mode', false );
 
 		// Coleções
 		$collections                      = $input['default_collections'] ?? $current['default_collections'] ?? array();
@@ -160,7 +171,8 @@ class SettingsSanitizer {
 
 		// Integração com o tema Tainacan
 		$sanitized['theme_integration'] = self::sanitize_theme_integration(
-			(array) ( $input['theme_integration'] ?? $current['theme_integration'] ?? array() )
+			(array) ( $input['theme_integration'] ?? $current['theme_integration'] ?? array() ),
+			(array) ( $current['theme_integration'] ?? array() )
 		);
 
 		return $sanitized;
@@ -169,22 +181,37 @@ class SettingsSanitizer {
 	/**
 	 * Sanitiza o bloco de integração com o tema Tainacan.
 	 *
-	 * @param array $input Sub-array theme_integration.
+	 * A mesma regra dos booleanos do nível superior: chave presente decide
+	 * (o formulário sempre envia enabled via input hidden), chave ausente
+	 * preserva o valor salvo e só então cai no padrão. Sem isso, o
+	 * sanitize_callback do register_setting — que roda em todo update_option —
+	 * materializava enabled=false num save que não trazia o sub-array, e a
+	 * aba "Busca com IA" sumia do site sem ninguém ter desmarcado nada.
+	 *
+	 * @param array $input   Sub-array theme_integration da entrada (ou o salvo, se ausente).
+	 * @param array $current Sub-array theme_integration já armazenado.
 	 * @return array
 	 */
-	private static function sanitize_theme_integration( array $input ): array {
+	private static function sanitize_theme_integration( array $input, array $current = array() ): array {
 		$defaults = \Oraculo_Tainacan\Frontend\ThemeIntegration::get_default_settings();
 
-		$tab_label   = sanitize_text_field( (string) ( $input['tab_label'] ?? '' ) );
-		$placeholder = sanitize_text_field( (string) ( $input['placeholder'] ?? '' ) );
-		$scope       = (string) ( $input['scope'] ?? '' );
+		$tab_label   = sanitize_text_field( (string) ( $input['tab_label'] ?? $current['tab_label'] ?? '' ) );
+		$placeholder = sanitize_text_field( (string) ( $input['placeholder'] ?? $current['placeholder'] ?? '' ) );
+		$scope       = (string) ( $input['scope'] ?? $current['scope'] ?? '' );
+
+		$flag = static function ( string $key ) use ( $input, $current, $defaults ): bool {
+			if ( array_key_exists( $key, $input ) ) {
+				return ! empty( $input[ $key ] );
+			}
+			return ! empty( $current[ $key ] ?? $defaults[ $key ] );
+		};
 
 		return array(
-			'enabled'          => ! empty( $input['enabled'] ),
+			'enabled'          => $flag( 'enabled' ),
 			'tab_label'        => '' !== $tab_label ? $tab_label : $defaults['tab_label'],
 			'placeholder'      => '' !== $placeholder ? $placeholder : $defaults['placeholder'],
 			'scope'            => in_array( $scope, array( 'collection', 'all' ), true ) ? $scope : 'collection',
-			'show_suggestions' => ! empty( $input['show_suggestions'] ),
+			'show_suggestions' => $flag( 'show_suggestions' ),
 		);
 	}
 }

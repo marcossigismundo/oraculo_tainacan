@@ -350,21 +350,25 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
 						<th><?php esc_html_e( 'Funcionalidades', 'oraculo-tainacan' ); ?></th>
 						<td>
 							<label>
+								<input type="hidden" name="oraculo_tainacan_options[enable_chat]" value="0">
 								<input type="checkbox" name="oraculo_tainacan_options[enable_chat]" value="1"
 										<?php checked( $options['enable_chat'] ?? true ); ?>>
 								<?php esc_html_e( 'Habilitar Chat', 'oraculo-tainacan' ); ?>
 							</label><br>
 							<label>
+								<input type="hidden" name="oraculo_tainacan_options[enable_search]" value="0">
 								<input type="checkbox" name="oraculo_tainacan_options[enable_search]" value="1"
 										<?php checked( $options['enable_search'] ?? true ); ?>>
 								<?php esc_html_e( 'Habilitar Busca', 'oraculo-tainacan' ); ?>
 							</label><br>
 							<label>
+								<input type="hidden" name="oraculo_tainacan_options[enable_analytics]" value="0">
 								<input type="checkbox" name="oraculo_tainacan_options[enable_analytics]" value="1"
 										<?php checked( $options['enable_analytics'] ?? true ); ?>>
 								<?php esc_html_e( 'Habilitar Analytics', 'oraculo-tainacan' ); ?>
 							</label><br>
 							<label>
+								<input type="hidden" name="oraculo_tainacan_options[enable_feedback]" value="0">
 								<input type="checkbox" name="oraculo_tainacan_options[enable_feedback]" value="1"
 										<?php checked( $options['enable_feedback'] ?? true ); ?>>
 								<?php esc_html_e( 'Habilitar Feedback', 'oraculo-tainacan' ); ?>
@@ -631,6 +635,7 @@ $collections = \Oraculo_Tainacan\get_tainacan_collections();
 						<th><?php esc_html_e( 'Modo Debug', 'oraculo-tainacan' ); ?></th>
 						<td>
 							<label>
+								<input type="hidden" name="oraculo_tainacan_options[debug_mode]" value="0">
 								<input type="checkbox" name="oraculo_tainacan_options[debug_mode]" value="1"
 										<?php checked( $options['debug_mode'] ?? false ); ?>>
 								<?php esc_html_e( 'Habilitar logs de debug', 'oraculo-tainacan' ); ?>
