@@ -8,6 +8,10 @@ Arquitetura orientada a serviços com múltiplos provedores de IA intercambiáve
 
 > Para o detalhamento dos pontos de acoplamento com o Tainacan, o contrato das rotas REST
 > e os fluxos de indexação e busca, veja [INTEGRACAO-TAINACAN.md](INTEGRACAO-TAINACAN.md).
+>
+> Para os limites de escala da busca vetorial em MariaDB/MySQL (benchmark medido,
+> pontos de ruptura e caminhos de escala), veja
+> [ANALISE-LIMITE-VETORES.md](ANALISE-LIMITE-VETORES.md).
 
 ## Metadados
 
