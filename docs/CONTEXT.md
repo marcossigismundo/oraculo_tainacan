@@ -198,6 +198,24 @@ Integração opcional com a Museum CLIP Search API (FastAPI + pgvector,
 - Limitação conhecida da API (sem endpoint próprio para corrigir): não há
   update/delete — metadado alterado num item já enviado não atualiza remotamente.
 
+## Limites de escala da busca vetorial (MySQL/MariaDB local)
+
+`VectorStore::search()` (backend local, não-CLIP) é O(N): `SELECT` sem `LIMIT` de
+toda a coleção (embedding JSON + texto + metadados), materializado em RAM pelo
+`$wpdb`, cosseno calculado em PHP linha a linha (norma recomputada a cada
+chamada, sem índice possível — MariaDB só ganha tipo `VECTOR`/HNSW nativo a
+partir da 11.7). Benchmark medido (não estimado) em 2026-08-20: ~29 KB/item em
+disco, ~43 KB/item de pico de RAM por busca, ~0,6 ms/item de CPU. Teto prático:
+**~4.000 itens** com `memory_limit=256M` (comum em shared hosting), **~10.000**
+com 512M — acima disso, `memory_limit` estoura ou a latência de busca (2–6,5 s
+só de varredura) inviabiliza uso público. Acervos institucionais Tainacan
+costumam passar de 10k itens, fora da faixa confortável deste backend.
+
+Detalhes completos (metodologia, tabela de números por tier, escada de
+mitigação e a solução recomendada — reusar o serviço pgvector/HNSW do IBRAM,
+já integrado para CLIP, também para embeddings de texto) em
+[ANALISE-LIMITE-VETORES.md](ANALISE-LIMITE-VETORES.md).
+
 ## Descoberta dinâmica de modelos por provedor
 
 Cada provedor (`AIProviderInterface::list_remote_models()`) consulta o endpoint de
