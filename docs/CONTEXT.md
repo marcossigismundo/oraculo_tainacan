@@ -1,6 +1,6 @@
 # Oráculo Tainacan — Contexto do Projeto
 
-> Snapshot da versão 2.6.2 (indexação automática, CLIP como provedor, descoberta
+> Snapshot da versão 2.6.3 (indexação automática, CLIP como provedor, descoberta
 > dinâmica de modelos, chaves criptografadas, renovação do nonce REST no front — `main`)
 
 Plugin WordPress que adiciona busca semântica (RAG) e chat com IA sobre acervos do Tainacan.
@@ -17,7 +17,7 @@ Arquitetura orientada a serviços com múltiplos provedores de IA intercambiáve
 
 | Campo | Valor |
 |---|---|
-| Versão declarada (`oraculo-tainacan.php` e `readme.txt`) | **2.6.2** |
+| Versão declarada (`oraculo-tainacan.php` e `readme.txt`) | **2.6.3** |
 | PHP mínimo | **8.0** (`declare(strict_types=1)` em todos os arquivos) |
 | WordPress mínimo | 6.0 |
 | Text domain | `oraculo-tainacan` |
@@ -232,6 +232,13 @@ disco, ~43 KB/item de pico de RAM por busca, ~0,6 ms/item de CPU. Teto prático:
 com 512M — acima disso, `memory_limit` estoura ou a latência de busca (2–6,5 s
 só de varredura) inviabiliza uso público. Acervos institucionais Tainacan
 costumam passar de 10k itens, fora da faixa confortável deste backend.
+
+**Desde a 2.6.3 a memória não é mais o teto:** `search()` varre em lotes por id
+(keyset, 500 linhas, filtro `oraculo_tainacan_vector_scan_batch`) lendo só
+`id + embedding_data`, guarda só o top-k e busca os detalhes apenas desses ids.
+Motivo: a coleção "Acervo Bibliográfico" do darkgreen-yak (14.284 vetores, ~290 MB)
+estourava 512M e a busca devolvia "erro crítico". A latência continua O(N)
+(~0,6 ms/item), então o teto prático agora é de tempo de resposta.
 
 Detalhes completos (metodologia, tabela de números por tier, escada de
 mitigação e a solução recomendada — reusar o serviço pgvector/HNSW do IBRAM,

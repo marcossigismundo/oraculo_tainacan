@@ -158,54 +158,96 @@ class VectorStore {
 	public function search( array $query_embedding, array $collection_ids = array(), int $limit = 10, float $threshold = 0.3 ) {
 		global $wpdb;
 
-		// Buscar todos os vetores das coleções especificadas
-		$where_clause = '';
-		if ( ! empty( $collection_ids ) ) {
-			$collection_ids = array_map( 'intval', $collection_ids );
-			$placeholders   = implode( ',', array_fill( 0, count( $collection_ids ), '%d' ) );
-            // phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $collection_ids is array_map('intval', ...)d above; type-safe to interpolate; $placeholders contains only %d entries built from array_fill; count matches spread; passed through $wpdb->prepare.
-			$where_clause = $wpdb->prepare( "WHERE collection_id IN ($placeholders)", $collection_ids );
-            // phpcs:enable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
-		}
-
-        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $this->table_name is $wpdb->prefix . self::TABLE_VECTORS (class constant; cannot receive user input); $where_clause is prepared above; table identifier cannot be parameterized.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- custom table; caching not applied here because embedding data is large and similarity computed in PHP.
-		$vectors = $wpdb->get_results(
-			"SELECT id, item_id, collection_id, collection_name, embedding_data,
-                    content_text, item_url, item_title, metadata_json
-             FROM {$this->table_name}
-             {$where_clause}",
-			ARRAY_A
-		);
-        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
-
-		if ( empty( $vectors ) ) {
+		if ( $limit < 1 ) {
 			return array();
 		}
 
-		// Calcular similaridades
-		$results = array();
-		foreach ( $vectors as $vector ) {
-			$embedding = json_decode( $vector['embedding_data'], true );
-
-			if ( ! is_array( $embedding ) ) {
-				continue;
-			}
-
-			$similarity = \Oraculo_Tainacan\cosine_similarity( $query_embedding, $embedding );
-
-			if ( $similarity >= $threshold ) {
-				$vector['similarity'] = $similarity;
-				unset( $vector['embedding_data'] ); // Não retornar o embedding
-				$results[] = $vector;
-			}
+		// Varredura em lotes por id (keyset), lendo só id + embedding, com
+		// memória constante: antes, um SELECT sem LIMIT trazia a coleção
+		// inteira com textos e metadados para a RAM, e 14 mil itens já
+		// estouravam memory_limit de 512M (ver docs/ANALISE-LIMITE-VETORES.md).
+		// A latência continua O(N); só o top-k volta para buscar os detalhes.
+		$collection_ids = array_values( array_filter( array_map( 'intval', $collection_ids ) ) );
+		$collection_sql = '';
+		if ( ! empty( $collection_ids ) ) {
+			$collection_sql = 'collection_id IN (' . implode( ',', array_fill( 0, count( $collection_ids ), '%d' ) ) . ') AND ';
 		}
 
-		// Ordenar por similaridade descendente
+		/**
+		 * Tamanho do lote da varredura vetorial (linhas por consulta).
+		 *
+		 * @param int $batch_size Padrão 500 (~10 MB de pico por lote).
+		 */
+		$batch_size = max( 50, (int) apply_filters( 'oraculo_tainacan_vector_scan_batch', 500 ) );
+		$last_id    = 0;
+		$top        = array(); // id => similaridade, no máximo $limit entradas.
+
+		do {
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table ($wpdb->prefix . class constant); IN-clause built with array_fill of %d placeholders matching $collection_ids count, and array_merge passes those ids plus $last_id and $batch_size as one replacements array; similarity must be computed in PHP over every row, not expressible via WP_Query, and caching raw embeddings would duplicate the table in the object cache.
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT id, embedding_data FROM {$this->table_name} WHERE {$collection_sql}id > %d ORDER BY id ASC LIMIT %d",
+					array_merge( $collection_ids, array( $last_id, $batch_size ) )
+				),
+				ARRAY_A
+			);
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+
+			if ( empty( $rows ) ) {
+				break;
+			}
+
+			foreach ( $rows as $row ) {
+				$last_id   = (int) $row['id'];
+				$embedding = json_decode( (string) $row['embedding_data'], true );
+
+				if ( ! is_array( $embedding ) ) {
+					continue;
+				}
+
+				$similarity = \Oraculo_Tainacan\cosine_similarity( $query_embedding, $embedding );
+
+				if ( $similarity >= $threshold ) {
+					$top[ $last_id ] = $similarity;
+				}
+			}
+
+			if ( count( $top ) > $limit ) {
+				arsort( $top );
+				$top = array_slice( $top, 0, $limit, true );
+			}
+
+			$fetched = count( $rows );
+			unset( $rows );
+		} while ( $fetched === $batch_size );
+
+		if ( empty( $top ) ) {
+			return array();
+		}
+
+		arsort( $top );
+		$ids = array_map( 'intval', array_keys( $top ) );
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table ($wpdb->prefix . class constant); IN-clause built with array_fill of %d placeholders matching $ids count; result depends on the query embedding, so there is no stable cache key.
+		$details = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT id, item_id, collection_id, collection_name, content_text, item_url, item_title, metadata_json FROM {$this->table_name} WHERE id IN (" . implode( ',', array_fill( 0, count( $ids ), '%d' ) ) . ')',
+				$ids
+			),
+			ARRAY_A
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+
+		$results = array();
+		foreach ( (array) $details as $vector ) {
+			$vector['similarity'] = $top[ (int) $vector['id'] ];
+			$results[]            = $vector;
+		}
+
+		// Ordenar por similaridade descendente.
 		usort( $results, fn( $a, $b ) => $b['similarity'] <=> $a['similarity'] );
 
-		// Limitar resultados
-		return array_slice( $results, 0, $limit );
+		return $results;
 	}
 
 	/**

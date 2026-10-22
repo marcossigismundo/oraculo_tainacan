@@ -4,7 +4,7 @@ Tags: tainacan, ai, search, rag, openai
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 2.6.2
+Stable tag: 2.6.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -111,6 +111,9 @@ OpenAI is the most tested option. Ollama is recommended for fully local, private
 Only the text content of your archived items is sent to the AI provider you configure. When using Ollama, everything stays local.
 
 == Changelog ==
+
+= 2.6.3 =
+* Fix: local vector search no longer exhausts memory on large collections (a 14k-item collection hit the 512M limit and returned a critical error). The scan now reads only id + embedding in keyset batches of 500 (filter oraculo_tainacan_vector_scan_batch), keeps only the top-k and fetches details just for them. Latency is still O(N); the external vector service remains the long-term path
 
 = 2.6.2 =
 * Fix: anonymous visitors with a stale nonce also get rest_cookie_invalid_nonce from core, whose rest-nonce endpoint only serves logged-in users; the REST client now falls back to the plugin's own nonce action in that case and retries once
