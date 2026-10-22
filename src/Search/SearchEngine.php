@@ -473,8 +473,12 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados.',
 			if ( '' === $value || 0 === strcasecmp( $value, $title ) || mb_strlen( $value ) > 120 ) {
 				continue;
 			}
+			// "[100] Autor Principal — Pessoa" vira "Autor Principal": o código
+			// MARC e o qualificador só ocupam a linha estreita do cartão.
+			$label     = preg_replace( '/^\s*\[[^\]]*\]\s*/u', '', (string) $meta['name'] );
+			$label     = trim( (string) preg_split( '/\s+[—–]\s+/u', (string) $label )[0] );
 			$details[] = array(
-				'label' => (string) $meta['name'],
+				'label' => '' !== $label ? $label : (string) $meta['name'],
 				'value' => $value,
 			);
 			if ( count( $details ) >= 3 ) {
@@ -528,7 +532,7 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados.',
 			'index'       => \Oraculo_Tainacan\get_index_version(),
 			// Formato da resposta (citações [n] e cartões): aposenta respostas
 			// guardadas no formato anterior, com URLs em texto puro.
-			'format'      => 2,
+			'format'      => 3,
 		);
 
 		return 'oraculo_search_' . md5( wp_json_encode( $data ) );

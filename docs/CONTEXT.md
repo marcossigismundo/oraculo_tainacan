@@ -1,6 +1,6 @@
 # Oráculo Tainacan — Contexto do Projeto
 
-> Snapshot da versão 2.7.1 (indexação automática, CLIP como provedor, descoberta
+> Snapshot da versão 2.7.2 (indexação automática, CLIP como provedor, descoberta
 > dinâmica de modelos, chaves criptografadas, renovação do nonce REST no front,
 > busca vetorial em duas fases, resposta com citações [n] — `main`)
 
@@ -18,7 +18,7 @@ Arquitetura orientada a serviços com múltiplos provedores de IA intercambiáve
 
 | Campo | Valor |
 |---|---|
-| Versão declarada (`oraculo-tainacan.php` e `readme.txt`) | **2.7.1** |
+| Versão declarada (`oraculo-tainacan.php` e `readme.txt`) | **2.7.2** |
 | PHP mínimo | **8.0** (`declare(strict_types=1)` em todos os arquivos) |
 | WordPress mínimo | 6.0 |
 | Text domain | `oraculo-tainacan` |
@@ -273,7 +273,7 @@ enviado ao modelo não leva mais as URLs. No front (`theme-integration.js`),
 (e uma URL solta de item listado na citação dele), e os cartões são links inteiros com
 miniatura, número e até 3 metadados curtos (`details`, de `summarize_metadata()`); o
 `snippet` limpo (`strip_index_labels()`) só aparece quando não há metadados. A chave do
-cache de busca leva `format => 2`. O chat da BIA segue a mesma ideia (sem URLs, títulos
+cache de busca leva `format` (3 desde a 2.7.2). O chat da BIA segue a mesma ideia (sem URLs, títulos
 em negrito, respostas curtas), mas sem citações numeradas.
 
 ## Descoberta dinâmica de modelos por provedor

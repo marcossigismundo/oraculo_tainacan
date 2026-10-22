@@ -4,7 +4,7 @@ Tags: tainacan, ai, search, rag, openai
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 2.7.1
+Stable tag: 2.7.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -111,6 +111,9 @@ OpenAI is the most tested option. Ollama is recommended for fully local, private
 Only the text content of your archived items is sent to the AI provider you configure. When using Ollama, everything stays local.
 
 == Changelog ==
+
+= 2.7.2 =
+* UI: item card metadata labels drop the MARC code and qualifier ("[100] Autor Principal — Pessoa" becomes "Autor Principal") and are no longer bold; answer list bullets restored against the theme reset
 
 = 2.7.1 =
 * Tune: vector rescore pool default raised to 20x the limit (min 400) after measuring recall on real data: 99% recall@20 at ~0.2 s, versus 80% with the 2.7.0 default of 100

@@ -303,6 +303,7 @@
 
 .oraculo-ai-answer li {
     margin: 0 0 0.375em;
+    list-style: disc; /* o tema zera list-style dos <li> */
 }
 
 .oraculo-ai-answer > :last-child {
@@ -505,6 +506,7 @@
 
 .oraculo-ai-source-details dt {
     display: inline;
+    font-weight: 400;
     color: var(--tainacan-info-color, #505253);
 }
 
