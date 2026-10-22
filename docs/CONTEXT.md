@@ -1,6 +1,6 @@
 # Oráculo Tainacan — Contexto do Projeto
 
-> Snapshot da versão 2.7.0 (indexação automática, CLIP como provedor, descoberta
+> Snapshot da versão 2.7.1 (indexação automática, CLIP como provedor, descoberta
 > dinâmica de modelos, chaves criptografadas, renovação do nonce REST no front,
 > busca vetorial em duas fases, resposta com citações [n] — `main`)
 
@@ -18,7 +18,7 @@ Arquitetura orientada a serviços com múltiplos provedores de IA intercambiáve
 
 | Campo | Valor |
 |---|---|
-| Versão declarada (`oraculo-tainacan.php` e `readme.txt`) | **2.7.0** |
+| Versão declarada (`oraculo-tainacan.php` e `readme.txt`) | **2.7.1** |
 | PHP mínimo | **8.0** (`declare(strict_types=1)` em todos os arquivos) |
 | WordPress mínimo | 6.0 |
 | Text domain | `oraculo-tainacan` |
@@ -248,10 +248,10 @@ binária (`embedding_bits`, 1 bit por dimensão = sinal do valor, ~192 bytes par
 1536 dimensões) gravada no `upsert()`. A busca lê só `id + embedding_bits` em lotes
 de 5.000, ordena pela distância de Hamming (XOR de strings + `count_chars`, em C)
 e só os melhores candidatos (filtro `oraculo_tainacan_vector_rescore_pool`,
-padrão 10× o limite, mínimo 100) têm o JSON decodificado e o cosseno exato
+padrão 20× o limite, mínimo 400) têm o JSON decodificado e o cosseno exato
 calculado — o ranking final e o `similarity_threshold` continuam no cosseno exato.
-Medido no PHP da VPS: 22 mil assinaturas em ~0,12 s, contra 15–18 s da varredura
-exata da coleção 282. Migração: `VectorStore::maybe_upgrade_schema()` em todo
+Medido na coleção 282 (14,5 mil vetores): ~0,2 s com recall@20 de 99% frente à varredura exata (9–18 s); recall 80% com 100 candidatos, 98% com 300; chat da BIA de ~20 s para ~5 s.
+Migração: `VectorStore::maybe_upgrade_schema()` em todo
 `init` (opção `oraculo_vectors_schema`) adiciona a coluna e agenda o cron
 `oraculo_backfill_vector_bits`, que preenche 2.000 linhas por vez e se reagenda;
 `wp oraculo optimize` preenche tudo de uma vez. Vetores ainda sem assinatura caem

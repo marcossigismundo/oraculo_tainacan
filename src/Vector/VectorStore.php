@@ -379,9 +379,9 @@ class VectorStore {
 		 *
 		 * Maior = recall mais próximo da varredura exata, custo ~1 ms por candidato.
 		 *
-		 * @param int $pool Padrão: 10x o limite, no mínimo 100.
+		 * @param int $pool Padrão: 20x o limite, no mínimo 400 (medido na coleção 282: recall@20 de 80% com 100, 98% com 300, 99,4% com 500; ~0,2 s).
 		 */
-		$pool       = max( $limit, (int) apply_filters( 'oraculo_tainacan_vector_rescore_pool', max( 100, $limit * 10 ) ) );
+		$pool       = max( $limit, (int) apply_filters( 'oraculo_tainacan_vector_rescore_pool', max( 400, $limit * 20 ) ) );
 		$batch_size = 5000; // ~1 MB por lote: só id + assinatura.
 		$last_id    = 0;
 		$candidates = array(); // id => distância de Hamming.
