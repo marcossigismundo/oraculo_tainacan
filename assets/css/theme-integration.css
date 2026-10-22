@@ -285,6 +285,7 @@
 /* ------------------------------------------------------------------ */
 
 .oraculo-ai-answer {
+    max-width: 48em;
     font-size: 0.9375em;
     line-height: 1.65;
     color: var(--tainacan-label-color, #373839);
@@ -294,13 +295,49 @@
     margin: 0 0 0.75em;
 }
 
-.oraculo-ai-answer p:last-child {
+.oraculo-ai-answer ul {
+    margin: 0 0 0.75em;
+    padding-left: 1.25em;
+    list-style: disc;
+}
+
+.oraculo-ai-answer li {
+    margin: 0 0 0.375em;
+}
+
+.oraculo-ai-answer > :last-child {
     margin-bottom: 0;
 }
 
 .oraculo-ai-answer a {
     color: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
     text-decoration: underline;
+}
+
+/* Citação [n]: atalho para o cartão do item de mesmo número */
+.oraculo-ai-answer a.oraculo-ai-cite {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.5em;
+    height: 1.5em;
+    margin: 0 0.125em;
+    padding: 0 0.375em;
+    font-size: 0.6875em;
+    font-weight: 700;
+    line-height: 1;
+    vertical-align: 0.25em;
+    color: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
+    background: var(--tainacan-primary, var(--oraculo-accent, #b5e0e3));
+    border-radius: 999px;
+    text-decoration: none;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.oraculo-ai-answer a.oraculo-ai-cite:hover,
+.oraculo-ai-answer a.oraculo-ai-cite:focus-visible {
+    color: #ffffff;
+    background: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
 }
 
 .oraculo-ai-response-time {
@@ -312,14 +349,16 @@
 /* Fontes / itens relacionados */
 
 .oraculo-ai-sources {
-    margin-top: 1.25em;
+    margin-top: 1.5em;
+    padding-top: 1.25em;
+    border-top: 1px solid var(--tainacan-input-border-color, #dbdbdb);
 }
 
 .oraculo-ai-sources h4 {
     display: flex;
     align-items: center;
     gap: 0.5em;
-    margin: 0 0 0.75em;
+    margin: 0 0 0.875em;
     font-size: 0.8125em;
     font-weight: 600;
     color: var(--tainacan-heading-color, #000000);
@@ -336,32 +375,89 @@
 
 .oraculo-ai-sources-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(15em, 1fr));
-    gap: 0.625em;
+    grid-template-columns: repeat(auto-fill, minmax(17em, 1fr));
+    gap: 0.75em;
     margin: 0;
     padding: 0;
     list-style: none;
 }
 
 .oraculo-ai-source-card {
+    position: relative;
+    margin: 0;
+}
+
+/* O cartão inteiro é o link do item */
+.oraculo-ai-source-link {
     display: flex;
-    gap: 0.625em;
+    gap: 0.75em;
+    height: 100%;
     padding: 0.75em;
+    color: inherit;
+    text-decoration: none;
     background: var(--tainacan-item-background-color, #ffffff);
     border: 1px solid var(--tainacan-input-border-color, #dbdbdb);
-    border-radius: 5px;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    border-radius: 8px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
-.oraculo-ai-source-card:hover {
+.oraculo-ai-source-link:hover,
+.oraculo-ai-source-link:focus-visible {
     border-color: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
-    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px);
+    outline: none;
 }
 
-.oraculo-ai-source-icon {
+.oraculo-ai-source-card.is-cited .oraculo-ai-source-link {
+    border-left: 3px solid var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
+}
+
+.oraculo-ai-source-card.is-flash .oraculo-ai-source-link {
+    animation: oraculo-ai-flash 1.4s ease;
+}
+
+@keyframes oraculo-ai-flash {
+    0%, 40% { box-shadow: 0 0 0 3px var(--tainacan-primary, var(--oraculo-accent, #b5e0e3)); }
+    100% { box-shadow: none; }
+}
+
+.oraculo-ai-source-thumb {
+    position: relative;
+    flex: 0 0 3.75em;
+    width: 3.75em;
+    height: 5em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
-    flex-shrink: 0;
-    margin-top: 0.125em;
+    background: var(--tainacan-skeleton-color, #eeeeee);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.oraculo-ai-source-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.oraculo-ai-source-num {
+    position: absolute;
+    top: 0.25em;
+    left: 0.25em;
+    min-width: 1.5em;
+    height: 1.5em;
+    padding: 0 0.3125em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6875em;
+    font-weight: 700;
+    line-height: 1;
+    color: #ffffff;
+    background: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
+    border-radius: 999px;
 }
 
 .oraculo-ai-source-info {
@@ -374,30 +470,59 @@
 .oraculo-ai-source-title {
     font-size: 0.8125em;
     font-weight: 600;
+    line-height: 1.35;
     color: var(--tainacan-heading-color, #000000);
-    text-decoration: none;
     overflow-wrap: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
-a.oraculo-ai-source-title:hover,
-a.oraculo-ai-source-title:focus-visible {
+.oraculo-ai-source-link:hover .oraculo-ai-source-title {
     color: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
-    text-decoration: underline;
 }
 
 .oraculo-ai-source-collection {
-    font-size: 0.6875em;
+    font-size: 0.625em;
     color: var(--tainacan-info-color, #505253);
     text-transform: uppercase;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.04em;
+}
+
+.oraculo-ai-source-details {
+    margin: 0.125em 0 0;
+    font-size: 0.71875em;
+    line-height: 1.45;
+    color: var(--tainacan-label-color, #373839);
+}
+
+.oraculo-ai-source-details div {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.oraculo-ai-source-details dt {
+    display: inline;
+    color: var(--tainacan-info-color, #505253);
+}
+
+.oraculo-ai-source-details dt::after {
+    content: ": ";
+}
+
+.oraculo-ai-source-details dd {
+    display: inline;
+    margin: 0;
 }
 
 .oraculo-ai-source-snippet {
-    font-size: 0.75em;
-    line-height: 1.5;
+    font-size: 0.71875em;
+    line-height: 1.45;
     color: var(--tainacan-label-color, #373839);
     display: -webkit-box;
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -407,6 +532,19 @@ a.oraculo-ai-source-title:focus-visible {
     color: inherit;
     padding: 0 0.125em;
     border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .oraculo-ai-source-link {
+        transition: none;
+    }
+    .oraculo-ai-source-link:hover,
+    .oraculo-ai-source-link:focus-visible {
+        transform: none;
+    }
+    .oraculo-ai-source-card.is-flash .oraculo-ai-source-link {
+        animation: none;
+    }
 }
 
 .oraculo-ai-source-similarity {

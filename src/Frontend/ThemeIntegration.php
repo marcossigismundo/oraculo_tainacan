@@ -247,6 +247,9 @@ class ThemeIntegration {
 					'wholeRepository'  => __( 'Todo o acervo', 'oraculo-tainacan' ),
 					'sources'          => __( 'Itens do acervo relacionados', 'oraculo-tainacan' ),
 					'relevance'        => __( 'relevância', 'oraculo-tainacan' ),
+					/* translators: %s: number of the cited collection item in the result list */
+					'citeAria'         => __( 'Ver item %s', 'oraculo-tainacan' ),
+					'openLink'         => __( 'abrir link', 'oraculo-tainacan' ),
 					'helpful'          => __( 'Esta resposta foi útil?', 'oraculo-tainacan' ),
 					'yes'              => __( 'Sim', 'oraculo-tainacan' ),
 					'no'               => __( 'Não', 'oraculo-tainacan' ),

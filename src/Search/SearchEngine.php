@@ -118,6 +118,11 @@ class SearchEngine {
 
 			$system_prompt = $this->get_system_prompt();
 			$search_prompt = $this->build_search_prompt( $query, $context );
+			// As regras de citação [n] pressupõem os cartões dos itens na tela;
+			// com as fontes ocultas, o texto é o único caminho até os itens.
+			if ( ! empty( $this->options['appearance']['show_sources'] ?? true ) ) {
+				$search_prompt .= "\n\n" . $this->get_answer_format_rules();
+			}
 
 			$ai_response = $chat_provider->generate_response(
 				$search_prompt,
@@ -138,7 +143,7 @@ class SearchEngine {
 			$result = array(
 				'query'            => $query,
 				'response'         => $ai_response['response'],
-				'items'            => $this->format_items( $similar_items, $query, $max_results ),
+				'items'            => $this->format_items( $similar_items, $query, $max_results, true ),
 				'total_results'    => count( $similar_items ),
 				'usage'            => $ai_response['usage'],
 				'model'            => $ai_response['model'],
@@ -281,16 +286,14 @@ class SearchEngine {
 		$items = array_slice( $items, 0, $max_items );
 
 		foreach ( $items as $index => $item ) {
-			$num  = $index + 1;
-			$text = \Oraculo_Tainacan\truncate_text( $item['content_text'], 500 );
+			$num = $index + 1;
+			// Sem URL: os links ficam nos cartões numerados da interface. Com a URL
+			// no contexto, o modelo copiava cada item como ficha (título, autor,
+			// link), repetindo os cartões em texto puro.
+			$text = preg_replace( '/\s*URL:\s*\S+/', '', (string) $item['content_text'] );
+			$text = \Oraculo_Tainacan\truncate_text( (string) $text, 500 );
 
-			$context_parts[] = sprintf(
-				"[%d] %s\nURL: %s\nSimilaridade: %.0f%%",
-				$num,
-				$text,
-				$item['item_url'] ?? '',
-				( $item['similarity'] ?? 0 ) * 100
-			);
+			$context_parts[] = sprintf( '[%d] %s', $num, $text );
 		}
 
 		return implode( "\n\n", $context_parts );
@@ -319,7 +322,7 @@ Suas respostas devem ser:
 - Úteis, indicando sempre os itens relevantes encontrados
 - Honestas quando não houver informação suficiente para responder
 
-Quando citar itens do acervo, sempre mencione o título e forneça o link quando disponível.
+Quando citar itens do acervo, use o número do item entre colchetes, como [1].
 Se a pergunta não puder ser respondida com as informações disponíveis, informe educadamente e sugira reformular a pergunta.',
 			'oraculo-tainacan'
 		);
@@ -356,7 +359,28 @@ ITENS DO ACERVO:
 
 PERGUNTA: {query}
 
-Forneça uma resposta clara, mencionando os itens mais relevantes encontrados. Se houver links, inclua-os na resposta.',
+Forneça uma resposta clara, mencionando os itens mais relevantes encontrados.',
+			'oraculo-tainacan'
+		);
+	}
+
+	/**
+	 * Regras fixas de formato da resposta, anexadas a qualquer prompt de busca
+	 *
+	 * Ficam fora do prompt editável porque a interface depende delas: os itens
+	 * aparecem em cartões numerados e as citações [n] do texto viram atalhos
+	 * para esses cartões. Prompts salvos de versões antigas pediam o link de
+	 * cada item, e a resposta repetia os cartões em texto puro.
+	 *
+	 * @return string
+	 */
+	private function get_answer_format_rules(): string {
+		return __(
+			'FORMATO DA RESPOSTA:
+- Escreva uma síntese curta (até 3 parágrafos ou uma lista de no máximo 6 tópicos) que responda à pergunta.
+- Cite os itens pelo número entre colchetes, por exemplo [1] ou [2][5], logo após a informação que vem deles.
+- Não escreva URLs nem fichas com título, autor e link: os itens já aparecem em cartões numerados abaixo da resposta.
+- Pode usar **negrito** para destacar títulos e "- " para listas.',
 			'oraculo-tainacan'
 		);
 	}
@@ -367,25 +391,98 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados. S
 	 * @param array  $items
 	 * @param string $query
 	 * @param int    $limit
+	 * @param bool   $for_cards Inclui miniatura e metadados resumidos (cartões da busca).
 	 * @return array
 	 */
-	private function format_items( array $items, string $query, int $limit ): array {
+	private function format_items( array $items, string $query, int $limit, bool $for_cards = false ): array {
 		$formatted = array();
+		$items     = array_slice( $items, 0, $limit );
 
-		foreach ( array_slice( $items, 0, $limit ) as $item ) {
-			$formatted[] = array(
+		if ( $for_cards && ! empty( $items ) ) {
+			// Uma consulta para as metas dos itens e outra para os anexos das
+			// miniaturas, em vez de 2-3 por item dentro do laço.
+			$item_ids = array_map( 'intval', array_column( $items, 'item_id' ) );
+			update_meta_cache( 'post', $item_ids );
+			$thumb_ids = array_filter( array_map( 'get_post_thumbnail_id', $item_ids ) );
+			if ( ! empty( $thumb_ids ) ) {
+				_prime_post_caches( array_map( 'intval', $thumb_ids ), false, true );
+			}
+		}
+
+		foreach ( $items as $item ) {
+			$metadata    = json_decode( $item['metadata_json'] ?? '{}', true );
+			$metadata    = is_array( $metadata ) ? $metadata : array();
+			$title       = (string) ( $item['item_title'] ?? '' );
+			$entry       = array(
 				'id'              => $item['item_id'],
-				'title'           => $item['item_title'] ?? '',
-				'snippet'         => \Oraculo_Tainacan\generate_snippet( $item['content_text'], $query ),
+				'title'           => $title,
+				'snippet'         => \Oraculo_Tainacan\generate_snippet( $this->strip_index_labels( (string) $item['content_text'], $title ), $query ),
 				'url'             => $item['item_url'] ?? '',
 				'collection_id'   => $item['collection_id'],
 				'collection_name' => $item['collection_name'] ?? '',
 				'similarity'      => round( ( $item['similarity'] ?? 0 ) * 100, 1 ),
-				'metadata'        => (array) json_decode( $item['metadata_json'] ?? '{}', true ),
+				'metadata'        => $metadata,
 			);
+			if ( $for_cards ) {
+				$entry['details']   = $this->summarize_metadata( $metadata, $title );
+				$entry['thumbnail'] = (string) get_the_post_thumbnail_url( (int) $item['item_id'], 'medium' );
+			}
+			$formatted[] = $entry;
 		}
 
 		return $formatted;
+	}
+
+	/**
+	 * Tira do texto indexado os rótulos internos (TÍTULO:, METADADOS:, URL:)
+	 *
+	 * O texto do vetor é montado para o embedding, não para leitura; sem esta
+	 * limpeza o cartão repetia o título e mostrava "METADADOS: Título: ...".
+	 *
+	 * @param string $text  Texto indexado.
+	 * @param string $title Título do item, já exibido no cartão.
+	 * @return string
+	 */
+	private function strip_index_labels( string $text, string $title ): string {
+		// Com /u, UTF-8 inválido faz o preg_replace devolver null e o texto sumir.
+		$text = wp_check_invalid_utf8( $text, true );
+		$text = preg_replace( '/\s*URL:\s*\S+/u', '', $text );
+		$text = preg_replace( '/^\s*TÍTULO:[^\n]*\n?/u', '', (string) $text );
+		$text = preg_replace( '/\b(DESCRIÇÃO|METADADOS):\s*/u', '', (string) $text );
+		if ( '' !== $title ) {
+			$text = preg_replace( '/T[íi]tulo:\s*' . preg_quote( $title, '/' ) . '\s*\|?\s*/iu', '', (string) $text );
+		}
+		return trim( (string) $text );
+	}
+
+	/**
+	 * Até 3 pares "metadado: valor" curtos para o cartão do item
+	 *
+	 * @param array  $metadata slug => {name, value}, como gravado na indexação.
+	 * @param string $title    Título do item (não se repete no cartão).
+	 * @return array<int, array{label: string, value: string}>
+	 */
+	private function summarize_metadata( array $metadata, string $title ): array {
+		$details = array();
+
+		foreach ( $metadata as $meta ) {
+			if ( ! is_array( $meta ) || empty( $meta['name'] ) || ! isset( $meta['value'] ) || ! is_scalar( $meta['value'] ) ) {
+				continue;
+			}
+			$value = trim( wp_strip_all_tags( (string) $meta['value'] ) );
+			if ( '' === $value || 0 === strcasecmp( $value, $title ) || mb_strlen( $value ) > 120 ) {
+				continue;
+			}
+			$details[] = array(
+				'label' => (string) $meta['name'],
+				'value' => $value,
+			);
+			if ( count( $details ) >= 3 ) {
+				break;
+			}
+		}
+
+		return $details;
 	}
 
 	/**
@@ -429,6 +526,9 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados. S
 			// as chaves antigas. Sem isso, um item novo só aparecia na busca depois
 			// que o transient expirasse (cache_duration, padrão 1h).
 			'index'       => \Oraculo_Tainacan\get_index_version(),
+			// Formato da resposta (citações [n] e cartões): aposenta respostas
+			// guardadas no formato anterior, com URLs em texto puro.
+			'format'      => 2,
 		);
 
 		return 'oraculo_search_' . md5( wp_json_encode( $data ) );

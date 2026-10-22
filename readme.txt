@@ -4,7 +4,7 @@ Tags: tainacan, ai, search, rag, openai
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 2.6.4
+Stable tag: 2.7.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -111,6 +111,12 @@ OpenAI is the most tested option. Ollama is recommended for fully local, private
 Only the text content of your archived items is sent to the AI provider you configure. When using Ollama, everything stays local.
 
 == Changelog ==
+
+= 2.7.0 =
+* Performance: local vector search runs in two phases. Each vector gets a 1-bit-per-dimension signature (new column embedding_bits, filled on upgrade by a background cron or by `wp oraculo optimize`); candidates are preselected by Hamming distance and only the best ones (filter oraculo_tainacan_vector_rescore_pool, default 10x the limit, min 100) get the exact cosine. On a 14.5k-vector collection the scan went from 15-18 s to well under a second, which also speeds up the BIA chat
+* UI: the "Busca com IA" answer is now a short synthesis with numbered citations [n] that jump to the matching item cards; cards are fully clickable, show the item thumbnail, a number badge and up to 3 short metadata fields instead of the raw indexed text
+* Change: fixed answer-format rules are appended to every search prompt (even customized ones) and item URLs are no longer sent to the model, so answers stop repeating the cards as plain-text title/author/link lists. The search cache key changed, retiring answers cached in the old format
+* Change: BIA chat answers are shorter and cite titles in bold instead of pasting URLs (sources are already listed below the answer)
 
 = 2.6.4 =
 * Fix: OpenAI reasoning models (GPT-5 family, o-series) now get reasoning_effort "minimal" (original GPT-5 family) or "low" (others), filterable via oraculo_tainacan_openai_reasoning_effort, with automatic fallback when a model rejects the value. gpt-5-nano was spending the whole 2000-token budget on reasoning, returning an empty answer after more than two minutes

@@ -102,6 +102,69 @@ function cosine_similarity( array $vector_a, array $vector_b ): float {
 }
 
 /**
+ * Assinatura binária de um embedding: 1 bit por dimensão (positivo = 1)
+ *
+ * Serve de pré-filtro da busca vetorial: a distância de Hamming entre
+ * assinaturas aproxima o ângulo entre os vetores e é calculada em C
+ * (XOR de strings + count_chars), ~100x mais rápida que decodificar o JSON
+ * e calcular o cosseno em PHP. O ranking final continua no cosseno exato.
+ *
+ * @param array $embedding Vetor de floats.
+ * @return string Bytes empacotados (ceil(dimensões / 8)).
+ */
+function embedding_sign_bits( array $embedding ): string {
+	$bytes = '';
+	$byte  = 0;
+	$bit   = 0;
+
+	foreach ( $embedding as $value ) {
+		if ( (float) $value > 0 ) {
+			$byte |= 1 << $bit;
+		}
+		if ( 8 === ++$bit ) {
+			$bytes .= chr( $byte );
+			$byte   = 0;
+			$bit    = 0;
+		}
+	}
+
+	if ( $bit > 0 ) {
+		$bytes .= chr( $byte );
+	}
+
+	return $bytes;
+}
+
+/**
+ * Distância de Hamming entre duas assinaturas de mesmo tamanho
+ *
+ * @param string $a Assinatura (embedding_sign_bits).
+ * @param string $b Assinatura (embedding_sign_bits).
+ * @return int Bits diferentes; PHP_INT_MAX se os tamanhos não batem.
+ */
+function hamming_distance( string $a, string $b ): int {
+	static $popcount = null;
+
+	if ( strlen( $a ) !== strlen( $b ) ) {
+		return PHP_INT_MAX;
+	}
+
+	if ( null === $popcount ) {
+		$popcount = array();
+		for ( $i = 0; $i < 256; $i++ ) {
+			$popcount[ $i ] = substr_count( decbin( $i ), '1' );
+		}
+	}
+
+	$distance = 0;
+	foreach ( count_chars( $a ^ $b, 1 ) as $byte => $count ) {
+		$distance += $popcount[ $byte ] * $count;
+	}
+
+	return $distance;
+}
+
+/**
  * Gera hash único para conteúdo
  *
  * @param string $content

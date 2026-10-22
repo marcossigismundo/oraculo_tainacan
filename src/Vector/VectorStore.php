@@ -24,6 +24,21 @@ class VectorStore {
 	private const TABLE_VECTORS = 'oraculo_vectors';
 
 	/**
+	 * Versão do esquema da tabela de vetores (2 = coluna embedding_bits).
+	 */
+	private const SCHEMA_VERSION = 2;
+
+	/**
+	 * Opção que guarda a versão de esquema aplicada.
+	 */
+	private const SCHEMA_OPTION = 'oraculo_vectors_schema';
+
+	/**
+	 * Cron que preenche embedding_bits nos vetores antigos.
+	 */
+	public const CRON_BACKFILL = 'oraculo_backfill_vector_bits';
+
+	/**
 	 * Nome da tabela
 	 *
 	 * @var string
@@ -36,6 +51,133 @@ class VectorStore {
 	public function __construct() {
 		global $wpdb;
 		$this->table_name = $wpdb->prefix . self::TABLE_VECTORS;
+	}
+
+	/**
+	 * Aplica a coluna embedding_bits em instalações anteriores à 2.7.0
+	 *
+	 * Barato no caminho comum: uma leitura de opção autoload.
+	 */
+	public static function maybe_upgrade_schema(): void {
+		if ( (int) get_option( self::SCHEMA_OPTION, 0 ) >= self::SCHEMA_VERSION ) {
+			return;
+		}
+
+		global $wpdb;
+		$table = $wpdb->prefix . self::TABLE_VECTORS;
+
+		// Um request por vez: requests simultâneos logo após o deploy não podem
+		// disparar cada um o seu ALTER. Lock vencido (request que morreu no
+		// meio) é liberado depois de 10 minutos.
+		$lock = self::SCHEMA_OPTION . '_lock';
+		if ( ! add_option( $lock, time(), '', false ) ) {
+			if ( time() - (int) get_option( $lock, 0 ) > 10 * MINUTE_IN_SECONDS ) {
+				delete_option( $lock );
+			}
+			return;
+		}
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Plugin's own table ($wpdb->prefix . class constant); one-time schema migration, dbDelta does not alter tables created with IF NOT EXISTS.
+		$has_table  = $table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
+		$has_column = $has_table && $wpdb->get_var( $wpdb->prepare( "SHOW COLUMNS FROM {$table} LIKE %s", 'embedding_bits' ) );
+		if ( $has_table && ! $has_column ) {
+			// Sem AFTER: coluna no fim permite ALGORITHM=INSTANT (MySQL 8.0.12+,
+			// MariaDB 10.3+), sem reconstruir a tabela de vetores.
+			$wpdb->query( "ALTER TABLE {$table} ADD COLUMN embedding_bits VARBINARY(1024) DEFAULT NULL" );
+			$has_column = (bool) $wpdb->get_var( $wpdb->prepare( "SHOW COLUMNS FROM {$table} LIKE %s", 'embedding_bits' ) );
+		}
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
+
+		if ( $has_column ) {
+			update_option( self::SCHEMA_OPTION, self::SCHEMA_VERSION );
+			self::schedule_backfill();
+		}
+		// Tabela ausente: activate() a cria já com a coluna. ALTER que falhou:
+		// tenta de novo no próximo request.
+		delete_option( $lock );
+	}
+
+	/**
+	 * Agenda o preenchimento das assinaturas (no-op se já agendado)
+	 *
+	 * Também chamado na ativação: desativar limpa o cron, e uma reativação
+	 * com o backfill pela metade não passaria de novo pela migração.
+	 */
+	public static function schedule_backfill(): void {
+		if ( self::has_bits_column() && ! wp_next_scheduled( self::CRON_BACKFILL ) ) {
+			wp_schedule_single_event( time() + 10, self::CRON_BACKFILL );
+		}
+	}
+
+	/**
+	 * A coluna embedding_bits já existe nesta instalação?
+	 *
+	 * @return bool
+	 */
+	private static function has_bits_column(): bool {
+		return (int) get_option( self::SCHEMA_OPTION, 0 ) >= self::SCHEMA_VERSION;
+	}
+
+	/**
+	 * Cron: preenche um lote de assinaturas e se reagenda enquanto houver
+	 */
+	public static function run_backfill_cron(): void {
+		$store = new self();
+		if ( $store->backfill_bits( 2000 ) > 0 && ! wp_next_scheduled( self::CRON_BACKFILL ) ) {
+			wp_schedule_single_event( time() + 5, self::CRON_BACKFILL );
+		}
+	}
+
+	/**
+	 * Grava embedding_bits nos vetores que ainda não têm
+	 *
+	 * @param int $limit Máximo de linhas neste lote.
+	 * @return int Linhas preenchidas.
+	 */
+	public function backfill_bits( int $limit = 2000 ): int {
+		global $wpdb;
+
+		if ( ! self::has_bits_column() ) {
+			return 0;
+		}
+
+		$done = 0;
+		while ( $done < $limit ) {
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table ($wpdb->prefix . class constant); write/cron path, caching is irrelevant.
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT id, embedding_data FROM {$this->table_name} WHERE embedding_bits IS NULL ORDER BY id ASC LIMIT %d",
+					min( 200, $limit - $done )
+				),
+				ARRAY_A
+			);
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+
+			if ( empty( $rows ) ) {
+				break;
+			}
+
+			foreach ( $rows as $row ) {
+				$embedding = json_decode( (string) $row['embedding_data'], true );
+				// Embedding ilegível vira assinatura vazia (''), não NULL: sai da
+				// fila do backfill e a busca o trata como não comparável.
+				$bits = is_array( $embedding ) ? \Oraculo_Tainacan\embedding_sign_bits( $embedding ) : '';
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table; write/cron path, caching is irrelevant.
+				$updated = $wpdb->update( $this->table_name, array( 'embedding_bits' => $bits ), array( 'id' => (int) $row['id'] ), array( '%s' ), array( '%d' ) );
+				if ( false === $updated && '' !== $bits ) {
+					// Assinatura recusada (ex.: modelo com mais de 8192 dimensões):
+					// marca como não comparável para a fila não parar nesta linha.
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table; write/cron path, caching is irrelevant.
+					$updated = $wpdb->update( $this->table_name, array( 'embedding_bits' => '' ), array( 'id' => (int) $row['id'] ), array( '%s' ), array( '%d' ) );
+				}
+				if ( false === $updated ) {
+					return $done; // Banco recusando escrita: o próximo cron tenta de novo.
+				}
+				++$done;
+			}
+		}
+
+		return $done;
 	}
 
 	/**
@@ -69,6 +211,9 @@ class VectorStore {
 		$embedding_json = is_array( $data['embedding_data'] )
 			? wp_json_encode( $data['embedding_data'] )
 			: $data['embedding_data'];
+		$embedding_arr  = is_array( $data['embedding_data'] )
+			? $data['embedding_data']
+			: json_decode( (string) $data['embedding_data'], true );
 
 		$content_hash = \Oraculo_Tainacan\generate_content_hash( $data['content_text'] );
 
@@ -86,6 +231,14 @@ class VectorStore {
 			'token_count'     => $data['token_count'] ?? \Oraculo_Tainacan\estimate_tokens( $data['content_text'] ),
 		);
 
+		$formats = array( '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d' );
+
+		if ( self::has_bits_column() ) {
+			$record['embedding_bits'] = is_array( $embedding_arr ) ? \Oraculo_Tainacan\embedding_sign_bits( $embedding_arr ) : '';
+			$formats[]                = '%s';
+		}
+		$formats[] = '%s'; // updated_at / created_at.
+
 		if ( $existing ) {
 			$record['updated_at'] = current_time( 'mysql' );
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom plugin table (oraculo_vectors); UPDATE write operation; caching N/A.
@@ -93,7 +246,7 @@ class VectorStore {
 				$this->table_name,
 				$record,
 				array( 'id' => $existing ),
-				array( '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s' ),
+				$formats,
 				array( '%d' )
 			);
 			\Oraculo_Tainacan\invalidate_index_caches();
@@ -106,7 +259,7 @@ class VectorStore {
 		$result = $wpdb->insert(
 			$this->table_name,
 			$record,
-			array( '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s' )
+			$formats
 		);
 		\Oraculo_Tainacan\invalidate_index_caches();
 
@@ -162,19 +315,182 @@ class VectorStore {
 			return array();
 		}
 
-		// Varredura em lotes por id (keyset), lendo só id + embedding, com
-		// memória constante: antes, um SELECT sem LIMIT trazia a coleção
-		// inteira com textos e metadados para a RAM, e 14 mil itens já
-		// estouravam memory_limit de 512M (ver docs/ANALISE-LIMITE-VETORES.md).
-		// A latência continua O(N); só o top-k volta para buscar os detalhes.
+		// Duas fases (2.7.0): a assinatura binária de cada vetor (1 bit por
+		// dimensão, ~192 bytes) pré-seleciona candidatos pela distância de
+		// Hamming, calculada em C; só esses candidatos têm o embedding JSON
+		// decodificado e o cosseno exato calculado. Antes, decodificar e
+		// comparar os 14 mil vetores da coleção 282 levava 15-18 s por busca.
 		$collection_ids = array_values( array_filter( array_map( 'intval', $collection_ids ) ) );
 		$collection_sql = '';
 		if ( ! empty( $collection_ids ) ) {
 			$collection_sql = 'collection_id IN (' . implode( ',', array_fill( 0, count( $collection_ids ), '%d' ) ) . ') AND ';
 		}
 
+		$top = self::has_bits_column()
+			? $this->scan_with_bits( $query_embedding, $collection_ids, $collection_sql, $limit, $threshold )
+			: $this->scan_exact( $query_embedding, $collection_ids, $collection_sql, $limit, $threshold );
+
+		if ( empty( $top ) ) {
+			return array();
+		}
+
+		arsort( $top );
+		$ids = array_map( 'intval', array_keys( $top ) );
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table ($wpdb->prefix . class constant); IN-clause built with array_fill of %d placeholders matching $ids count; result depends on the query embedding, so there is no stable cache key.
+		$details = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT id, item_id, collection_id, collection_name, content_text, item_url, item_title, metadata_json FROM {$this->table_name} WHERE id IN (" . implode( ',', array_fill( 0, count( $ids ), '%d' ) ) . ')',
+				$ids
+			),
+			ARRAY_A
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+
+		$results = array();
+		foreach ( (array) $details as $vector ) {
+			$vector['similarity'] = $top[ (int) $vector['id'] ];
+			$results[]            = $vector;
+		}
+
+		// Ordenar por similaridade descendente.
+		usort( $results, fn( $a, $b ) => $b['similarity'] <=> $a['similarity'] );
+
+		return $results;
+	}
+
+	/**
+	 * Fase 1 + 2: pré-seleção por Hamming e reordenação pelo cosseno exato
+	 *
+	 * @param array  $query_embedding Vetor de busca.
+	 * @param array  $collection_ids  IDs inteiros das coleções.
+	 * @param string $collection_sql  Fragmento "collection_id IN (...) AND " com %d.
+	 * @param int    $limit           Máximo de resultados.
+	 * @param float  $threshold       Similaridade mínima (cosseno exato).
+	 * @return array<int, float> id => similaridade.
+	 */
+	private function scan_with_bits( array $query_embedding, array $collection_ids, string $collection_sql, int $limit, float $threshold ): array {
+		global $wpdb;
+
+		$query_bits = \Oraculo_Tainacan\embedding_sign_bits( $query_embedding );
+
 		/**
-		 * Tamanho do lote da varredura vetorial (linhas por consulta).
+		 * Quantos candidatos da pré-seleção binária vão para o cosseno exato.
+		 *
+		 * Maior = recall mais próximo da varredura exata, custo ~1 ms por candidato.
+		 *
+		 * @param int $pool Padrão: 10x o limite, no mínimo 100.
+		 */
+		$pool       = max( $limit, (int) apply_filters( 'oraculo_tainacan_vector_rescore_pool', max( 100, $limit * 10 ) ) );
+		$batch_size = 5000; // ~1 MB por lote: só id + assinatura.
+		$last_id    = 0;
+		$candidates = array(); // id => distância de Hamming.
+		$unsigned   = array(); // Vetores ainda sem assinatura (backfill pendente).
+
+		do {
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table ($wpdb->prefix . class constant); IN-clause built with array_fill of %d placeholders matching $collection_ids count, and array_merge passes those ids plus $last_id and $batch_size as one replacements array; similarity must be computed in PHP over every row, not expressible via WP_Query.
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT id, embedding_bits FROM {$this->table_name} WHERE {$collection_sql}id > %d ORDER BY id ASC LIMIT %d",
+					array_merge( $collection_ids, array( $last_id, $batch_size ) )
+				),
+				ARRAY_N
+			);
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+
+			if ( empty( $rows ) ) {
+				break;
+			}
+
+			foreach ( $rows as $row ) {
+				$last_id = (int) $row[0];
+
+				if ( null === $row[1] ) {
+					$unsigned[] = $last_id;
+					continue;
+				}
+
+				$distance = \Oraculo_Tainacan\hamming_distance( (string) $row[1], $query_bits );
+				if ( PHP_INT_MAX !== $distance ) {
+					$candidates[ $last_id ] = $distance;
+				}
+			}
+
+			if ( count( $candidates ) > 2 * $pool ) {
+				asort( $candidates );
+				$candidates = array_slice( $candidates, 0, $pool, true );
+			}
+
+			$fetched = count( $rows );
+			unset( $rows );
+		} while ( $fetched === $batch_size );
+
+		asort( $candidates );
+		$ids = array_merge( array_keys( array_slice( $candidates, 0, $pool, true ) ), $unsigned );
+
+		return $this->exact_scores( $query_embedding, $ids, $limit, $threshold );
+	}
+
+	/**
+	 * Cosseno exato para um conjunto de ids, guardando o top-k
+	 *
+	 * @param array $query_embedding Vetor de busca.
+	 * @param int[] $ids             IDs da tabela de vetores.
+	 * @param int   $limit           Máximo de resultados.
+	 * @param float $threshold       Similaridade mínima.
+	 * @return array<int, float> id => similaridade.
+	 */
+	private function exact_scores( array $query_embedding, array $ids, int $limit, float $threshold ): array {
+		global $wpdb;
+
+		$top = array();
+
+		foreach ( array_chunk( array_map( 'intval', $ids ), 500 ) as $chunk ) {
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table ($wpdb->prefix . class constant); IN-clause built with array_fill of %d placeholders matching $chunk count; result depends on the query embedding, so there is no stable cache key.
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT id, embedding_data FROM {$this->table_name} WHERE id IN (" . implode( ',', array_fill( 0, count( $chunk ), '%d' ) ) . ')',
+					$chunk
+				),
+				ARRAY_N
+			);
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+
+			foreach ( (array) $rows as $row ) {
+				$embedding = json_decode( (string) $row[1], true );
+				if ( ! is_array( $embedding ) ) {
+					continue;
+				}
+				$similarity = \Oraculo_Tainacan\cosine_similarity( $query_embedding, $embedding );
+				if ( $similarity >= $threshold ) {
+					$top[ (int) $row[0] ] = $similarity;
+				}
+			}
+
+			if ( count( $top ) > $limit ) {
+				arsort( $top );
+				$top = array_slice( $top, 0, $limit, true );
+			}
+		}
+
+		return $top;
+	}
+
+	/**
+	 * Varredura exata de toda a coleção (instalações sem embedding_bits)
+	 *
+	 * @param array  $query_embedding Vetor de busca.
+	 * @param array  $collection_ids  IDs inteiros das coleções.
+	 * @param string $collection_sql  Fragmento "collection_id IN (...) AND " com %d.
+	 * @param int    $limit           Máximo de resultados.
+	 * @param float  $threshold       Similaridade mínima.
+	 * @return array<int, float> id => similaridade.
+	 */
+	private function scan_exact( array $query_embedding, array $collection_ids, string $collection_sql, int $limit, float $threshold ): array {
+		global $wpdb;
+
+		/**
+		 * Tamanho do lote da varredura vetorial exata (linhas por consulta).
 		 *
 		 * @param int $batch_size Padrão 500 (~10 MB de pico por lote).
 		 */
@@ -221,33 +537,7 @@ class VectorStore {
 			unset( $rows );
 		} while ( $fetched === $batch_size );
 
-		if ( empty( $top ) ) {
-			return array();
-		}
-
-		arsort( $top );
-		$ids = array_map( 'intval', array_keys( $top ) );
-
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table ($wpdb->prefix . class constant); IN-clause built with array_fill of %d placeholders matching $ids count; result depends on the query embedding, so there is no stable cache key.
-		$details = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT id, item_id, collection_id, collection_name, content_text, item_url, item_title, metadata_json FROM {$this->table_name} WHERE id IN (" . implode( ',', array_fill( 0, count( $ids ), '%d' ) ) . ')',
-				$ids
-			),
-			ARRAY_A
-		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-
-		$results = array();
-		foreach ( (array) $details as $vector ) {
-			$vector['similarity'] = $top[ (int) $vector['id'] ];
-			$results[]            = $vector;
-		}
-
-		// Ordenar por similaridade descendente.
-		usort( $results, fn( $a, $b ) => $b['similarity'] <=> $a['similarity'] );
-
-		return $results;
+		return $top;
 	}
 
 	/**

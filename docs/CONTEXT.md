@@ -1,7 +1,8 @@
 # Oráculo Tainacan — Contexto do Projeto
 
-> Snapshot da versão 2.6.4 (indexação automática, CLIP como provedor, descoberta
-> dinâmica de modelos, chaves criptografadas, renovação do nonce REST no front — `main`)
+> Snapshot da versão 2.7.0 (indexação automática, CLIP como provedor, descoberta
+> dinâmica de modelos, chaves criptografadas, renovação do nonce REST no front,
+> busca vetorial em duas fases, resposta com citações [n] — `main`)
 
 Plugin WordPress que adiciona busca semântica (RAG) e chat com IA sobre acervos do Tainacan.
 Arquitetura orientada a serviços com múltiplos provedores de IA intercambiáveis.
@@ -17,7 +18,7 @@ Arquitetura orientada a serviços com múltiplos provedores de IA intercambiáve
 
 | Campo | Valor |
 |---|---|
-| Versão declarada (`oraculo-tainacan.php` e `readme.txt`) | **2.6.4** |
+| Versão declarada (`oraculo-tainacan.php` e `readme.txt`) | **2.7.0** |
 | PHP mínimo | **8.0** (`declare(strict_types=1)` em todos os arquivos) |
 | WordPress mínimo | 6.0 |
 | Text domain | `oraculo-tainacan` |
@@ -242,10 +243,38 @@ Motivo: a coleção "Acervo Bibliográfico" do darkgreen-yak (14.284 vetores, ~2
 estourava 512M e a busca devolvia "erro crítico". A latência continua O(N)
 (~0,6 ms/item), então o teto prático agora é de tempo de resposta.
 
+**Desde a 2.7.0 a varredura é em duas fases:** cada vetor tem uma assinatura
+binária (`embedding_bits`, 1 bit por dimensão = sinal do valor, ~192 bytes para
+1536 dimensões) gravada no `upsert()`. A busca lê só `id + embedding_bits` em lotes
+de 5.000, ordena pela distância de Hamming (XOR de strings + `count_chars`, em C)
+e só os melhores candidatos (filtro `oraculo_tainacan_vector_rescore_pool`,
+padrão 10× o limite, mínimo 100) têm o JSON decodificado e o cosseno exato
+calculado — o ranking final e o `similarity_threshold` continuam no cosseno exato.
+Medido no PHP da VPS: 22 mil assinaturas em ~0,12 s, contra 15–18 s da varredura
+exata da coleção 282. Migração: `VectorStore::maybe_upgrade_schema()` em todo
+`init` (opção `oraculo_vectors_schema`) adiciona a coluna e agenda o cron
+`oraculo_backfill_vector_bits`, que preenche 2.000 linhas por vez e se reagenda;
+`wp oraculo optimize` preenche tudo de uma vez. Vetores ainda sem assinatura caem
+no cosseno exato (correto, só mais lento) até o backfill terminar; sem a coluna,
+`scan_exact()` mantém o caminho antigo.
+
 Detalhes completos (metodologia, tabela de números por tier, escada de
 mitigação e a solução recomendada — reusar o serviço pgvector/HNSW do IBRAM,
 já integrado para CLIP, também para embeddings de texto) em
 [ANALISE-LIMITE-VETORES.md](ANALISE-LIMITE-VETORES.md).
+
+## Formato da resposta da busca (2.7.0)
+
+`SearchEngine::get_answer_format_rules()` é anexado a todo prompt de busca, inclusive
+aos personalizados e salvos de versões antigas (que pediam "inclua os links"): síntese
+curta, citações `[n]` pelo número do item no contexto, sem URLs nem fichas. O contexto
+enviado ao modelo não leva mais as URLs. No front (`theme-integration.js`),
+`formatAnswer()` monta parágrafos e listas, transforma `[n]` em atalho para o cartão `n`
+(e uma URL solta de item listado na citação dele), e os cartões são links inteiros com
+miniatura, número e até 3 metadados curtos (`details`, de `summarize_metadata()`); o
+`snippet` limpo (`strip_index_labels()`) só aparece quando não há metadados. A chave do
+cache de busca leva `format => 2`. O chat da BIA segue a mesma ideia (sem URLs, títulos
+em negrito, respostas curtas), mas sem citações numeradas.
 
 ## Descoberta dinâmica de modelos por provedor
 

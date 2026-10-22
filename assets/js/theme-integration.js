@@ -28,10 +28,14 @@
     /* Utilidades                                                          */
     /* ------------------------------------------------------------------ */
 
+    // Escapa também aspas: o resultado vai para atributos (title, href).
     function escapeHtml(text) {
-        var div = document.createElement('div');
-        div.textContent = String(text == null ? '' : text);
-        return div.innerHTML;
+        return String(text == null ? '' : text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     }
 
     function sanitizeUrl(url) {
@@ -42,22 +46,123 @@
         return '';
     }
 
-    // Escapa primeiro, formata depois (markdown-lite seguro contra XSS)
-    function formatAnswer(text) {
-        var safe = escapeHtml(text);
-        // Links [texto](url) — apenas http(s) ou relativos
-        safe = safe.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, function (match, label, url) {
-            var clean = sanitizeUrl(url);
-            if (!clean) {
-                return label;
+    // Aplica fn só aos trechos de texto fora de tags e fora de <a>: as etapas
+    // seguintes não podem reescrever atributos nem aninhar links.
+    function mapText(html, fn) {
+        var insideLink = 0;
+        return html.split(/(<[^>]*>)/).map(function (part, index) {
+            if (index % 2) {
+                if (/^<a[\s>]/i.test(part)) {
+                    insideLink++;
+                } else if (/^<\/a>/i.test(part)) {
+                    insideLink = Math.max(0, insideLink - 1);
+                }
+                return part;
             }
-            return '<a href="' + clean + '" target="_blank" rel="noopener noreferrer">' + label + '</a>';
-        });
+            return insideLink ? part : fn(part);
+        }).join('');
+    }
+
+    // Citação [n]: aponta para o item (funciona mesmo sem os cartões na tela);
+    // com o cartão presente, o clique leva até ele.
+    function citeLink(num, items) {
+        var item = items[num - 1] || {};
+        var title = item.title || '';
+        var url = sanitizeUrl(item.url);
+        return '<a class="oraculo-ai-cite" data-cite="' + num + '"' +
+            (url ? ' href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer"' : ' href="#"') +
+            ' title="' + escapeHtml(title) + '"' +
+            ' aria-label="' + escapeHtml(sprintfS(config.strings.citeAria || 'Item %s', num) + (title ? ': ' + title : '')) + '">' + num + '</a>';
+    }
+
+    // Formata uma linha já escapada: ênfase, links markdown, URLs soltas, citações [n]
+    function formatInline(safe, items) {
         safe = safe.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-        safe = safe.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-        safe = safe.replace(/\n{2,}/g, '</p><p>');
-        safe = safe.replace(/\n/g, '<br>');
-        return '<p>' + safe + '</p>';
+        safe = safe.replace(/(^|[^*])\*([^*\s][^*]*)\*/g, '$1<em>$2</em>');
+
+        // Links [texto](url) — apenas http(s) ou relativos
+        safe = mapText(safe, function (text) {
+            return text.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, function (match, label, url) {
+                var clean = sanitizeUrl(url);
+                if (!clean) {
+                    return label;
+                }
+                return '<a href="' + clean + '" target="_blank" rel="noopener noreferrer">' + label + '</a>';
+            });
+        });
+
+        // URL solta: se for a de um item listado, vira a citação dele; senão, link curto
+        safe = mapText(safe, function (text) {
+            return text.replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g, function (match, lead, url) {
+                var trimmed = url.replace(/[.,;:]+$/, '');
+                var rest = url.slice(trimmed.length);
+                for (var i = 0; i < items.length; i++) {
+                    if (items[i].url && trimmed.replace(/\/$/, '') === escapeHtml(items[i].url).replace(/\/$/, '')) {
+                        return lead + citeLink(i + 1, items) + rest;
+                    }
+                }
+                // trimmed já está escapado; volta ao texto cru antes de reescapar
+                var clean = sanitizeUrl(trimmed.replace(/&quot;|&#39;|&lt;|&gt;/g, '').replace(/&amp;/g, '&'));
+                if (!clean) {
+                    return match;
+                }
+                return lead + '<a href="' + escapeHtml(clean) + '" target="_blank" rel="noopener noreferrer">' +
+                    escapeHtml(config.strings.openLink || 'link') + '</a>' + rest;
+            });
+        });
+
+        // Citações [1] / [1, 3] / [2][5] — só números de itens existentes
+        safe = mapText(safe, function (text) {
+            return text.replace(/\[(\d+(?:\s*,\s*\d+)*)\]/g, function (match, list) {
+                var out = '';
+                list.split(',').forEach(function (n) {
+                    var num = parseInt(n, 10);
+                    if (num >= 1 && num <= items.length) {
+                        out += citeLink(num, items);
+                    }
+                });
+                return out || match;
+            });
+        });
+
+        return safe;
+    }
+
+    // Escapa primeiro, formata depois (markdown-lite seguro contra XSS):
+    // parágrafos, listas "- ", ênfase, links e citações [n]. Linhas que começam
+    // com número ("1922. A Semana...") ficam como texto: tratá-las como <ol>
+    // trocaria o número original pelo contador da lista.
+    function formatAnswer(text, items) {
+        items = items || [];
+        var html = '';
+        var inList = false;
+
+        String(text || '').split(/\n/).forEach(function (rawLine) {
+            var line = rawLine.trim();
+            var bullet = line.match(/^[-*•]\s+(.*)$/);
+
+            if (bullet) {
+                if (!inList) {
+                    html += '<ul>';
+                    inList = true;
+                }
+                html += '<li>' + formatInline(escapeHtml(bullet[1]), items) + '</li>';
+                return;
+            }
+
+            if (inList) {
+                html += '</ul>';
+                inList = false;
+            }
+            if (line) {
+                html += '<p>' + formatInline(escapeHtml(line.replace(/^#+\s*/, '')), items) + '</p>';
+            }
+        });
+
+        if (inList) {
+            html += '</ul>';
+        }
+        return html;
     }
 
     function sprintfS(template, value) {
@@ -422,38 +527,50 @@
     };
 
     OraculoAiTab.prototype.renderResult = function (data, elapsedSeconds) {
+        var self = this;
         var html = '';
-
-        html += '<div class="oraculo-ai-answer">' + formatAnswer(data.response) + '</div>';
-
         var items = Array.isArray(data.items) ? data.items : [];
+
+        html += '<div class="oraculo-ai-answer">' + formatAnswer(data.response, items) + '</div>';
+
         if (config.showSources && items.length) {
             html += '<div class="oraculo-ai-sources"><h4>' + SEARCH_ICON + ' ' +
                 escapeHtml(config.strings.sources) + ' <span class="oraculo-ai-sources-count">' + items.length + '</span></h4>';
-            html += '<ul class="oraculo-ai-sources-grid">';
-            items.forEach(function (item) {
+            html += '<ol class="oraculo-ai-sources-grid">';
+            items.forEach(function (item, index) {
+                var num = index + 1;
                 var url = sanitizeUrl(item.url);
-                html += '<li class="oraculo-ai-source-card">';
-                html += '<span class="oraculo-ai-source-icon">' + ITEM_ICON + '</span>';
-                html += '<div class="oraculo-ai-source-info">';
-                if (url) {
-                    html += '<a class="oraculo-ai-source-title" href="' + url + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(item.title || url) + '</a>';
-                } else {
-                    html += '<span class="oraculo-ai-source-title">' + escapeHtml(item.title || '') + '</span>';
-                }
+                var thumb = sanitizeUrl(item.thumbnail);
+                var tag = url ? 'a' : 'div';
+
+                html += '<li class="oraculo-ai-source-card" data-source="' + num + '">';
+                html += '<' + tag + ' class="oraculo-ai-source-link"' +
+                    (url ? ' href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer"' : '') + '>';
+                html += '<span class="oraculo-ai-source-thumb">' +
+                    (thumb ? '<img src="' + escapeHtml(thumb) + '" alt="" loading="lazy">' : ITEM_ICON) +
+                    '<span class="oraculo-ai-source-num">' + num + '</span></span>';
+                html += '<span class="oraculo-ai-source-info">';
+                html += '<span class="oraculo-ai-source-title">' + escapeHtml(item.title || url) + '</span>';
                 if (item.collection_name) {
                     html += '<span class="oraculo-ai-source-collection">' + escapeHtml(item.collection_name) + '</span>';
                 }
-                if (item.snippet) {
+                var details = Array.isArray(item.details) ? item.details : [];
+                if (details.length) {
+                    html += '<dl class="oraculo-ai-source-details">';
+                    details.forEach(function (d) {
+                        html += '<div><dt>' + escapeHtml(d.label) + '</dt><dd>' + escapeHtml(d.value) + '</dd></div>';
+                    });
+                    html += '</dl>';
+                } else if (item.snippet) {
                     html += '<span class="oraculo-ai-source-snippet">' + escapeHtml(item.snippet).replace(/&lt;(\/?)mark&gt;/g, '<$1mark>') + '</span>';
                 }
                 if (config.showSimilarity && item.similarity != null) {
                     var pct = Math.max(0, Math.min(100, parseFloat(item.similarity) || 0));
                     html += '<span class="oraculo-ai-source-similarity"><span class="oraculo-ai-meter"><span style="width:' + pct + '%"></span></span>' + pct + '% ' + escapeHtml(config.strings.relevance) + '</span>';
                 }
-                html += '</div></li>';
+                html += '</span></' + tag + '></li>';
             });
-            html += '</ul></div>';
+            html += '</ol></div>';
         }
 
         if (elapsedSeconds != null) {
@@ -461,6 +578,26 @@
         }
 
         this.panelBody.innerHTML = html;
+
+        // Cartões citados no texto ganham destaque; clicar na citação leva ao cartão
+        Array.prototype.forEach.call(this.panelBody.querySelectorAll('.oraculo-ai-cite'), function (cite) {
+            var card = self.panelBody.querySelector('[data-source="' + cite.getAttribute('data-cite') + '"]');
+            if (!card) {
+                return;
+            }
+            card.classList.add('is-cited');
+            cite.addEventListener('click', function (e) {
+                e.preventDefault();
+                card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                card.classList.remove('is-flash');
+                void card.offsetWidth; // reinicia a animação em cliques repetidos
+                card.classList.add('is-flash');
+                var link = card.querySelector('.oraculo-ai-source-link');
+                if (link && link.focus) {
+                    link.focus({ preventScroll: true });
+                }
+            });
+        });
 
         if (config.enableFeedback && data.search_id) {
             this.appendFeedback(String(data.search_id));

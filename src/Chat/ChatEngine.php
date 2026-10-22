@@ -411,14 +411,10 @@ class ChatEngine {
 		$parts = array();
 		foreach ( $items as $index => $item ) {
 			$num     = $index + 1;
-			$snippet = \Oraculo_Tainacan\truncate_text( $item['snippet'] ?? '', 300 );
+			$snippet = \Oraculo_Tainacan\truncate_text( wp_strip_all_tags( (string) ( $item['snippet'] ?? '' ) ), 300 );
 
-			$parts[] = sprintf(
-				"[%d] %s\nURL: %s",
-				$num,
-				$item['title'] . ': ' . $snippet,
-				$item['url'] ?? ''
-			);
+			// Sem URL: o widget lista as fontes com link logo abaixo da resposta.
+			$parts[] = sprintf( '[%d] %s', $num, $item['title'] . ': ' . $snippet );
 		}
 
 		return implode( "\n\n", $parts );
@@ -452,7 +448,8 @@ class ChatEngine {
 
 Você está em uma conversa contínua. Lembre-se do contexto das mensagens anteriores.
 Seja conversacional e amigável, mas mantenha a precisão das informações.
-Quando citar itens do acervo, inclua os links quando disponíveis.
+Responda de forma breve (até 2 parágrafos curtos ou uma lista de até 5 tópicos), como numa conversa.
+Quando citar itens do acervo, use o título em **negrito**; não escreva URLs, porque as fontes já aparecem com link abaixo da resposta.
 Se o acervo não tiver a informação, diga com franqueza e sugira como reformular ou onde procurar.',
 			'oraculo-tainacan'
 		);

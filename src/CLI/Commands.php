@@ -474,6 +474,15 @@ class Commands extends WP_CLI_Command {
 			WP_CLI::log( "  ✓ {$table}" );
 		}
 
+		// Assinaturas binárias da busca vetorial ainda pendentes (vetores anteriores à 2.7.0).
+		$store  = new \Oraculo_Tainacan\Vector\VectorStore();
+		$signed = 0;
+		do {
+			$batch   = $store->backfill_bits( 2000 );
+			$signed += $batch;
+		} while ( $batch > 0 );
+		WP_CLI::log( "  ✓ Assinaturas de vetores preenchidas ({$signed})" );
+
 		// Limpar cache
 		$search  = new SearchEngine();
 		$cleared = $search->clear_cache();

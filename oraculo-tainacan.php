@@ -3,7 +3,7 @@
  * Plugin Name: Oráculo Tainacan
  * Plugin URI: https://github.com/tainacan/oraculo-tainacan
  * Description: Sistema avançado de busca em linguagem natural com IA para acervos Tainacan. Integra RAG (Retrieval-Augmented Generation) com múltiplos provedores de IA.
- * Version: 2.6.4
+ * Version: 2.7.0
  * Author: Tainacan Community
  * Author URI: https://tainacan.org
  * License: GPL-2.0+
@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Constantes do plugin
-define( 'ORACULO_TAINACAN_VERSION', '2.6.4' );
+define( 'ORACULO_TAINACAN_VERSION', '2.7.0' );
 define( 'ORACULO_TAINACAN_FILE', __FILE__ );
 define( 'ORACULO_TAINACAN_PATH', plugin_dir_path( __FILE__ ) );
 define( 'ORACULO_TAINACAN_URL', plugin_dir_url( __FILE__ ) );
@@ -196,6 +196,9 @@ final class Oraculo_Tainacan {
 		// Cron de retenção: sem ele as tabelas de logs/conversas crescem sem limite (DoS de armazenamento)
 		add_action( 'oraculo_cleanup_old_data', array( $this, 'cleanup_old_data' ) );
 
+		// Preenche as assinaturas binárias dos vetores gravados antes da 2.7.0.
+		add_action( Vector\VectorStore::CRON_BACKFILL, array( Vector\VectorStore::class, 'run_backfill_cron' ) );
+
 		// Tainacan hooks (a integração principal é feita via Tainacan Pages API)
 
 		// Shortcodes
@@ -238,6 +241,9 @@ final class Oraculo_Tainacan {
 			wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', Indexing\AutoIndexer::CRON_RECONCILE );
 		}
 
+		// Retoma o preenchimento das assinaturas interrompido por uma desativação.
+		Vector\VectorStore::schedule_backfill();
+
 		// Flush rewrite rules
 		flush_rewrite_rules();
 
@@ -255,6 +261,7 @@ final class Oraculo_Tainacan {
 		wp_clear_scheduled_hook( Indexing\AutoIndexer::CRON_HOOK );
 		wp_clear_scheduled_hook( Indexing\AutoIndexer::CRON_HOOK, array( 'kick' ) );
 		wp_clear_scheduled_hook( Indexing\AutoIndexer::CRON_RECONCILE );
+		wp_clear_scheduled_hook( Vector\VectorStore::CRON_BACKFILL );
 
 		// Sem isto, um lock deixado por um worker interrompido bloquearia a fila
 		// por LOCK_TIMEOUT depois da reativação.
@@ -283,6 +290,7 @@ final class Oraculo_Tainacan {
             collection_id BIGINT(20) UNSIGNED NOT NULL,
             collection_name VARCHAR(255) DEFAULT '',
             embedding_data LONGTEXT NOT NULL,
+            embedding_bits VARBINARY(1024) DEFAULT NULL,
             content_text LONGTEXT NOT NULL,
             content_hash VARCHAR(64) NOT NULL,
             item_url VARCHAR(500) DEFAULT '',
@@ -608,6 +616,11 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 	 * Inicialização principal
 	 */
 	public function init(): void {
+		// Upgrade de esquema: activate() não roda quando os arquivos são
+		// substituídos no deploy, e o CREATE TABLE IF NOT EXISTS não altera
+		// tabela existente.
+		Vector\VectorStore::maybe_upgrade_schema();
+
 		// Inicializar serviços (admin page é inicializada via Tainacan Pages API)
 		$this->services['api']       = new API\RestController();
 		$this->services['search']    = new Search\SearchEngine();
