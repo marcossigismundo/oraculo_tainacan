@@ -559,23 +559,12 @@
 
         var startTime = Date.now();
 
-        window.fetch(config.restUrl + 'search', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-WP-Nonce': config.restNonce
-            },
-            body: JSON.stringify({
-                query: query,
-                collections: config.collections,
-                max_results: config.maxResults
-            })
+        // OraculoRest renova o nonce e repete uma vez se a sessão mudou.
+        window.OraculoRest.post(config.restUrl + 'search', {
+            query: query,
+            collections: config.collections,
+            max_results: config.maxResults
         })
-            .then(function (response) {
-                return response.json().then(function (payload) {
-                    return { ok: response.ok, payload: payload };
-                });
-            })
             .then(function (envelope) {
                 self.finishSearch();
 
@@ -619,14 +608,8 @@
     };
 
     OraculoAiTab.prototype.sendFeedback = function (searchId, feedback) {
-        window.fetch(config.restUrl + 'feedback', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-WP-Nonce': config.restNonce
-            },
-            body: JSON.stringify({ search_id: searchId, feedback: feedback })
-        }).catch(function () { /* feedback é best-effort */ });
+        window.OraculoRest.post(config.restUrl + 'feedback', { search_id: searchId, feedback: feedback })
+            .catch(function () { /* feedback é best-effort */ });
     };
 
     /* --------------------------- Deep link ------------------------------ */

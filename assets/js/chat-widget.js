@@ -257,19 +257,15 @@
 
             var self = this;
 
-            $.ajax({
-                url: OraculoFrontend.restUrl + 'chat',
-                type: 'POST',
-                contentType: 'application/json',
-                headers: { 'X-WP-Nonce': OraculoFrontend.restNonce },
-                data: JSON.stringify({
-                    message: message,
-                    session_id: this.sessionId || ''
-                }),
-                success: function(response) {
+            // OraculoRest renova o nonce e repete uma vez se a sessão mudou.
+            window.OraculoRest.post(OraculoFrontend.restUrl + 'chat', {
+                message: message,
+                session_id: this.sessionId || ''
+            }).then(function(envelope) {
+                    var response = envelope.payload || {};
                     self.hideTyping();
 
-                    if (response.success) {
+                    if (envelope.ok && response.success) {
                         self.sessionId = response.data.session_id;
                         self.saveSession();
                         self.addMessage(response.data.response, 'assistant', {
@@ -277,18 +273,12 @@
                             sources: response.data.sources
                         });
                     } else {
-                        var msg = response.error || (response.data && response.data.message) || OraculoFrontend.strings.error;
+                        var msg = response.message || response.error || (response.data && response.data.message) || OraculoFrontend.strings.error;
                         self.addMessage(msg, 'assistant', { isError: true });
                     }
-                },
-                error: function(xhr) {
-                    self.hideTyping();
-                    var msg = OraculoFrontend.strings.error;
-                    if (xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) {
-                        msg = xhr.responseJSON.message || xhr.responseJSON.error;
-                    }
-                    self.addMessage(msg, 'assistant', { isError: true });
-                }
+            }).catch(function() {
+                self.hideTyping();
+                self.addMessage(OraculoFrontend.strings.error, 'assistant', { isError: true });
             });
         },
 
@@ -386,20 +376,15 @@
         sendFeedback: function(messageId, feedback, btn) {
             var container = btn.closest('.oraculo-message-feedback');
 
-            $.ajax({
-                url: OraculoFrontend.restUrl + 'feedback',
-                type: 'POST',
-                contentType: 'application/json',
-                headers: { 'X-WP-Nonce': OraculoFrontend.restNonce },
-                data: JSON.stringify({
-                    message_id: messageId,
-                    feedback: feedback
-                }),
-                success: function() {
+            window.OraculoRest.post(OraculoFrontend.restUrl + 'feedback', {
+                message_id: messageId,
+                feedback: feedback
+            }).then(function(envelope) {
+                if (envelope.ok) {
                     container.find('button').removeClass('selected');
                     btn.addClass('selected');
                 }
-            });
+            }, function() { /* feedback é best-effort */ });
         },
 
         loadSession: function() {

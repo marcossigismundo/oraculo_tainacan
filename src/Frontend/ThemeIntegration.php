@@ -181,7 +181,7 @@ class ThemeIntegration {
 		wp_enqueue_script(
 			self::SCRIPT_HANDLE,
 			ORACULO_TAINACAN_URL . 'assets/js/theme-integration.js',
-			array(),
+			array( \Oraculo_Tainacan\register_rest_client_script() ),
 			ORACULO_TAINACAN_VERSION,
 			true
 		);
@@ -218,7 +218,6 @@ class ThemeIntegration {
 			'OraculoTainacanTheme',
 			array(
 				'restUrl'         => esc_url_raw( rest_url( 'oraculo/v1/' ) ),
-				'restNonce'       => wp_create_nonce( 'wp_rest' ),
 				'tabLabel'        => $settings['tab_label'],
 				'placeholder'     => $settings['placeholder'],
 				'scope'           => $settings['scope'],

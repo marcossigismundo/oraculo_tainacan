@@ -3,7 +3,7 @@
  * Plugin Name: Oráculo Tainacan
  * Plugin URI: https://github.com/tainacan/oraculo-tainacan
  * Description: Sistema avançado de busca em linguagem natural com IA para acervos Tainacan. Integra RAG (Retrieval-Augmented Generation) com múltiplos provedores de IA.
- * Version: 2.6.0
+ * Version: 2.6.1
  * Author: Tainacan Community
  * Author URI: https://tainacan.org
  * License: GPL-2.0+
@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Constantes do plugin
-define( 'ORACULO_TAINACAN_VERSION', '2.6.0' );
+define( 'ORACULO_TAINACAN_VERSION', '2.6.1' );
 define( 'ORACULO_TAINACAN_FILE', __FILE__ );
 define( 'ORACULO_TAINACAN_PATH', plugin_dir_path( __FILE__ ) );
 define( 'ORACULO_TAINACAN_URL', plugin_dir_url( __FILE__ ) );
@@ -184,6 +184,11 @@ final class Oraculo_Tainacan {
 		add_action( 'wp_ajax_oraculo_save_settings', array( $this, 'ajax_save_settings' ) );
 		add_action( 'wp_ajax_oraculo_clear_cache', array( $this, 'ajax_clear_cache' ) );
 		add_action( 'wp_ajax_oraculo_process_queue', array( $this, 'ajax_process_queue' ) );
+
+		// Renovação do nonce wp_rest para o front (logado e anônimo). Não muta
+		// estado: só devolve o nonce da sessão que o cookie identifica.
+		add_action( 'wp_ajax_oraculo_rest_nonce', array( $this, 'ajax_rest_nonce' ) );
+		add_action( 'wp_ajax_nopriv_oraculo_rest_nonce', array( $this, 'ajax_rest_nonce' ) );
 
 		// Cron para indexação em background
 		add_action( 'oraculo_process_indexing_batch', array( $this, 'process_indexing_batch' ) );
@@ -655,6 +660,9 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 	public function enqueue_frontend_assets(): void {
 		$options = get_option( 'oraculo_tainacan_options', array() );
 
+		// Cliente REST compartilhado (renova o nonce wp_rest vencido).
+		$rest_handle = register_rest_client_script();
+
 		// Registrar tudo; enfileirar só onde é usado (chat flutuante global
 		// quando habilitado; shortcodes enfileiram no render).
 		wp_register_style(
@@ -672,14 +680,14 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 		wp_register_script(
 			'oraculo-frontend',
 			ORACULO_TAINACAN_URL . 'assets/js/frontend.js',
-			array( 'jquery' ),
+			array( 'jquery', $rest_handle ),
 			ORACULO_TAINACAN_VERSION,
 			true
 		);
 		wp_register_script(
 			'oraculo-chat',
 			ORACULO_TAINACAN_URL . 'assets/js/chat-widget.js',
-			array( 'jquery', 'oraculo-frontend' ),
+			array( 'jquery', 'oraculo-frontend', $rest_handle ),
 			ORACULO_TAINACAN_VERSION,
 			true
 		);
@@ -709,7 +717,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 		wp_register_script(
 			'oraculo-search-page',
 			ORACULO_TAINACAN_URL . 'assets/js/search-page.js',
-			array(),
+			array( $rest_handle ),
 			ORACULO_TAINACAN_VERSION,
 			true
 		);
@@ -719,7 +727,6 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 			array(
 				'searchUrl'   => rest_url( 'oraculo/v1/search' ),
 				'feedbackUrl' => rest_url( 'oraculo/v1/feedback' ),
-				'restNonce'   => wp_create_nonce( 'wp_rest' ),
 				'i18n'        => array(
 					'assistant'            => __( 'Assistente Oráculo', 'oraculo-tainacan' ),
 					'respondedIn'          => __( 'Respondido em', 'oraculo-tainacan' ),
@@ -742,7 +749,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 		wp_register_script(
 			'oraculo-chat-embedded',
 			ORACULO_TAINACAN_URL . 'assets/js/chat-embedded.js',
-			array(),
+			array( $rest_handle ),
 			ORACULO_TAINACAN_VERSION,
 			true
 		);
@@ -750,9 +757,8 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 			'oraculo-chat-embedded',
 			'OraculoChatEmbedded',
 			array(
-				'chatUrl'   => rest_url( 'oraculo/v1/chat' ),
-				'restNonce' => wp_create_nonce( 'wp_rest' ),
-				'i18n'      => array(
+				'chatUrl' => rest_url( 'oraculo/v1/chat' ),
+				'i18n'    => array(
 					'error'           => __( 'Ocorreu um erro. Tente novamente.', 'oraculo-tainacan' ),
 					'connectionError' => __( 'Erro de conexão. Tente novamente.', 'oraculo-tainacan' ),
 					'sources'         => __( 'Fontes:', 'oraculo-tainacan' ),
@@ -776,7 +782,6 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 				'ajaxUrl'            => admin_url( 'admin-ajax.php' ),
 				'restUrl'            => rest_url( 'oraculo/v1/' ),
 				'nonce'              => wp_create_nonce( 'oraculo_frontend' ),
-				'restNonce'          => wp_create_nonce( 'wp_rest' ),
 				'enableChat'         => ! empty( $options['enable_chat'] ),
 				'enableSearch'       => ! empty( $options['enable_search'] ),
 				'chatPosition'       => $appearance['chat_position'] ?? 'bottom-right',
@@ -1185,6 +1190,21 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 		} catch ( \Exception $e ) {
 			wp_send_json_error( array( 'message' => $e->getMessage() ) );
 		}
+	}
+
+	/**
+	 * Devolve um nonce `wp_rest` válido para a sessão atual.
+	 *
+	 * O nonce embutido na página vence quando a sessão muda depois do
+	 * carregamento (login/logout em outra aba, sessão expirada). O cliente
+	 * REST do front (assets/js/rest-client.js) chama esta ação ao receber
+	 * rest_cookie_invalid_nonce/oraculo_invalid_nonce e repete o pedido.
+	 * Sem verificação de nonce aqui: a ação não muta estado, e o mesmo nonce
+	 * já é entregue a qualquer visitante no HTML das páginas públicas.
+	 */
+	public function ajax_rest_nonce(): void {
+		nocache_headers();
+		wp_send_json_success( array( 'nonce' => wp_create_nonce( 'wp_rest' ) ) );
 	}
 
 	/**

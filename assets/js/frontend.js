@@ -93,29 +93,19 @@
 
             this.showLoading();
 
-            $.ajax({
-                url: OraculoFrontend.restUrl + 'search',
-                type: 'POST',
-                contentType: 'application/json',
-                headers: { 'X-WP-Nonce': OraculoFrontend.restNonce },
-                data: JSON.stringify({
-                    query: query,
-                    collections: collections
-                }),
-                success: function(response) {
-                    if (response.success) {
-                        self.renderResults(response.data);
-                    } else {
-                        self.showError(response.error || (response.data && response.data.message) || OraculoFrontend.strings.error);
-                    }
-                },
-                error: function(xhr) {
-                    var msg = OraculoFrontend.strings.error;
-                    if (xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) {
-                        msg = xhr.responseJSON.message || xhr.responseJSON.error;
-                    }
-                    self.showError(msg);
+            // OraculoRest renova o nonce e repete uma vez se a sessão mudou.
+            window.OraculoRest.post(OraculoFrontend.restUrl + 'search', {
+                query: query,
+                collections: collections
+            }).then(function(envelope) {
+                var response = envelope.payload || {};
+                if (envelope.ok && response.success) {
+                    self.renderResults(response.data);
+                } else {
+                    self.showError(response.message || response.error || (response.data && response.data.message) || OraculoFrontend.strings.error);
                 }
+            }).catch(function() {
+                self.showError(OraculoFrontend.strings.error);
             });
         },
 
@@ -200,19 +190,14 @@
         sendFeedback: function(searchId, feedback, btn) {
             var container = btn.closest('.oraculo-feedback');
 
-            $.ajax({
-                url: OraculoFrontend.restUrl + 'feedback',
-                type: 'POST',
-                contentType: 'application/json',
-                headers: { 'X-WP-Nonce': OraculoFrontend.restNonce },
-                data: JSON.stringify({
-                    search_id: searchId,
-                    feedback: feedback
-                }),
-                success: function() {
+            window.OraculoRest.post(OraculoFrontend.restUrl + 'feedback', {
+                search_id: searchId,
+                feedback: feedback
+            }).then(function(envelope) {
+                if (envelope.ok) {
                     container.html('<span class="oraculo-feedback-thanks">✓ Obrigado pelo feedback!</span>');
                 }
-            });
+            }, function() { /* feedback é best-effort */ });
         },
 
         loadSuggestions: function() {

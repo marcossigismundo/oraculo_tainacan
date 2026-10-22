@@ -84,19 +84,13 @@
 
 			var startTime = Date.now();
 
-			fetch(cfg.searchUrl, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'X-WP-Nonce': cfg.restNonce
-				},
-				body: JSON.stringify({
-					query: query,
-					collections: collections
-				})
+			// OraculoRest renova o nonce e repete uma vez se a sessão mudou.
+			window.OraculoRest.post(cfg.searchUrl, {
+				query: query,
+				collections: collections
 			})
-			.then(function(response) { return response.json(); })
-			.then(function(data) {
+			.then(function(envelope) {
+				var data = envelope.payload || {};
 				var responseTime = ((Date.now() - startTime) / 1000).toFixed(1);
 				loading.style.display = 'none';
 				results.style.display = 'block';
@@ -104,7 +98,8 @@
 				submitBtn.disabled = false;
 
 				// Os dados podem vir diretamente ou dentro de data.data (estrutura da API REST)
-				var searchResult = data.data || data;
+				// Erro do WordPress ({code, message, data:{status}}) não tem resultado.
+				var searchResult = envelope.ok ? (data.data || data) : {};
 
 				if (searchResult.response) {
 					var html = '<div class="oraculo-response">';
@@ -162,8 +157,8 @@
 					html += '</div>'; // response
 
 					results.innerHTML = html;
-				} else if (searchResult.message || data.error) {
-					var errorMsg = searchResult.message || data.error || i18n.unknownError;
+				} else if (!envelope.ok || searchResult.message || data.error) {
+					var errorMsg = searchResult.message || data.message || data.error || i18n.unknownError;
 					results.innerHTML = '<div class="oraculo-error">' +
 						'<div class="oraculo-error-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>' +
 						'<div class="oraculo-error-content"><h4>' + escapeHtml(i18n.cantProcess) + '</h4><p>' + escapeHtml(errorMsg) + '</p></div>' +
@@ -210,17 +205,10 @@
 			var searchIdFromContainer = feedbackContainer.getAttribute('data-search-id') || '';
 
 			// Send feedback via REST API
-			fetch(cfg.feedbackUrl, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'X-WP-Nonce': cfg.restNonce
-				},
-				body: JSON.stringify({
-					search_id: searchIdFromContainer,
-					feedback: feedback
-				})
-			});
+			window.OraculoRest.post(cfg.feedbackUrl, {
+				search_id: searchIdFromContainer,
+				feedback: feedback
+			}).catch(function() { /* feedback é best-effort */ });
 
 			// Update UI
 			feedbackContainer.innerHTML = '<span class="oraculo-feedback-thanks"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>' + escapeHtml(i18n.thanks) + '</span>';

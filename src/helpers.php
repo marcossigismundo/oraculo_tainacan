@@ -193,6 +193,39 @@ function normalize_text( string $text ): string {
 }
 
 /**
+ * Registra o cliente REST compartilhado do front (handle `oraculo-rest`).
+ *
+ * Os scripts públicos dependem dele para renovar o nonce `wp_rest` quando a
+ * sessão muda depois do carregamento da página. Idempotente: pode ser chamado
+ * por mais de um ponto de enqueue.
+ *
+ * @return string Handle do script.
+ */
+function register_rest_client_script(): string {
+	$handle = 'oraculo-rest';
+
+	if ( ! wp_script_is( $handle, 'registered' ) ) {
+		wp_register_script(
+			$handle,
+			ORACULO_TAINACAN_URL . 'assets/js/rest-client.js',
+			// wp-api-fetch traz o nonce wp_rest e o middleware que o renova.
+			array( 'wp-api-fetch' ),
+			ORACULO_TAINACAN_VERSION,
+			true
+		);
+		wp_localize_script(
+			$handle,
+			'OraculoRestConfig',
+			array(
+				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+			)
+		);
+	}
+
+	return $handle;
+}
+
+/**
  * Formata tamanho de arquivo
  *
  * @param int $bytes

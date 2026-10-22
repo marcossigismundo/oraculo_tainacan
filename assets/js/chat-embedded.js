@@ -119,22 +119,16 @@
 			// Show typing
 			showTyping();
 
-			fetch(cfg.chatUrl, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'X-WP-Nonce': cfg.restNonce
-				},
-				body: JSON.stringify({
-					message: message,
-					session_id: sessionId || ''
-				})
+			// OraculoRest renova o nonce e repete uma vez se a sessão mudou.
+			window.OraculoRest.post(cfg.chatUrl, {
+				message: message,
+				session_id: sessionId || ''
 			})
-			.then(function(response) { return response.json(); })
-			.then(function(data) {
+			.then(function(envelope) {
+				var data = envelope.payload || {};
 				hideTyping();
 
-				if (data.success) {
+				if (envelope.ok && data.success) {
 					sessionId = data.data.session_id;
 					try {
 						localStorage.setItem('oraculo_embedded_session', sessionId);

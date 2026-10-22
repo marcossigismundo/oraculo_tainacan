@@ -93,6 +93,15 @@ class ChatEngine {
 
 		$conversation = $this->get_or_create_conversation( $session_id, $collection_ids );
 
+		// O session_id vem do localStorage do navegador. Se a conversa é de
+		// outro usuário (saiu da conta, outra pessoa entrou no mesmo navegador),
+		// não continuar o histórico alheio: abre sessão nova, que volta ao
+		// cliente em session_id e substitui a guardada.
+		if ( ! is_wp_error( $conversation ) && get_current_user_id() !== (int) $conversation['user_id'] ) {
+			$session_id   = \Oraculo_Tainacan\generate_session_id();
+			$conversation = $this->get_or_create_conversation( $session_id, $collection_ids );
+		}
+
 		if ( is_wp_error( $conversation ) ) {
 			return $conversation;
 		}

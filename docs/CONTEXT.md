@@ -1,7 +1,7 @@
 # Oráculo Tainacan — Contexto do Projeto
 
-> Snapshot da versão 2.6.0 (indexação automática, CLIP como provedor, descoberta
-> dinâmica de modelos, chaves criptografadas — mergeado na `main`)
+> Snapshot da versão 2.6.1 (indexação automática, CLIP como provedor, descoberta
+> dinâmica de modelos, chaves criptografadas, renovação do nonce REST no front — `main`)
 
 Plugin WordPress que adiciona busca semântica (RAG) e chat com IA sobre acervos do Tainacan.
 Arquitetura orientada a serviços com múltiplos provedores de IA intercambiáveis.
@@ -17,13 +17,13 @@ Arquitetura orientada a serviços com múltiplos provedores de IA intercambiáve
 
 | Campo | Valor |
 |---|---|
-| Versão declarada (`oraculo-tainacan.php` e `readme.txt`) | **2.6.0** |
+| Versão declarada (`oraculo-tainacan.php` e `readme.txt`) | **2.6.1** |
 | PHP mínimo | **8.0** (`declare(strict_types=1)` em todos os arquivos) |
 | WordPress mínimo | 6.0 |
 | Text domain | `oraculo-tainacan` |
 | Namespace raiz | `Oraculo_Tainacan\` |
 | Repositório | `github.com/marcossigismundo/oraculo_tainacan`, branch `main` (feature/auto-indexing-clip mergeada) |
-| Deploy de testes | `darkgreen-yak-751687.hostingersite.com/wp-content/plugins/oraculo-tainacan/` (pasta com **hífen**, diferente do diretório local `oraculo_tainacan`) |
+| Deploy de testes | `darkgreen-yak.179-236-250-233.sslip.io` (VPS KVM 1, via `deploy.sh` do repo de infra; pasta `oraculo-tainacan` com **hífen**, diferente do diretório local `oraculo_tainacan`) |
 
 ## Estrutura de diretórios
 
@@ -143,6 +143,25 @@ Filtros para ajustar limites: `oraculo_tainacan_rest_rate_limit`, `oraculo_taina
 **WP-CLI** (`src/CLI/Commands.php`): `wp oraculo <index|status|search|test-connection|
 clear-vectors|stats|providers|optimize|export|queue|clip>`. `queue <status|process|reconcile>`
 opera a fila automática; `clip <health|models|search|index>` testa a integração CLIP.
+
+## Cliente REST do front e renovação do nonce (2.6.1)
+
+Todos os scripts públicos (`theme-integration.js`, `frontend.js`, `chat-widget.js`,
+`search-page.js`, `chat-embedded.js`) chamam a API por `window.OraculoRest.post()`
+(`assets/js/rest-client.js`, handle `oraculo-rest`, registrado por
+`register_rest_client_script()` em `helpers.php`). Não usar `fetch`/`$.ajax` direto
+nem `restNonce` localizado: o nonce embutido no HTML vence quando a sessão muda depois
+do carregamento e o core responde 403 "A verificação do cookie falhou"
+(`rest_cookie_invalid_nonce`).
+
+- O cliente usa `wp.apiFetch` do core, cujo middleware renova o nonce (admin-ajax
+  `rest-nonce`) e repete o pedido para usuário logado.
+- Visitante anônimo com nonce vencido recebe `oraculo_invalid_nonce` do plugin; o
+  cliente renova pela ação AJAX `oraculo_rest_nonce` (priv + nopriv) e repete uma vez.
+- `post()` resolve `{ok, payload}` (payload = JSON ou o WP_Error) e só rejeita em falha
+  de rede ou corpo não-JSON, que os chamadores mostram como erro de conexão.
+- O chat não continua conversa de outro usuário: se o `session_id` guardado no navegador
+  pertence a outro `user_id`, `ChatEngine::chat()` abre sessão nova e devolve o novo id.
 
 ## Indexação automática (fila + worker + reconciliação)
 
