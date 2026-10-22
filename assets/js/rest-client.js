@@ -10,10 +10,11 @@
  *
  * Usa o wp.apiFetch do core: o middleware de nonce dele já renova o nonce em
  * admin-ajax (action=rest-nonce) e repete o pedido em
- * rest_cookie_invalid_nonce, para usuário logado. O caso anônimo
- * (oraculo_invalid_nonce, nonce velho num visitante sem cookie) não é coberto
- * pelo core, porque o rest-nonce do core só existe para logados; aqui ele
- * renova pela ação nopriv do plugin e repete uma vez.
+ * rest_cookie_invalid_nonce, mas o rest-nonce do core só existe para
+ * logados. Para visitante anônimo com nonce velho essa renovação falha (o
+ * apiFetch rejeita com o Response do endpoint), e o plugin também pode
+ * responder oraculo_invalid_nonce. Nesses casos o nonce é renovado pela ação
+ * oraculo_rest_nonce (priv + nopriv) e o pedido é repetido uma vez.
  *
  * ES5 estrito. Config via objeto localizado OraculoRestConfig: { ajaxUrl }.
  */
@@ -32,8 +33,19 @@
     // {success:false, error} dos handlers do plugin) vira resposta de erro
     // para o chamador. Falha de rede ou corpo não-JSON (502/504 do proxy,
     // fatal em HTML) rejeita, para o chamador mostrar erro de conexão.
+    function isResponse(err) {
+        return !!(window.Response && err instanceof window.Response);
+    }
+
+    // Nonce recusado e não renovado pelo apiFetch.
+    function needsNonceRenewal(err) {
+        return isResponse(err) || !!(err && (
+            err.code === 'oraculo_invalid_nonce' || err.code === 'rest_cookie_invalid_nonce'
+        ));
+    }
+
     function isTransportError(err) {
-        return !err || typeof err !== 'object' || err instanceof Error ||
+        return !err || typeof err !== 'object' || err instanceof Error || isResponse(err) ||
             err.code === 'fetch_error' || err.code === 'invalid_json';
     }
 
@@ -84,7 +96,7 @@
     function post(url, data) {
         return send(url, data)
             .catch(function (err) {
-                if (err && err.code === 'oraculo_invalid_nonce' && cfg.ajaxUrl && apiFetch.nonceMiddleware) {
+                if (needsNonceRenewal(err) && cfg.ajaxUrl && apiFetch.nonceMiddleware) {
                     return refreshAnonymousNonce().then(function () {
                         return send(url, data);
                     }, function () {

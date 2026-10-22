@@ -1,6 +1,6 @@
 # Oráculo Tainacan — Contexto do Projeto
 
-> Snapshot da versão 2.6.1 (indexação automática, CLIP como provedor, descoberta
+> Snapshot da versão 2.6.2 (indexação automática, CLIP como provedor, descoberta
 > dinâmica de modelos, chaves criptografadas, renovação do nonce REST no front — `main`)
 
 Plugin WordPress que adiciona busca semântica (RAG) e chat com IA sobre acervos do Tainacan.
@@ -17,7 +17,7 @@ Arquitetura orientada a serviços com múltiplos provedores de IA intercambiáve
 
 | Campo | Valor |
 |---|---|
-| Versão declarada (`oraculo-tainacan.php` e `readme.txt`) | **2.6.1** |
+| Versão declarada (`oraculo-tainacan.php` e `readme.txt`) | **2.6.2** |
 | PHP mínimo | **8.0** (`declare(strict_types=1)` em todos os arquivos) |
 | WordPress mínimo | 6.0 |
 | Text domain | `oraculo-tainacan` |
@@ -156,8 +156,11 @@ do carregamento e o core responde 403 "A verificação do cookie falhou"
 
 - O cliente usa `wp.apiFetch` do core, cujo middleware renova o nonce (admin-ajax
   `rest-nonce`) e repete o pedido para usuário logado.
-- Visitante anônimo com nonce vencido recebe `oraculo_invalid_nonce` do plugin; o
-  cliente renova pela ação AJAX `oraculo_rest_nonce` (priv + nopriv) e repete uma vez.
+- Visitante anônimo com nonce vencido também recebe `rest_cookie_invalid_nonce` do core
+  (o core valida qualquer `X-WP-Nonce` enviado, logado ou não), mas o `rest-nonce` do
+  core só atende logados e a renovação do apiFetch falha, rejeitando com o `Response`.
+  Nesse caso, e no `oraculo_invalid_nonce` do plugin, o cliente renova pela ação AJAX
+  `oraculo_rest_nonce` (priv + nopriv) e repete uma vez.
 - `post()` resolve `{ok, payload}` (payload = JSON ou o WP_Error) e só rejeita em falha
   de rede ou corpo não-JSON, que os chamadores mostram como erro de conexão.
 - O chat não continua conversa de outro usuário: se o `session_id` guardado no navegador

@@ -4,7 +4,7 @@ Tags: tainacan, ai, search, rag, openai
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 2.6.1
+Stable tag: 2.6.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -111,6 +111,9 @@ OpenAI is the most tested option. Ollama is recommended for fully local, private
 Only the text content of your archived items is sent to the AI provider you configure. When using Ollama, everything stays local.
 
 == Changelog ==
+
+= 2.6.2 =
+* Fix: anonymous visitors with a stale nonce also get rest_cookie_invalid_nonce from core, whose rest-nonce endpoint only serves logged-in users; the REST client now falls back to the plugin's own nonce action in that case and retries once
 
 = 2.6.1 =
 * Fix: AI search tab, floating chat, [oraculo_search] and [oraculo_chat] no longer fail with "A verificação do cookie falhou" (rest_cookie_invalid_nonce) when the session changes after the page loads (login/logout in another tab, expired session, tab left open). A shared REST client renews the wp_rest nonce through admin-ajax and retries the request once
