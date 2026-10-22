@@ -232,25 +232,67 @@
     text-overflow: ellipsis;
 }
 
-.oraculo-ai-panel-close {
+.oraculo-ai-panel-toggle {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    width: 2em;
-    height: 2em;
-    padding: 0;
-    color: var(--oraculo-ai-ink);
-    background: transparent;
-    border: none;
-    border-radius: 50%;
-    cursor: pointer;
+    gap: 0.375em;
     flex-shrink: 0;
+    padding: 0.375em 0.75em;
+    font-size: 0.8125em;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--oraculo-ai-ink);
+    background: var(--tainacan-background-color, #ffffff);
+    border: 1px solid var(--oraculo-ai-edge);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.oraculo-ai-panel-close:hover,
-.oraculo-ai-panel-close:focus-visible {
-    background: var(--oraculo-ai-tint-strong);
+.oraculo-ai-panel-toggle:hover,
+.oraculo-ai-panel-toggle:focus-visible {
+    color: #ffffff;
+    background: var(--oraculo-ai-ink);
     outline: none;
+}
+
+.oraculo-ai-panel-toggle svg {
+    transition: transform 0.2s ease;
+}
+
+/* Recolhido: só a barra do cabeçalho, com a pergunta e "Mostrar resposta" */
+.oraculo-ai-panel.is-collapsed {
+    border-radius: 0 0 10px 10px;
+}
+
+.oraculo-ai-panel.is-collapsed .oraculo-ai-panel-header {
+    border-bottom: none;
+    cursor: pointer;
+}
+
+.oraculo-ai-panel.is-collapsed .oraculo-ai-panel-toggle svg {
+    transform: rotate(180deg);
+}
+
+.oraculo-ai-panel-query {
+    min-width: 0;
+    font-size: 0.875em;
+    font-style: italic;
+    color: var(--oraculo-ai-ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.oraculo-ai-panel-query:empty {
+    display: none;
+}
+
+@media (max-width: 600px) {
+    .oraculo-ai-panel-scope,
+    .oraculo-ai-panel-query {
+        display: none;
+    }
 }
 
 .oraculo-ai-panel-body {

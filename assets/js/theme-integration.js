@@ -19,7 +19,7 @@
     var STORAGE_KEY = 'oraculoAiTabActive';
     var SPARKLE_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>';
     var SEARCH_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
-    var CLOSE_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    var CHEVRON_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="6 15 12 9 18 15"/></svg>';
     var ITEM_ICON = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
     var THUMB_UP = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>';
     var THUMB_DOWN = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg>';
@@ -325,20 +325,31 @@
         header.innerHTML =
             '<div class="oraculo-ai-panel-title">' + SPARKLE_ICON +
             '<h3>' + escapeHtml(config.strings.panelTitle) + '</h3>' +
-            '<span class="oraculo-ai-panel-scope"></span></div>';
+            '<span class="oraculo-ai-panel-scope"></span>' +
+            '<span class="oraculo-ai-panel-query"></span></div>';
 
-        var closeBtn = document.createElement('button');
-        closeBtn.type = 'button';
-        closeBtn.className = 'oraculo-ai-panel-close';
-        closeBtn.setAttribute('aria-label', config.strings.close);
-        closeBtn.innerHTML = CLOSE_ICON;
-        closeBtn.addEventListener('click', function () {
-            self.hidePanel();
+        // Recolher em vez de fechar: a resposta continua guardada e volta com
+        // um clique, sem refazer a busca (antes o X descartava o painel).
+        this.toggleBtn = document.createElement('button');
+        this.toggleBtn.type = 'button';
+        this.toggleBtn.className = 'oraculo-ai-panel-toggle';
+        this.toggleBtn.setAttribute('aria-controls', 'oraculo-ai-panel-body-' + Math.random().toString(36).slice(2));
+        this.toggleBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            self.setCollapsed(!self.collapsed);
         });
-        header.appendChild(closeBtn);
+        header.appendChild(this.toggleBtn);
+
+        // Barra recolhida inteira é clicável para reabrir
+        header.addEventListener('click', function () {
+            if (self.collapsed) {
+                self.setCollapsed(false);
+            }
+        });
 
         this.panelBody = document.createElement('div');
         this.panelBody.className = 'oraculo-ai-panel-body';
+        this.panelBody.id = this.toggleBtn.getAttribute('aria-controls');
         this.panelBody.setAttribute('aria-live', 'polite');
 
         var footer = document.createElement('footer');
@@ -350,7 +361,25 @@
         this.panel.appendChild(footer);
 
         this.scopeEl = header.querySelector('.oraculo-ai-panel-scope');
+        this.queryEl = header.querySelector('.oraculo-ai-panel-query');
+        this.footer = footer;
         this.updateScopeLabel();
+        this.setCollapsed(false);
+    };
+
+    OraculoAiTab.prototype.setCollapsed = function (collapsed) {
+        this.collapsed = !!collapsed;
+        this.panel.classList.toggle('is-collapsed', this.collapsed);
+        this.panelBody.hidden = this.collapsed;
+        this.footer.hidden = this.collapsed;
+        this.toggleBtn.setAttribute('aria-expanded', this.collapsed ? 'false' : 'true');
+        var label = this.collapsed ? config.strings.expand : config.strings.collapse;
+        this.toggleBtn.innerHTML = CHEVRON_ICON + '<span>' + escapeHtml(label || '') + '</span>';
+        // Na barra recolhida, a pergunta lembra do que era a resposta
+        this.queryEl.textContent = this.collapsed && this.lastQuery ? '“' + this.lastQuery + '”' : '';
+        if (!this.collapsed && this.panel.getBoundingClientRect().top < 0) {
+            this.panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     };
 
     OraculoAiTab.prototype.updateScopeLabel = function () {
@@ -420,7 +449,10 @@
             if (nativeInput && nativeInput.value && !this.input.value) {
                 this.input.value = nativeInput.value;
             }
-            if (config.showSuggestions && config.suggestions.length && !this.panelBody.childElementCount) {
+            if (this.hasResult) {
+                // Volta para a aba IA: a última resposta reaparece como estava
+                this.showPanel(false);
+            } else if (config.showSuggestions && config.suggestions.length && !this.panelBody.childElementCount) {
                 this.renderSuggestions();
                 this.showPanel(false);
             }
@@ -448,6 +480,9 @@
 
     OraculoAiTab.prototype.showPanel = function (scroll) {
         this.panel.hidden = false;
+        if (this.collapsed) {
+            this.setCollapsed(false);
+        }
         if (scroll !== false) {
             var rect = this.panel.getBoundingClientRect();
             if (rect.top < 0 || rect.bottom > window.innerHeight) {
@@ -465,6 +500,7 @@
         if (!config.suggestions.length) {
             return;
         }
+        this.hasResult = false;
         var self = this;
         var wrap = document.createElement('div');
         wrap.className = 'oraculo-ai-suggestions';
@@ -527,6 +563,7 @@
     };
 
     OraculoAiTab.prototype.renderResult = function (data, elapsedSeconds) {
+        this.hasResult = true;
         var self = this;
         var html = '';
         var items = Array.isArray(data.items) ? data.items : [];
@@ -642,6 +679,7 @@
         newQuestion.className = 'oraculo-ai-action-btn';
         newQuestion.textContent = config.strings.newQuestion;
         newQuestion.addEventListener('click', function () {
+            self.hasResult = false;
             self.input.value = '';
             self.input.focus();
             if (config.showSuggestions && config.suggestions.length) {
