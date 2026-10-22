@@ -102,6 +102,59 @@ function cosine_similarity( array $vector_a, array $vector_b ): float {
 }
 
 /**
+ * Texto da consulta usado no embedding de recuperação: só o assunto
+ *
+ * Tira a forma da pergunta ("o que tem", "quais são"), artigos, preposições
+ * e palavras genéricas de acervo ("livros", "obras", "itens"). Sem isso, num
+ * acervo com centenas de títulos quase iguais ("X sobre a Y nordestina",
+ * "X para a Y nordestina"), a preposição da pergunta decidia o top-10:
+ * "livros sobre o nordeste" e "o que tem para nordeste?" não tinham nenhum
+ * item em comum. A pergunta original continua indo inteira para o LLM.
+ *
+ * @param string $query Pergunta do usuário.
+ * @return string Consulta reduzida; a original se nada sobrar.
+ */
+function retrieval_query( string $query ): string {
+	/**
+	 * Palavras removidas da consulta antes do embedding de recuperação.
+	 *
+	 * @param string[] $stopwords Lista em minúsculas.
+	 */
+	$stopwords = (array) apply_filters(
+		'oraculo_tainacan_retrieval_stopwords',
+		array(
+			// Artigos, preposições, contrações e conectivos.
+			'o', 'a', 'os', 'as', 'um', 'uma', 'uns', 'umas', 'de', 'do', 'da', 'dos', 'das', 'em', 'no', 'na', 'nos', 'nas',
+			'por', 'pelo', 'pela', 'pelos', 'pelas', 'para', 'pra', 'pro', 'com', 'sobre', 'ao', 'aos', 'à', 'às', 'e', 'ou',
+			'num', 'numa', 'dum', 'duma', 'acerca', 'respeito', 'relacionado', 'relacionados', 'relacionada', 'relacionadas',
+			// Forma da pergunta e pedidos.
+			'que', 'quê', 'qual', 'quais', 'quem', 'onde', 'como', 'tem', 'têm', 'há', 'existe', 'existem', 'possui', 'possuem',
+			'quero', 'queria', 'gostaria', 'procuro', 'busco', 'mostre', 'mostra', 'mostrar', 'liste', 'listar', 'indique',
+			'indicar', 'recomende', 'recomendar', 'fale', 'falar', 'falam', 'fala', 'me', 'você', 'vocês', 'algum', 'alguma',
+			'alguns', 'algumas', 'algo', 'coisa', 'coisas', 'tudo', 'todos', 'todas', 'aqui', 'é', 'ser', 'sei', 'saber',
+			// Palavras genéricas de acervo.
+			'livro', 'livros', 'obra', 'obras', 'item', 'itens', 'acervo', 'acervos', 'coleção', 'coleções', 'material',
+			'materiais', 'documento', 'documentos', 'publicação', 'publicações', 'título', 'títulos',
+		)
+	);
+	$stopwords = array_flip( array_map( 'mb_strtolower', $stopwords ) );
+
+	$words = (array) preg_split( '/[^\p{L}\p{N}\-]+/u', $query, -1, PREG_SPLIT_NO_EMPTY );
+	$kept  = array();
+	foreach ( $words as $index => $word ) {
+		$lower = mb_strtolower( $word );
+		// Palavra com inicial maiúscula fora do início da frase é nome próprio
+		// ("São Paulo", "Para" sem acento = Pará): fica, mesmo se for stopword.
+		$proper = $index > 0 && $lower !== $word;
+		if ( $proper || ! isset( $stopwords[ $lower ] ) ) {
+			$kept[] = $lower;
+		}
+	}
+
+	return empty( $kept ) ? $query : implode( ' ', $kept );
+}
+
+/**
  * Assinatura binária de um embedding: 1 bit por dimensão (positivo = 1)
  *
  * Serve de pré-filtro da busca vetorial: a distância de Hamming entre

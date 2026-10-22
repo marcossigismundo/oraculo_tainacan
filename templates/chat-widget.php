@@ -33,7 +33,7 @@ $bia_avatar = static function ( int $size ): string {
 };
 ?>
 
-<div class="oraculo-chat-embedded" id="<?php echo esc_attr( $widget_id ); ?>" style="height: <?php echo esc_attr( $height ); ?>;">
+<div class="oraculo-chat-embedded" id="<?php echo esc_attr( $widget_id ); ?>" data-collections="<?php echo esc_attr( implode( ',', array_filter( array_map( 'absint', explode( ',', (string) ( $atts['collections'] ?? '' ) ) ) ) ) ); ?>" style="height: <?php echo esc_attr( $height ); ?>;">
 	<div class="oraculo-chat-embedded-header">
 		<div class="oraculo-chat-embedded-avatar">
 			<?php echo $bia_avatar( 38 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG estático montado localmente com $size inteiro; nada de input externo. ?>

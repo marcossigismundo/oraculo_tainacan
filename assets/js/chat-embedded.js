@@ -122,7 +122,9 @@
 			// OraculoRest renova o nonce e repete uma vez se a sessão mudou.
 			window.OraculoRest.post(cfg.chatUrl, {
 				message: message,
-				session_id: sessionId || ''
+				session_id: sessionId || '',
+				// Atributo collections="" do shortcode (ids separados por vírgula)
+				collections: (widget.getAttribute('data-collections') || '').split(',').map(Number).filter(Boolean)
 			})
 			.then(function(envelope) {
 				var data = envelope.payload || {};

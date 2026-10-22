@@ -151,6 +151,46 @@ class ThemeIntegration {
 	}
 
 	/**
+	 * Escopo da busca na página atual: coleção atual ou coleções padrão
+	 *
+	 * Ponto único usado pela aba "Busca com IA" e pelo chat da BIA. Com escopos
+	 * diferentes, a mesma pergunta na busca e no chat recuperava itens de
+	 * coleções diferentes (o chat consultava o repositório inteiro).
+	 *
+	 * @return array{collections: int[], collection_id: int, collection_name: string, scope_label: string}
+	 */
+	public function get_search_scope(): array {
+		$options             = \Oraculo_Tainacan\Oraculo_Tainacan::get_options();
+		$settings            = $this->get_settings();
+		$collection_id       = $this->get_current_collection_id();
+		$default_collections = array_map( 'absint', (array) ( $options['default_collections'] ?? array() ) );
+
+		// Escopo da busca: coleção atual (quando houver) ou repositório inteiro
+		$collections = array();
+		if ( 'collection' === $settings['scope'] && $collection_id > 0 ) {
+			$collections = array( $collection_id );
+		} elseif ( ! empty( $default_collections ) ) {
+			// O endpoint /search rejeita mais de MAX_COLLECTIONS itens (rest_invalid_param).
+			$collections = array_slice( array_values( $default_collections ), 0, self::MAX_COLLECTIONS );
+		}
+
+		$collection_name = '';
+		if ( $collection_id > 0 && function_exists( 'tainacan_get_the_collection_name' ) ) {
+			// O tema devolve o nome já com esc_html(); decodifica para não escapar
+			// de novo no front ("Arte &amp; Cultura").
+			$collection_name = html_entity_decode( wp_strip_all_tags( (string) tainacan_get_the_collection_name() ), ENT_QUOTES, 'UTF-8' );
+		}
+
+		return array(
+			'collections'     => $collections,
+			'collection_id'   => $collection_id,
+			'collection_name' => $collection_name,
+			// Rótulo só quando a busca está de fato restrita à coleção da página.
+			'scope_label'     => array( $collection_id ) === $collections ? $collection_name : '',
+		);
+	}
+
+	/**
 	 * Enfileira assets somente nas listagens do Tainacan com a integração ativa
 	 */
 	public function enqueue_assets(): void {
@@ -196,22 +236,10 @@ class ThemeIntegration {
 			$suggested_questions = array();
 		}
 
-		$collection_id       = $this->get_current_collection_id();
-		$default_collections = array_map( 'absint', (array) ( $options['default_collections'] ?? array() ) );
-
-		// Escopo da busca: coleção atual (quando houver) ou repositório inteiro
-		$collections = array();
-		if ( 'collection' === $settings['scope'] && $collection_id > 0 ) {
-			$collections = array( $collection_id );
-		} elseif ( ! empty( $default_collections ) ) {
-			// O endpoint /search rejeita mais de MAX_COLLECTIONS itens (rest_invalid_param).
-			$collections = array_slice( array_values( $default_collections ), 0, self::MAX_COLLECTIONS );
-		}
-
-		$collection_name = '';
-		if ( $collection_id > 0 && function_exists( 'tainacan_get_the_collection_name' ) ) {
-			$collection_name = wp_strip_all_tags( (string) tainacan_get_the_collection_name() );
-		}
+		$scope           = $this->get_search_scope();
+		$collections     = $scope['collections'];
+		$collection_id   = $scope['collection_id'];
+		$collection_name = $scope['collection_name'];
 
 		wp_localize_script(
 			self::SCRIPT_HANDLE,

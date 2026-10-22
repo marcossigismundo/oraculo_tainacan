@@ -83,7 +83,7 @@ class SearchEngine {
 		try {
 			// 1. Gerar embedding da query
 			$embedding_provider = $this->ai_factory->create_for_embeddings();
-			$embedding_result   = $embedding_provider->generate_embedding( $query );
+			$embedding_result   = $embedding_provider->generate_embedding( \Oraculo_Tainacan\retrieval_query( $query ) );
 
 			if ( is_wp_error( $embedding_result ) ) {
 				return $embedding_result;
@@ -179,7 +179,7 @@ class SearchEngine {
 	public function semantic_search( string $query, array $collection_ids = array(), int $limit = 10 ) {
 		try {
 			$embedding_provider = $this->ai_factory->create_for_embeddings();
-			$embedding_result   = $embedding_provider->generate_embedding( $query );
+			$embedding_result   = $embedding_provider->generate_embedding( \Oraculo_Tainacan\retrieval_query( $query ) );
 
 			if ( is_wp_error( $embedding_result ) ) {
 				return $embedding_result;
@@ -416,7 +416,7 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados.',
 			$entry       = array(
 				'id'              => $item['item_id'],
 				'title'           => $title,
-				'snippet'         => \Oraculo_Tainacan\generate_snippet( $this->strip_index_labels( (string) $item['content_text'], $title ), $query ),
+				'snippet'         => \Oraculo_Tainacan\generate_snippet( $this->strip_index_labels( (string) $item['content_text'], $title ), \Oraculo_Tainacan\retrieval_query( $query ) ),
 				'url'             => $item['item_url'] ?? '',
 				'collection_id'   => $item['collection_id'],
 				'collection_name' => $item['collection_name'] ?? '',
@@ -532,7 +532,7 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados.',
 			'index'       => \Oraculo_Tainacan\get_index_version(),
 			// Formato da resposta (citações [n] e cartões): aposenta respostas
 			// guardadas no formato anterior, com URLs em texto puro.
-			'format'      => 3,
+			'format'      => 4,
 		);
 
 		return 'oraculo_search_' . md5( wp_json_encode( $data ) );

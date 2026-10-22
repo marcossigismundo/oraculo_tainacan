@@ -4,7 +4,7 @@ Tags: tainacan, ai, search, rag, openai
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 2.7.2
+Stable tag: 2.8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -111,6 +111,11 @@ OpenAI is the most tested option. Ollama is recommended for fully local, private
 Only the text content of your archived items is sent to the AI provider you configure. When using Ollama, everything stays local.
 
 == Changelog ==
+
+= 2.8.0 =
+* Fix: the BIA chat now searches the same scope as the "Busca com IA" tab (the current collection, or the default collections) and retrieves the same number of items (max_results instead of 5). It used to search the whole repository, so the same question returned items from other collections. The chat header shows the collection when the chat is limited to it, and the [oraculo_chat] shortcode now honours its collections attribute
+* Change: the retrieval embedding uses only the subject of the question: question form, articles, prepositions and generic collection words ("o que tem", "sobre", "livros", "obras"...) are removed first (filter oraculo_tainacan_retrieval_stopwords); capitalised words after the first are kept as proper names ("São Paulo"); the model still gets the full question. In a collection with ~1,000 near-identical titles, "livros sobre o nordeste" and "o que tem para nordeste?" had no item in common, because the preposition decided the top 10
+* UI: the AI search panel stands out more, with stronger pastel tones derived from the theme accent colour (tinted header and background, the answer in a white card, cited items highlighted)
 
 = 2.7.2 =
 * UI: item card metadata labels drop the MARC code and qualifier ("[100] Autor Principal — Pessoa" becomes "Autor Principal") and are no longer bold; answer list bullets restored against the theme reset

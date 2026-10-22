@@ -146,14 +146,34 @@
 /* Painel de resposta                                                  */
 /* ------------------------------------------------------------------ */
 
+/* Tons pastel derivados da cor de destaque (tema Tainacan ou plugin). Os
+   valores fixos valem onde não há color-mix(); custom property não tem
+   fallback por declaração repetida, daí o @supports logo abaixo. */
 .oraculo-ai-panel {
-    margin: 0.75em 1em 1em;
-    background: var(--tainacan-background-color, #ffffff);
-    border: 1px solid var(--tainacan-input-border-color, #dbdbdb);
-    border-top: 3px solid var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
-    border-radius: 0 0 6px 6px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    --oraculo-ai-base: var(--tainacan-primary, var(--oraculo-accent, #b5e0e3));
+    --oraculo-ai-ink: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
+    --oraculo-ai-tint-strong: #b5e0e3;
+    --oraculo-ai-tint: #d4eef0;
+    --oraculo-ai-tint-soft: #e9f6f7;
+    --oraculo-ai-edge: #8fc9cd;
+
+    margin: 0.75em 1em 1.25em;
+    background: var(--oraculo-ai-tint-soft);
+    border: 1px solid var(--oraculo-ai-edge);
+    border-top: 4px solid var(--oraculo-ai-ink);
+    border-radius: 0 0 10px 10px;
+    box-shadow: 0 6px 24px rgba(31, 47, 86, 0.14);
+    overflow: hidden;
     animation: oraculo-ai-slide-in 0.25s ease;
+}
+
+@supports (color: color-mix(in srgb, red 50%, white)) {
+    .oraculo-ai-panel {
+        --oraculo-ai-tint-strong: color-mix(in srgb, var(--oraculo-ai-base) 85%, #ffffff);
+        --oraculo-ai-tint: color-mix(in srgb, var(--oraculo-ai-base) 55%, #ffffff);
+        --oraculo-ai-tint-soft: color-mix(in srgb, var(--oraculo-ai-base) 28%, #ffffff);
+        --oraculo-ai-edge: color-mix(in srgb, var(--oraculo-ai-base) 75%, var(--oraculo-ai-ink));
+    }
 }
 
 @keyframes oraculo-ai-slide-in {
@@ -166,30 +186,37 @@
     align-items: center;
     justify-content: space-between;
     gap: 1em;
-    padding: 0.75em 1.25em;
-    border-bottom: 1px solid var(--tainacan-input-border-color, #dbdbdb);
+    padding: 0.875em 1.25em;
+    background: var(--oraculo-ai-tint);
+    border-bottom: 1px solid var(--oraculo-ai-edge);
 }
 
 .oraculo-ai-panel-title {
     display: flex;
     align-items: center;
     gap: 0.5em;
-    color: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
+    color: var(--oraculo-ai-ink);
     min-width: 0;
+}
+
+.oraculo-ai-panel-title svg {
+    width: 18px;
+    height: 18px;
 }
 
 .oraculo-ai-panel-title h3 {
     margin: 0;
-    font-size: 0.9375em;
-    font-weight: 600;
-    color: var(--tainacan-heading-color, #000000);
+    font-size: 1.0625em;
+    font-weight: 700;
+    color: var(--oraculo-ai-ink);
 }
 
 .oraculo-ai-panel-scope {
     font-size: 0.75em;
-    color: var(--tainacan-info-color, #505253);
-    padding: 0.125em 0.625em;
-    background: var(--tainacan-item-hover-background-color, #f2f2f2);
+    font-weight: 600;
+    color: var(--oraculo-ai-ink);
+    padding: 0.1875em 0.75em;
+    background: var(--oraculo-ai-tint-strong);
     border-radius: 999px;
     white-space: nowrap;
     overflow: hidden;
@@ -203,7 +230,7 @@
     width: 2em;
     height: 2em;
     padding: 0;
-    color: var(--tainacan-info-color, #505253);
+    color: var(--oraculo-ai-ink);
     background: transparent;
     border: none;
     border-radius: 50%;
@@ -213,20 +240,20 @@
 
 .oraculo-ai-panel-close:hover,
 .oraculo-ai-panel-close:focus-visible {
-    background: var(--tainacan-item-hover-background-color, #f2f2f2);
-    color: var(--tainacan-heading-color, #000000);
+    background: var(--oraculo-ai-tint-strong);
     outline: none;
 }
 
 .oraculo-ai-panel-body {
-    padding: 1em 1.25em;
+    padding: 1.25em;
 }
 
 .oraculo-ai-panel-footer {
     padding: 0.5em 1.25em;
-    border-top: 1px solid var(--tainacan-input-border-color, #dbdbdb);
+    background: var(--oraculo-ai-tint);
+    border-top: 1px solid var(--oraculo-ai-edge);
     font-size: 0.6875em;
-    color: var(--tainacan-info-color, #505253);
+    color: var(--oraculo-ai-ink);
 }
 
 .oraculo-ai-panel-footer span {
@@ -285,10 +312,20 @@
 /* ------------------------------------------------------------------ */
 
 .oraculo-ai-answer {
-    max-width: 48em;
+    padding: 1.125em 1.375em;
+    background: var(--tainacan-background-color, #ffffff);
+    border: 1px solid var(--oraculo-ai-edge, #8fc9cd);
+    border-left: 4px solid var(--oraculo-ai-ink, #1f2f56);
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(31, 47, 86, 0.06);
     font-size: 0.9375em;
     line-height: 1.65;
     color: var(--tainacan-label-color, #373839);
+}
+
+.oraculo-ai-answer p,
+.oraculo-ai-answer ul {
+    max-width: 52em;
 }
 
 .oraculo-ai-answer p {
@@ -328,8 +365,9 @@
     font-weight: 700;
     line-height: 1;
     vertical-align: 0.25em;
-    color: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
-    background: var(--tainacan-primary, var(--oraculo-accent, #b5e0e3));
+    color: var(--oraculo-ai-ink, #1f2f56);
+    background: var(--oraculo-ai-tint-strong, #b5e0e3);
+    border: 1px solid var(--oraculo-ai-edge, #8fc9cd);
     border-radius: 999px;
     text-decoration: none;
     transition: background-color 0.15s ease, color 0.15s ease;
@@ -351,8 +389,6 @@
 
 .oraculo-ai-sources {
     margin-top: 1.5em;
-    padding-top: 1.25em;
-    border-top: 1px solid var(--tainacan-input-border-color, #dbdbdb);
 }
 
 .oraculo-ai-sources h4 {
@@ -360,16 +396,16 @@
     align-items: center;
     gap: 0.5em;
     margin: 0 0 0.875em;
-    font-size: 0.8125em;
-    font-weight: 600;
-    color: var(--tainacan-heading-color, #000000);
+    font-size: 0.875em;
+    font-weight: 700;
+    color: var(--oraculo-ai-ink, #1f2f56);
 }
 
 .oraculo-ai-sources-count {
     font-size: 0.85em;
     font-weight: 600;
-    color: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
-    background: var(--tainacan-primary, var(--oraculo-accent, #b5e0e3));
+    color: var(--oraculo-ai-ink, #1f2f56);
+    background: var(--oraculo-ai-tint-strong, #b5e0e3);
     padding: 0 0.5em;
     border-radius: 999px;
 }
@@ -397,7 +433,7 @@
     color: inherit;
     text-decoration: none;
     background: var(--tainacan-item-background-color, #ffffff);
-    border: 1px solid var(--tainacan-input-border-color, #dbdbdb);
+    border: 1px solid var(--oraculo-ai-edge, #8fc9cd);
     border-radius: 8px;
     transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
@@ -411,7 +447,8 @@
 }
 
 .oraculo-ai-source-card.is-cited .oraculo-ai-source-link {
-    border-left: 3px solid var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
+    background: var(--oraculo-ai-tint, #d4eef0);
+    border-left: 4px solid var(--oraculo-ai-ink, #1f2f56);
 }
 
 .oraculo-ai-source-card.is-flash .oraculo-ai-source-link {
@@ -431,8 +468,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
-    background: var(--tainacan-skeleton-color, #eeeeee);
+    color: var(--oraculo-ai-ink, #1f2f56);
+    background: var(--oraculo-ai-tint-strong, #b5e0e3);
     border-radius: 4px;
     overflow: hidden;
 }

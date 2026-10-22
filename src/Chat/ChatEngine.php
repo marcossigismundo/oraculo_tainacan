@@ -127,7 +127,11 @@ class ChatEngine {
 				// usuário, para a continuação herdar o assunto da conversa.
 				$search_query = $this->build_search_query( $message, $history );
 
-				$search_results = $this->search_engine->semantic_search( $search_query, $collection_ids, 5 );
+				// Mesmo número de itens da aba "Busca com IA" (com 5, a BIA via só
+				// metade do que a busca mostra), com teto de 10: cada item vira
+				// ~300 caracteres de contexto em todo turno da conversa.
+				$chat_limit     = max( 1, min( 10, (int) ( $this->options['max_results'] ?? 10 ) ) );
+				$search_results = $this->search_engine->semantic_search( $search_query, $collection_ids, $chat_limit );
 
 				if ( ! is_wp_error( $search_results ) && ! empty( $search_results ) ) {
 					$context = $this->format_context( $search_results );

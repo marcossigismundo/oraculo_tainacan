@@ -1,6 +1,6 @@
 # Oráculo Tainacan — Contexto do Projeto
 
-> Snapshot da versão 2.7.2 (indexação automática, CLIP como provedor, descoberta
+> Snapshot da versão 2.8.0 (indexação automática, CLIP como provedor, descoberta
 > dinâmica de modelos, chaves criptografadas, renovação do nonce REST no front,
 > busca vetorial em duas fases, resposta com citações [n] — `main`)
 
@@ -18,7 +18,7 @@ Arquitetura orientada a serviços com múltiplos provedores de IA intercambiáve
 
 | Campo | Valor |
 |---|---|
-| Versão declarada (`oraculo-tainacan.php` e `readme.txt`) | **2.7.2** |
+| Versão declarada (`oraculo-tainacan.php` e `readme.txt`) | **2.8.0** |
 | PHP mínimo | **8.0** (`declare(strict_types=1)` em todos os arquivos) |
 | WordPress mínimo | 6.0 |
 | Text domain | `oraculo-tainacan` |
@@ -273,8 +273,27 @@ enviado ao modelo não leva mais as URLs. No front (`theme-integration.js`),
 (e uma URL solta de item listado na citação dele), e os cartões são links inteiros com
 miniatura, número e até 3 metadados curtos (`details`, de `summarize_metadata()`); o
 `snippet` limpo (`strip_index_labels()`) só aparece quando não há metadados. A chave do
-cache de busca leva `format` (3 desde a 2.7.2). O chat da BIA segue a mesma ideia (sem URLs, títulos
+cache de busca leva `format` (4 desde a 2.8.0). O chat da BIA segue a mesma ideia (sem URLs, títulos
 em negrito, respostas curtas), mas sem citações numeradas.
+
+## Escopo e consulta de recuperação compartilhados (2.8.0)
+
+Busca e chat da BIA usam a mesma recuperação, para a mesma pergunta não dar itens
+diferentes nos dois lugares:
+
+- **Escopo**: `ThemeIntegration::get_search_scope()` (coleção da página quando
+  `theme_integration.scope = collection`, senão `default_collections`) alimenta tanto
+  `OraculoTainacanTheme.collections` quanto `OraculoFrontend.collections`, que o
+  `chat-widget.js` envia em `/chat`. Antes o chat não mandava coleção e consultava o
+  repositório inteiro.
+- **Quantidade**: o chat recupera `max_results` itens (antes 5).
+- **Consulta**: `retrieval_query()` (helpers) tira a forma da pergunta, artigos,
+  preposições e palavras genéricas de acervo antes do embedding (filtro
+  `oraculo_tainacan_retrieval_stopwords`); o LLM recebe a pergunta inteira. Motivo:
+  a coleção 282 tem ~976 títulos "X sobre/para a Y nordestina"; com a preposição no
+  embedding, "livros sobre o nordeste" e "o que tem para nordeste?" tinham 0 de 10
+  itens em comum. Em assunto tão amplo o top-10 continua sendo uma amostra; o painel
+  oferece "Refinar na busca tradicional" para ver todos.
 
 ## Descoberta dinâmica de modelos por provedor
 

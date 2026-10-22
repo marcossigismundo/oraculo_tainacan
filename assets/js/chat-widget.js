@@ -77,7 +77,7 @@
                             <h3 class="oraculo-chat-title">${escapeHtml(name)}</h3>
                             <p class="oraculo-chat-subtitle">
                                 <span class="oraculo-chat-status-dot" aria-hidden="true"></span>
-                                ${escapeHtml(role)} · ${escapeHtml(s.online || 'online')}
+                                ${escapeHtml(role)} · ${escapeHtml(OraculoFrontend.collectionName || s.online || 'online')}
                             </p>
                         </div>
                         <button class="oraculo-chat-new" id="oraculo-chat-new"
@@ -260,7 +260,8 @@
             // OraculoRest renova o nonce e repete uma vez se a sessão mudou.
             window.OraculoRest.post(OraculoFrontend.restUrl + 'chat', {
                 message: message,
-                session_id: this.sessionId || ''
+                session_id: this.sessionId || '',
+                collections: OraculoFrontend.collections || []
             }).then(function(envelope) {
                     var response = envelope.payload || {};
                     self.hideTyping();

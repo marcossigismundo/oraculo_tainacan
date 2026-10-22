@@ -3,7 +3,7 @@
  * Plugin Name: Oráculo Tainacan
  * Plugin URI: https://github.com/tainacan/oraculo-tainacan
  * Description: Sistema avançado de busca em linguagem natural com IA para acervos Tainacan. Integra RAG (Retrieval-Augmented Generation) com múltiplos provedores de IA.
- * Version: 2.7.2
+ * Version: 2.8.0
  * Author: Tainacan Community
  * Author URI: https://tainacan.org
  * License: GPL-2.0+
@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Constantes do plugin
-define( 'ORACULO_TAINACAN_VERSION', '2.7.2' );
+define( 'ORACULO_TAINACAN_VERSION', '2.8.0' );
 define( 'ORACULO_TAINACAN_FILE', __FILE__ );
 define( 'ORACULO_TAINACAN_PATH', plugin_dir_path( __FILE__ ) );
 define( 'ORACULO_TAINACAN_URL', plugin_dir_url( __FILE__ ) );
@@ -787,6 +787,13 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
         }';
 		wp_add_inline_style( 'oraculo-frontend', $custom_css );
 
+		$chat_scope = ! empty( $options['enable_chat'] ) && isset( $this->services['theme_integration'] )
+			? $this->services['theme_integration']->get_search_scope()
+			: array(
+				'collections' => array(),
+				'scope_label' => '',
+			);
+
 		// Localizar script
 		wp_localize_script(
 			'oraculo-frontend',
@@ -796,6 +803,9 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 				'restUrl'            => rest_url( 'oraculo/v1/' ),
 				'nonce'              => wp_create_nonce( 'oraculo_frontend' ),
 				'enableChat'         => ! empty( $options['enable_chat'] ),
+				// Mesmo escopo da aba "Busca com IA": a BIA consulta a coleção da página.
+				'collections'        => $chat_scope['collections'],
+				'collectionName'     => $chat_scope['scope_label'],
 				'enableSearch'       => ! empty( $options['enable_search'] ),
 				'chatPosition'       => $appearance['chat_position'] ?? 'bottom-right',
 				'assistantName'      => __( 'BIA', 'oraculo-tainacan' ),
