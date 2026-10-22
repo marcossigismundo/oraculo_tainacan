@@ -492,7 +492,10 @@ Se o acervo não tiver a informação, diga com franqueza e sugira como reformul
 		// Mensagem atual
 		$parts[] = 'MENSAGEM DO USUÁRIO: ' . $message;
 		$parts[] = '';
-		$parts[] = 'Responda de forma útil e conversacional:';
+		// No fim do prompt, depois de tudo: prompts de sistema salvos em versões
+		// antigas mandam "forneça o link", e a BIA terminava cada item com
+		// "Link disponível no registro" — o widget já lista as fontes com link.
+		$parts[] = __( 'Responda de forma útil e conversacional, em poucas linhas: destaque só os 3 a 5 itens mais relevantes, com o título em **negrito** e uma frase sobre cada um. Não escreva URLs, números de referência como [1] nem frases como "link disponível": a lista completa de fontes, com links, aparece logo abaixo da sua resposta.', 'oraculo-tainacan' );
 
 		return implode( "\n", $parts );
 	}

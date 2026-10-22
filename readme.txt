@@ -4,7 +4,7 @@ Tags: tainacan, ai, search, rag, openai
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 2.8.1
+Stable tag: 2.8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -111,6 +111,9 @@ OpenAI is the most tested option. Ollama is recommended for fully local, private
 Only the text content of your archived items is sent to the AI provider you configure. When using Ollama, everything stays local.
 
 == Changelog ==
+
+= 2.8.2 =
+* Fix: the chat format rule (3 to 5 highlighted items, no URLs or link placeholders) moved to the end of the message prompt, after the context; system prompts saved by older versions ask for links and still won when the rule lived only in the system prompt
 
 = 2.8.1 =
 * Fix: BIA no longer ends every item with "Link disponível no item [n]"; the chat widget has no numbered citations, so the persona now forbids URLs, [n] references and that phrase
