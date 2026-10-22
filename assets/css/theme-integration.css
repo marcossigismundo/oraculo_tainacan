@@ -449,8 +449,11 @@
 }
 
 .oraculo-ai-source-card.is-cited .oraculo-ai-source-link {
-    background: var(--oraculo-ai-tint, #d4eef0);
-    border-left: 4px solid var(--oraculo-ai-ink, #1f2f56);
+    /* Fundo continua branco: texto escuro sobre o verde perdia contraste.
+       O destaque fica na borda. */
+    border-color: var(--oraculo-ai-edge, #7fb8bd);
+    border-left: 5px solid var(--oraculo-ai-ink, #1f2f56);
+    box-shadow: 0 2px 8px rgba(31, 47, 86, 0.1);
 }
 
 .oraculo-ai-source-card.is-flash .oraculo-ai-source-link {
@@ -471,7 +474,7 @@
     align-items: center;
     justify-content: center;
     color: var(--oraculo-ai-ink, #1f2f56);
-    background: var(--oraculo-ai-tint-strong, #b5e0e3);
+    background: var(--oraculo-ai-tint-soft, #dcf0f2);
     border-radius: 4px;
     overflow: hidden;
 }

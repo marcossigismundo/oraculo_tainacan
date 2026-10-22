@@ -4,7 +4,7 @@ Tags: tainacan, ai, search, rag, openai
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 2.8.3
+Stable tag: 2.8.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -111,6 +111,9 @@ OpenAI is the most tested option. Ollama is recommended for fully local, private
 Only the text content of your archived items is sent to the AI provider you configure. When using Ollama, everything stays local.
 
 == Changelog ==
+
+= 2.8.4 =
+* UI: cited item cards keep a white background (dark text on the green tint had poor contrast); they are marked by a thick left border and shadow instead
 
 = 2.8.3 =
 * UI: stronger pastel tones in the AI search panel; the theme accent is already light, so tints now lean toward the text colour instead of white
