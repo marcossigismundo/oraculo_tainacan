@@ -152,10 +152,10 @@
 .oraculo-ai-panel {
     --oraculo-ai-base: var(--tainacan-primary, var(--oraculo-accent, #b5e0e3));
     --oraculo-ai-ink: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
-    --oraculo-ai-tint-strong: #b5e0e3;
-    --oraculo-ai-tint: #d4eef0;
-    --oraculo-ai-tint-soft: #e9f6f7;
-    --oraculo-ai-edge: #8fc9cd;
+    --oraculo-ai-tint-strong: #9fd3d7;
+    --oraculo-ai-tint: #c4e6e9;
+    --oraculo-ai-tint-soft: #dcf0f2;
+    --oraculo-ai-edge: #7fb8bd;
 
     margin: 0.75em 1em 1.25em;
     background: var(--oraculo-ai-tint-soft);
@@ -169,10 +169,12 @@
 
 @supports (color: color-mix(in srgb, red 50%, white)) {
     .oraculo-ai-panel {
-        --oraculo-ai-tint-strong: color-mix(in srgb, var(--oraculo-ai-base) 85%, #ffffff);
-        --oraculo-ai-tint: color-mix(in srgb, var(--oraculo-ai-base) 55%, #ffffff);
-        --oraculo-ai-tint-soft: color-mix(in srgb, var(--oraculo-ai-base) 28%, #ffffff);
-        --oraculo-ai-edge: color-mix(in srgb, var(--oraculo-ai-base) 75%, var(--oraculo-ai-ink));
+        /* O destaque do tema já é claro: misturar com branco quase não muda
+           nada. Os tons fortes puxam um pouco da cor do texto. */
+        --oraculo-ai-tint-strong: color-mix(in srgb, var(--oraculo-ai-base) 72%, var(--oraculo-ai-ink));
+        --oraculo-ai-tint: color-mix(in srgb, var(--oraculo-ai-base) 88%, var(--oraculo-ai-ink));
+        --oraculo-ai-tint-soft: var(--oraculo-ai-base);
+        --oraculo-ai-edge: color-mix(in srgb, var(--oraculo-ai-base) 55%, var(--oraculo-ai-ink));
     }
 }
 
