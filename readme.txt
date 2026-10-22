@@ -4,7 +4,7 @@ Tags: tainacan, ai, search, rag, openai
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 2.6.3
+Stable tag: 2.6.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -111,6 +111,10 @@ OpenAI is the most tested option. Ollama is recommended for fully local, private
 Only the text content of your archived items is sent to the AI provider you configure. When using Ollama, everything stays local.
 
 == Changelog ==
+
+= 2.6.4 =
+* Fix: OpenAI reasoning models (GPT-5 family, o-series) now get reasoning_effort "minimal" (original GPT-5 family) or "low" (others), filterable via oraculo_tainacan_openai_reasoning_effort, with automatic fallback when a model rejects the value. gpt-5-nano was spending the whole 2000-token budget on reasoning, returning an empty answer after more than two minutes
+* Fix: an empty answer cut by the token limit (finish_reason "length") now returns a clear error instead of an empty response that was also cached
 
 = 2.6.3 =
 * Fix: local vector search no longer exhausts memory on large collections (a 14k-item collection hit the 512M limit and returned a critical error). The scan now reads only id + embedding in keyset batches of 500 (filter oraculo_tainacan_vector_scan_batch), keeps only the top-k and fetches details just for them. Latency is still O(N); the external vector service remains the long-term path

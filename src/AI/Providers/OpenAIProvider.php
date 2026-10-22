@@ -424,6 +424,18 @@ class OpenAIProvider extends AbstractAIProvider {
 			return new WP_Error( 'invalid_response', __( 'Resposta inválida da API.', 'oraculo-tainacan' ) );
 		}
 
+		$finish_reason = $response['choices'][0]['finish_reason'] ?? 'stop';
+
+		// Modelo de raciocínio que esgota o teto antes de escrever devolve
+		// content vazio com finish_reason "length". Sem este erro, a busca
+		// mostrava (e guardava em cache) uma resposta em branco.
+		if ( '' === trim( (string) $response['choices'][0]['message']['content'] ) && 'length' === $finish_reason ) {
+			return new WP_Error(
+				'empty_response_length',
+				__( 'O modelo de IA esgotou o limite de tokens antes de responder. Aumente o limite de tokens nas configurações ou escolha outro modelo.', 'oraculo-tainacan' )
+			);
+		}
+
 		$usage = $this->normalize_usage( $response['usage'] ?? array() );
 
 		return array(
@@ -431,7 +443,7 @@ class OpenAIProvider extends AbstractAIProvider {
 			'model'         => $model,
 			'usage'         => $usage,
 			'cost'          => $this->calculate_cost( $usage, $model ),
-			'finish_reason' => $response['choices'][0]['finish_reason'] ?? 'stop',
+			'finish_reason' => $finish_reason,
 		);
 	}
 
@@ -575,6 +587,24 @@ class OpenAIProvider extends AbstractAIProvider {
 		if ( preg_match( '/^(gpt-5|o\d)/i', $model ) ) {
 			$body['max_completion_tokens'] = $options['max_tokens'];
 			// Sem temperature: modelos de raciocínio só aceitam o valor padrão.
+
+			// Sem reasoning_effort a API usa "medium": o gpt-5-nano gastava os
+			// 2000 tokens do teto só raciocinando, devolvia content vazio e
+			// levava mais de 2 minutos. Busca/chat sobre contexto já recuperado
+			// não precisa de raciocínio longo. A família GPT-5 original aceita
+			// "minimal"; as demais recebem "low" (fallback ajusta se recusarem).
+			$effort = preg_match( '/^gpt-5(-|$)/i', $model ) ? 'minimal' : 'low';
+
+			/**
+			 * Esforço de raciocínio enviado aos modelos de raciocínio da OpenAI.
+			 *
+			 * @param string $effort Valor de reasoning_effort ('' para não enviar).
+			 * @param string $model  ID do modelo.
+			 */
+			$effort = (string) apply_filters( 'oraculo_tainacan_openai_reasoning_effort', $effort, $model );
+			if ( '' !== $effort ) {
+				$body['reasoning_effort'] = $effort;
+			}
 		} else {
 			$body['max_tokens']  = $options['max_tokens'];
 			$body['temperature'] = $options['temperature'];
@@ -596,7 +626,7 @@ class OpenAIProvider extends AbstractAIProvider {
 	 * @return array|WP_Error
 	 */
 	private function chat_request_with_param_fallback( array $body ) {
-		for ( $attempt = 0; $attempt < 3; $attempt++ ) {
+		for ( $attempt = 0; $attempt < 5; $attempt++ ) {
 			$response = $this->make_request_with_retry(
 				self::API_BASE_URL . '/chat/completions',
 				$body,
@@ -617,6 +647,17 @@ class OpenAIProvider extends AbstractAIProvider {
 
 			if ( isset( $body['temperature'] ) && false !== stripos( $message, "'temperature'" ) ) {
 				unset( $body['temperature'] );
+				continue;
+			}
+
+			// Modelo recusou o valor de reasoning_effort: tenta "low"; se nem
+			// isso, envia sem o parâmetro (padrão da API).
+			if ( isset( $body['reasoning_effort'] ) && false !== stripos( $message, 'reasoning_effort' ) ) {
+				if ( 'low' !== $body['reasoning_effort'] ) {
+					$body['reasoning_effort'] = 'low';
+				} else {
+					unset( $body['reasoning_effort'] );
+				}
 				continue;
 			}
 

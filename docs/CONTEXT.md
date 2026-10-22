@@ -1,6 +1,6 @@
 # Oráculo Tainacan — Contexto do Projeto
 
-> Snapshot da versão 2.6.3 (indexação automática, CLIP como provedor, descoberta
+> Snapshot da versão 2.6.4 (indexação automática, CLIP como provedor, descoberta
 > dinâmica de modelos, chaves criptografadas, renovação do nonce REST no front — `main`)
 
 Plugin WordPress que adiciona busca semântica (RAG) e chat com IA sobre acervos do Tainacan.
@@ -17,7 +17,7 @@ Arquitetura orientada a serviços com múltiplos provedores de IA intercambiáve
 
 | Campo | Valor |
 |---|---|
-| Versão declarada (`oraculo-tainacan.php` e `readme.txt`) | **2.6.3** |
+| Versão declarada (`oraculo-tainacan.php` e `readme.txt`) | **2.6.4** |
 | PHP mínimo | **8.0** (`declare(strict_types=1)` em todos os arquivos) |
 | WordPress mínimo | 6.0 |
 | Text domain | `oraculo-tainacan` |
@@ -38,7 +38,9 @@ src/
 │   ├── AbstractAIProvider.php    get_api_key() descriptografa prefixo `enc:`; normalize_openai_style_models()
 │   ├── AIProviderFactory.php
 │   └── Providers/  (todos os 7 implementam list_remote_models())
-│       ├── OpenAIProvider.php   (gpt-5-mini default, text-embedding-3-small; GPT-5.x + GPT-4o legado)
+│       ├── OpenAIProvider.php   (gpt-5-mini default, text-embedding-3-small; GPT-5.x + GPT-4o legado;
+│       │                         reasoning_effort minimal/low nos modelos de raciocínio desde a 2.6.4 —
+│       │                         sem ele o gpt-5-nano gastava o teto raciocinando e respondia vazio)
 │       ├── GeminiProvider.php   (gemini-2.5-flash default; filtra por supportedGenerationMethods)
 │       ├── ClaudeProvider.php   (claude-sonnet-5 default; opção claude_api_key)
 │       ├── DeepSeekProvider.php (deepseek-chat + deepseek-reasoner/R1)
