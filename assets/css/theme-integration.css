@@ -157,6 +157,13 @@
     --oraculo-ai-tint-soft: #dcf0f2;
     --oraculo-ai-edge: #7fb8bd;
 
+    /* #tainacan-items-page é flex com wrap: sem ocupar a linha inteira, o
+       painel dividia a linha com os filtros, que iam para o lado dele. Com
+       100%, ele empurra filtros e itens para baixo. */
+    flex: 0 0 calc(100% - 2em);
+    box-sizing: border-box;
+    width: calc(100% - 2em);
+    max-width: calc(100% - 2em);
     margin: 0.75em 1em 1.25em;
     background: var(--oraculo-ai-tint-soft);
     border: 1px solid var(--oraculo-ai-edge);

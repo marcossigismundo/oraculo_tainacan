@@ -4,7 +4,7 @@ Tags: tainacan, ai, search, rag, openai
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 2.8.4
+Stable tag: 2.8.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -111,6 +111,9 @@ OpenAI is the most tested option. Ollama is recommended for fully local, private
 Only the text content of your archived items is sent to the AI provider you configure. When using Ollama, everything stays local.
 
 == Changelog ==
+
+= 2.8.5 =
+* Fix: the AI answer panel always takes the full row of the Tainacan items page (a flex container with wrap) and pushes filters and items down; it used to share the row with the filters sidebar, which ended up beside the answer
 
 = 2.8.4 =
 * UI: cited item cards keep a white background (dark text on the green tint had poor contrast); they are marked by a thick left border and shadow instead
