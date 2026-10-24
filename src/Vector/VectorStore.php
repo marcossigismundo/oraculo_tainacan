@@ -656,6 +656,33 @@ class VectorStore {
 	}
 
 	/**
+	 * Linhas de metadados de vários itens (para itens achados só pelos trechos)
+	 *
+	 * @param int[] $item_ids Itens.
+	 * @return array<int, array>
+	 */
+	public function get_by_item_ids( array $item_ids ): array {
+		global $wpdb;
+
+		$item_ids = array_values( array_filter( array_map( 'intval', $item_ids ) ) );
+		if ( empty( $item_ids ) ) {
+			return array();
+		}
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table ($wpdb->prefix . class constant); IN-clause built with array_fill of %d placeholders matching $item_ids count; result depends on the query.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT id, item_id, collection_id, collection_name, content_text, item_url, item_title, metadata_json FROM {$this->table_name} WHERE item_id IN (" . implode( ',', array_fill( 0, count( $item_ids ), '%d' ) ) . ')',
+				$item_ids
+			),
+			ARRAY_A
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+
+		return (array) $rows;
+	}
+
+	/**
 	 * Remove vetor
 	 *
 	 * @param int $item_id
@@ -674,6 +701,9 @@ class VectorStore {
 			),
 			array( '%d', '%d' )
 		);
+		// Trechos dos documentos saem junto: todo caminho de remoção do item
+		// (despublicar, excluir, reconciliação) passa por aqui.
+		( new ChunkStore() )->delete_by( 'item_id', $item_id );
 		\Oraculo_Tainacan\invalidate_index_caches();
 
 		return $result !== false;
@@ -694,6 +724,7 @@ class VectorStore {
 			array( 'collection_id' => $collection_id ),
 			array( '%d' )
 		);
+		( new ChunkStore() )->delete_by( 'collection_id', $collection_id );
 		\Oraculo_Tainacan\invalidate_index_caches();
 
 		return (int) $result;

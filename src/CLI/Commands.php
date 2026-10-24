@@ -11,6 +11,8 @@ namespace Oraculo_Tainacan\CLI;
 
 use Oraculo_Tainacan\Indexing\IndexingManager;
 use Oraculo_Tainacan\Vector\VectorStore;
+use Oraculo_Tainacan\Vector\ChunkStore;
+use Oraculo_Tainacan\Indexing\DocumentIndexer;
 use Oraculo_Tainacan\Search\SearchEngine;
 use Oraculo_Tainacan\AI\AIProviderFactory;
 use Oraculo_Tainacan\Analytics\AnalyticsManager;
@@ -362,8 +364,92 @@ class Commands extends WP_CLI_Command {
 		} else {
 			global $wpdb;
 			$count = $wpdb->query( "TRUNCATE TABLE {$wpdb->prefix}oraculo_vectors" );
+			( new ChunkStore() )->truncate();
 			WP_CLI::success( 'Todos os vetores foram removidos.' );
 		}
+	}
+
+	/**
+	 * Conteúdo dos documentos (PDF, OCR): situação ou indexação.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <action>
+	 * : status (trechos e anexos sem OCR) ou index (metadados + documentos).
+	 * ---
+	 * options:
+	 *   - status
+	 *   - index
+	 * ---
+	 *
+	 * --collection=<id>
+	 * : Coleção Tainacan.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp oraculo documents index --collection=42
+	 *     wp oraculo documents status --collection=42
+	 *
+	 * @param array $args       Posicionais.
+	 * @param array $assoc_args Nomeados.
+	 */
+	public function documents( $args, $assoc_args ) {
+		$collection_id = absint( $assoc_args['collection'] ?? 0 );
+		if ( $collection_id <= 0 ) {
+			WP_CLI::error( 'Informe --collection=<id>.' );
+		}
+		if ( ! DocumentIndexer::is_enabled() ) {
+			WP_CLI::warning( 'O campo "document" não está nos campos indexados (Configurações → Indexação): os trechos não entram na busca.' );
+		}
+
+		$item_ids = get_posts(
+			array(
+				'post_type'      => 'tnc_col_' . $collection_id . '_item',
+				'post_status'    => 'publish',
+				'fields'         => 'ids',
+				'posts_per_page' => -1,
+				'orderby'        => 'ID',
+				'order'          => 'ASC',
+				'no_found_rows'  => true,
+			)
+		);
+
+		if ( 'index' === ( $args[0] ?? '' ) ) {
+			$manager = new IndexingManager();
+			$done    = 0;
+			foreach ( array_chunk( $item_ids, 10 ) as $batch ) {
+				$result = $manager->index_items_by_id( $batch );
+				$done  += count( $result['indexed_ids'] );
+				foreach ( $result['errors'] as $error ) {
+					WP_CLI::warning( is_array( $error ) ? wp_json_encode( $error ) : (string) $error );
+				}
+				WP_CLI::log( sprintf( 'Metadados: %d/%d itens', $done, count( $item_ids ) ) );
+			}
+			// Documentos: a fila própria, sem limite de tempo no CLI.
+			$docs = ( new DocumentIndexer() )->process_pending( 0 );
+			foreach ( $docs['errors'] as $error ) {
+				WP_CLI::warning( $error );
+			}
+			WP_CLI::log( sprintf( 'Documentos: %d itens, %d trechos novos', $docs['processed'], $docs['embedded'] ) );
+		}
+
+		// Só leitura: não extrai PDFs ainda sem cache (conta como "a extrair").
+		$indexer    = new DocumentIndexer();
+		$needs_ocr  = 0;
+		$with_text  = 0;
+		$to_extract = 0;
+		foreach ( $item_ids as $item_id ) {
+			$docs        = $indexer->collect_documents( (int) $item_id, false );
+			$needs_ocr  += $docs['needs_ocr'];
+			$with_text  += count( $docs['files'] );
+			$to_extract += $docs['to_extract'];
+		}
+		WP_CLI::log( sprintf( 'PDFs ainda não extraídos: %d | itens na fila de documentos: %d', $to_extract, DocumentIndexer::count_pending() ) );
+		$stats = ( new ChunkStore() )->get_stats( $collection_id );
+
+		WP_CLI::log( sprintf( 'Itens publicados: %d', count( $item_ids ) ) );
+		WP_CLI::log( sprintf( 'Arquivos com texto: %d | sem texto (precisam de OCR): %d', $with_text, $needs_ocr ) );
+		WP_CLI::log( sprintf( 'Trechos indexados: %d (itens: %d, anexos: %d)', $stats['chunks'], $stats['items'], $stats['attachments'] ) );
 	}
 
 	/**

@@ -3,7 +3,7 @@
  * Plugin Name: Oráculo Tainacan
  * Plugin URI: https://github.com/tainacan/oraculo-tainacan
  * Description: Sistema avançado de busca em linguagem natural com IA para acervos Tainacan. Integra RAG (Retrieval-Augmented Generation) com múltiplos provedores de IA.
- * Version: 2.9.0
+ * Version: 2.10.0
  * Author: Tainacan Community
  * Author URI: https://tainacan.org
  * License: GPL-2.0+
@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Constantes do plugin
-define( 'ORACULO_TAINACAN_VERSION', '2.9.0' );
+define( 'ORACULO_TAINACAN_VERSION', '2.10.0' );
 define( 'ORACULO_TAINACAN_FILE', __FILE__ );
 define( 'ORACULO_TAINACAN_PATH', plugin_dir_path( __FILE__ ) );
 define( 'ORACULO_TAINACAN_URL', plugin_dir_url( __FILE__ ) );
@@ -240,6 +240,8 @@ final class Oraculo_Tainacan {
 		if ( ! wp_next_scheduled( Indexing\AutoIndexer::CRON_RECONCILE ) ) {
 			wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', Indexing\AutoIndexer::CRON_RECONCILE );
 		}
+
+		Vector\ChunkStore::maybe_create_table();
 
 		// Retoma o preenchimento das assinaturas interrompido por uma desativação.
 		Vector\VectorStore::schedule_backfill();
@@ -620,6 +622,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 		// substituídos no deploy, e o CREATE TABLE IF NOT EXISTS não altera
 		// tabela existente.
 		Vector\VectorStore::maybe_upgrade_schema();
+		Vector\ChunkStore::maybe_create_table();
 
 		// Inicializar serviços (admin page é inicializada via Tainacan Pages API)
 		$this->services['api']       = new API\RestController();
@@ -1060,6 +1063,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 			$table = $wpdb->prefix . 'oraculo_vectors';
             // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $table is plugin-owned (oraculo_vectors, built from $wpdb->prefix + literal); TRUNCATE TABLE cannot use $wpdb->prepare(); write operation, caching N/A.
 			$deleted = $wpdb->query( "TRUNCATE TABLE {$table}" );
+			( new Vector\ChunkStore() )->truncate();
 			wp_send_json_success(
 				array(
 					'message' => __( 'Todos os vetores foram removidos.', 'oraculo-tainacan' ),

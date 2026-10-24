@@ -279,6 +279,9 @@ class ThemeIntegration {
 					/* translators: %s: number of the cited collection item in the result list */
 					'citeAria'         => __( 'Ver item %s', 'oraculo-tainacan' ),
 					'openLink'         => __( 'abrir link', 'oraculo-tainacan' ),
+					'inDocument'       => __( 'No documento', 'oraculo-tainacan' ),
+					/* translators: %s: page number */
+					'pageLabel'        => __( 'p. %s', 'oraculo-tainacan' ),
 					'helpful'          => __( 'Esta resposta foi útil?', 'oraculo-tainacan' ),
 					'yes'              => __( 'Sim', 'oraculo-tainacan' ),
 					'no'               => __( 'Não', 'oraculo-tainacan' ),

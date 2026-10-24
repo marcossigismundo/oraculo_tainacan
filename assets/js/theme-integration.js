@@ -21,6 +21,7 @@
     var SEARCH_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
     var CHEVRON_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="6 15 12 9 18 15"/></svg>';
     var ITEM_ICON = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+    var DOC_ICON = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="14" y2="17"/></svg>';
     var THUMB_UP = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>';
     var THUMB_DOWN = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg>';
 
@@ -605,7 +606,25 @@
                     var pct = Math.max(0, Math.min(100, parseFloat(item.similarity) || 0));
                     html += '<span class="oraculo-ai-source-similarity"><span class="oraculo-ai-meter"><span style="width:' + pct + '%"></span></span>' + pct + '% ' + escapeHtml(config.strings.relevance) + '</span>';
                 }
-                html += '</span></' + tag + '></li>';
+                html += '</span></' + tag + '>';
+                // Trechos do documento (PDF/OCR) que bateram com a pergunta: fora
+                // do link do cartão (link não pode conter link), cada um abre o
+                // arquivo na página.
+                var passages = Array.isArray(item.passages) ? item.passages : [];
+                if (passages.length) {
+                    html += '<div class="oraculo-ai-passages"><span class="oraculo-ai-passages-title">' + DOC_ICON + escapeHtml(config.strings.inDocument || '') + '</span>';
+                    passages.forEach(function (p) {
+                        var purl = sanitizeUrl(p.url);
+                        var where = escapeHtml(p.file || '') + (p.page > 0 ? ' · ' + escapeHtml(sprintfS(config.strings.pageLabel || 'p. %s', p.page)) : '');
+                        var body = '<span class="oraculo-ai-passage-where">' + where + '</span>' +
+                            '<span class="oraculo-ai-passage-text">' + escapeHtml(p.text || '').replace(/&lt;(\/?)mark&gt;/g, '<$1mark>') + '</span>';
+                        html += purl
+                            ? '<a class="oraculo-ai-passage" href="' + escapeHtml(purl) + '" target="_blank" rel="noopener noreferrer">' + body + '</a>'
+                            : '<div class="oraculo-ai-passage">' + body + '</div>';
+                    });
+                    html += '</div>';
+                }
+                html += '</li>';
             });
             html += '</ol></div>';
         }

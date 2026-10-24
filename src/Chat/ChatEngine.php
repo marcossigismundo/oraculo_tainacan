@@ -417,6 +417,17 @@ class ChatEngine {
 			$num     = $index + 1;
 			$snippet = \Oraculo_Tainacan\truncate_text( wp_strip_all_tags( (string) ( $item['snippet'] ?? '' ) ), 300 );
 
+			// Trechos do documento (PDF/OCR) com página: de onde vem a resposta
+			// quando o assunto está no conteúdo, não nos metadados.
+			foreach ( (array) ( $item['passages'] ?? array() ) as $passage ) {
+				$snippet .= "\n" . sprintf(
+					/* translators: 1: file and page label, 2: passage text */
+					__( 'Trecho de %1$s: %2$s', 'oraculo-tainacan' ),
+					$passage['label'],
+					$passage['context'] ?? wp_strip_all_tags( (string) $passage['text'] )
+				);
+			}
+
 			// Sem URL: o widget lista as fontes com link logo abaixo da resposta.
 			$parts[] = sprintf( '[%d] %s', $num, $item['title'] . ': ' . $snippet );
 		}
@@ -514,6 +525,8 @@ Se o acervo não tiver a informação, diga com franqueza e sugira como reformul
 					'title'           => $source['title'] ?? '',
 					'url'             => $source['url'] ?? '',
 					'collection_name' => $source['collection_name'] ?? '',
+					// Arquivo e página do trecho que sustentou a resposta.
+					'where'           => (string) ( $source['passages'][0]['label'] ?? '' ),
 				);
 			},
 			$sources

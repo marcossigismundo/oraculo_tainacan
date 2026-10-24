@@ -275,12 +275,13 @@ function highlight_terms( string $text, string $query, string $tag = 'mark' ): s
 		return $text;
 	}
 
-	foreach ( $terms as $term ) {
-		$pattern = '/(' . preg_quote( $term, '/' ) . ')/iu';
-		$text    = preg_replace( $pattern, "<{$tag}>$1</{$tag}>", $text );
-	}
+	// Uma passada só, termos mais longos primeiro: com um replace por termo,
+	// "mar" casava dentro do <mark> já inserido para "história".
+	usort( $terms, fn( $a, $b ) => mb_strlen( $b ) <=> mb_strlen( $a ) );
+	$pattern = '/(' . implode( '|', array_map( fn( $term ) => preg_quote( $term, '/' ), $terms ) ) . ')/iu';
+	$result  = preg_replace( $pattern, "<{$tag}>$1</{$tag}>", $text );
 
-	return $text;
+	return null === $result ? $text : $result;
 }
 
 /**

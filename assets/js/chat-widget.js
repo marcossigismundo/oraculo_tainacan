@@ -304,7 +304,8 @@
                 html += '<div class="oraculo-message-sources">';
                 html += '<div class="oraculo-message-sources-title">' + escapeHtml(OraculoFrontend.strings.sources) + '</div>';
                 options.sources.forEach(function(source) {
-                    html += '<a href="' + escapeHtml(source.url) + '" class="oraculo-message-source" target="_blank" rel="noopener noreferrer">📄 ' + escapeHtml(source.title) + '</a>';
+                    html += '<a href="' + escapeHtml(source.url) + '" class="oraculo-message-source" target="_blank" rel="noopener noreferrer">📄 ' + escapeHtml(source.title) +
+                        (source.where ? ' <small class="oraculo-message-source-where">· ' + escapeHtml(source.where) + '</small>' : '') + '</a>';
                 });
                 html += '</div>';
             }

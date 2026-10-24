@@ -215,6 +215,33 @@ class IndexingManager {
 	 * @return array
 	 */
 	public function index_item_batch( array $items, int $collection_id ): array {
+		$result = $this->index_item_vectors( $items, $collection_id );
+
+		if ( empty( $result['indexed_ids'] ) || ! DocumentIndexer::is_enabled() ) {
+			return $result;
+		}
+
+		// Conteúdo dos documentos (PDF, OCR): vai para a fila própria, que o
+		// worker processa com orçamento de tempo (PDF grande leva várias
+		// passadas). Marca também quando o vetor de metadados não mudou,
+		// porque o OCR pode chegar depois da catalogação; o hash por trecho
+		// faz a passada ser barata quando nada mudou.
+		foreach ( $result['indexed_ids'] as $item_id ) {
+			DocumentIndexer::mark_pending( (int) $item_id );
+		}
+		AutoIndexer::schedule_kick();
+
+		return $result;
+	}
+
+	/**
+	 * Vetor de metadados de cada item do lote (uma chamada de embeddings)
+	 *
+	 * @param array $items         Entidades \Tainacan\Entities\Item.
+	 * @param int   $collection_id
+	 * @return array {success, failed, errors, indexed_ids, skipped_ids, failed_ids}
+	 */
+	private function index_item_vectors( array $items, int $collection_id ): array {
 		$success     = 0;
 		$failed      = 0;
 		$errors      = array();

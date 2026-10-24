@@ -470,34 +470,42 @@
     list-style: none;
 }
 
+/* Borda e fundo no <li>: o link do item ocupa a parte de cima e os trechos
+   do documento (links próprios) ficam embaixo, fora dele. */
 .oraculo-ai-source-card {
     position: relative;
-    margin: 0;
-}
-
-/* O cartão inteiro é o link do item */
-.oraculo-ai-source-link {
     display: flex;
-    gap: 0.75em;
-    height: 100%;
-    padding: 0.75em;
-    color: inherit;
-    text-decoration: none;
+    flex-direction: column;
+    margin: 0;
     background: var(--tainacan-item-background-color, #ffffff);
     border: 1px solid var(--oraculo-ai-edge, #8fc9cd);
     border-radius: 8px;
+    overflow: hidden;
     transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
-.oraculo-ai-source-link:hover,
-.oraculo-ai-source-link:focus-visible {
+.oraculo-ai-source-card:hover,
+.oraculo-ai-source-card:focus-within {
     border-color: var(--tainacan-secondary, var(--oraculo-primary, #1f2f56));
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
     transform: translateY(-1px);
-    outline: none;
 }
 
-.oraculo-ai-source-card.is-cited .oraculo-ai-source-link {
+.oraculo-ai-source-link {
+    display: flex;
+    flex: 1 1 auto;
+    gap: 0.75em;
+    padding: 0.75em;
+    color: inherit;
+    text-decoration: none;
+}
+
+.oraculo-ai-source-link:focus-visible {
+    outline: 2px solid var(--oraculo-ai-ink, #1f2f56);
+    outline-offset: -2px;
+}
+
+.oraculo-ai-source-card.is-cited {
     /* Fundo continua branco: texto escuro sobre o verde perdia contraste.
        O destaque fica na borda. */
     border-color: var(--oraculo-ai-edge, #7fb8bd);
@@ -505,8 +513,69 @@
     box-shadow: 0 2px 8px rgba(31, 47, 86, 0.1);
 }
 
-.oraculo-ai-source-card.is-flash .oraculo-ai-source-link {
+.oraculo-ai-source-card.is-flash {
     animation: oraculo-ai-flash 1.4s ease;
+}
+
+/* Trechos do documento (PDF/OCR) */
+.oraculo-ai-passages {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375em;
+    padding: 0.5em 0.75em 0.75em;
+    border-top: 1px dashed var(--oraculo-ai-edge, #8fc9cd);
+}
+
+.oraculo-ai-passages-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375em;
+    font-size: 0.625em;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--oraculo-ai-ink, #1f2f56);
+}
+
+.oraculo-ai-passage {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125em;
+    padding: 0.375em 0.5em;
+    color: inherit;
+    text-decoration: none;
+    background: var(--oraculo-ai-tint-soft, #dcf0f2);
+    border-radius: 6px;
+}
+
+a.oraculo-ai-passage:hover,
+a.oraculo-ai-passage:focus-visible {
+    background: var(--oraculo-ai-tint, #c4e6e9);
+    outline: none;
+}
+
+.oraculo-ai-passage-where {
+    font-size: 0.6875em;
+    font-weight: 700;
+    color: var(--oraculo-ai-ink, #1f2f56);
+    overflow-wrap: anywhere;
+}
+
+.oraculo-ai-passage-text {
+    font-size: 0.71875em;
+    line-height: 1.45;
+    color: var(--tainacan-label-color, #373839);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.oraculo-ai-passage-text mark {
+    background: #ffffff;
+    color: inherit;
+    padding: 0 0.125em;
+    border-radius: 2px;
 }
 
 @keyframes oraculo-ai-flash {
@@ -628,14 +697,14 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .oraculo-ai-source-link {
+    .oraculo-ai-source-card {
         transition: none;
     }
-    .oraculo-ai-source-link:hover,
-    .oraculo-ai-source-link:focus-visible {
+    .oraculo-ai-source-card:hover,
+    .oraculo-ai-source-card:focus-within {
         transform: none;
     }
-    .oraculo-ai-source-card.is-flash .oraculo-ai-source-link {
+    .oraculo-ai-source-card.is-flash {
         animation: none;
     }
 }

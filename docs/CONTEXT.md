@@ -1,6 +1,6 @@
 # Oráculo Tainacan — Contexto do Projeto
 
-> Snapshot da versão 2.9.0 (indexação automática, CLIP como provedor, descoberta
+> Snapshot da versão 2.10.0 (indexação automática, CLIP como provedor, descoberta
 > dinâmica de modelos, chaves criptografadas, renovação do nonce REST no front,
 > busca vetorial em duas fases, resposta com citações [n] — `main`)
 
@@ -21,7 +21,7 @@ Arquitetura orientada a serviços com múltiplos provedores de IA intercambiáve
 
 | Campo | Valor |
 |---|---|
-| Versão declarada (`oraculo-tainacan.php` e `readme.txt`) | **2.9.0** |
+| Versão declarada (`oraculo-tainacan.php` e `readme.txt`) | **2.10.0** |
 | PHP mínimo | **8.0** (`declare(strict_types=1)` em todos os arquivos) |
 | WordPress mínimo | 6.0 |
 | Text domain | `oraculo-tainacan` |
@@ -297,6 +297,43 @@ diferentes nos dois lugares:
   embedding, "livros sobre o nordeste" e "o que tem para nordeste?" tinham 0 de 10
   itens em comum. Em assunto tão amplo o top-10 continua sendo uma amostra; o painel
   oferece "Refinar na busca tradicional" para ver todos.
+
+## Conteúdo dos documentos: PDF e OCR (2.10.0)
+
+Liga com o campo `document` em `index_fields` (tela de indexação). Peças:
+
+- `Indexing\DocumentIndexer::collect_documents()` — texto do documento principal e dos
+  anexos do item (fora a miniatura gerada pelo Tainacan), na ordem: `_tainacan_ocr_text`
+  do anexo (Tainacan OCR Search, páginas por ``) → extração própria de PDF com camada
+  de texto (`pdftotext -q` para arquivo temporário, Smalot como fallback; cache em
+  `_oraculo_pdf_text` + `_oraculo_pdf_sig` = tamanho|mtime; só sucesso entra no cache;
+  menos de 40 letras/página = escaneado, conta em `needs_ocr`) → `document_content_index`
+  do item (core/tainacan-ai, sem página).
+- Trechos de ~1.600 caracteres por página (sobreposição 200), embedados com o prefixo
+  "título — arquivo, p. N". Hash = modelo de embedding + anexo + página + texto: trocar
+  de modelo refaz tudo; só o que mudou é reembedado; trechos que sumiram são apagados.
+- `Vector\ChunkStore` — tabela `{prefix}oraculo_chunks` (criada por `maybe_create_table()`
+  em todo `init`, opção `oraculo_chunks_schema`), embedding em float32 empacotado +
+  `embedding_bits`, chave única `(item_id, content_hash)` com `INSERT IGNORE`.
+- Fila própria: `IndexingManager::index_item_batch()` só marca `_oraculo_docs_pending`
+  (timestamp de quando tentar); o worker (`AutoIndexer::process_queue`) roda
+  `DocumentIndexer::process_pending(120)` depois do lote de metadados, com no máximo 256
+  trechos novos por item por passada; falha da API = espera crescente até 1 dia, sem
+  desistir. Gatilhos: `tainacan_ocr_search_text_updated`, `add_attachment`,
+  `delete_attachment` (apaga os trechos do anexo no ato), mudança de
+  `document_content_index`. `VectorStore::delete()/delete_collection()` e "limpar todos"
+  apagam os trechos junto.
+- Busca: `SearchEngine::attach_passages()` busca trechos (mesmas duas fases), agrupa por
+  item (nota = maior entre vetor de metadados e melhor trecho + até 0,03 de bônus) e traz
+  itens achados só pelo documento (`VectorStore::get_by_item_ids`). `passage_view()`:
+  `label` traduzível ("arquivo, p. N"), `text` (excerto da tela), `context` (700 caracteres,
+  para o LLM; fora da resposta dos cartões), `url` com `#page=N` em PDF.
+- Custo: a varredura dos trechos é O(nº de trechos) por consulta (~150 bytes/trecho lidos);
+  acervo com muitos PDFs grandes aumenta o tempo da busca — ver ANALISE-LIMITE-VETORES.md.
+- CLI: `wp oraculo documents index|status --collection=<id>` (status não extrai PDFs).
+- Ambiente de teste: site `catalogacao` da VPS, coleção "OCR — documentos digitalizados"
+  (6 obras do Internet Archive, 16 páginas rasterizadas sem texto, em
+  `/home/catalogacao/ocr-lab-media`), com Tainacan OCR Search 1.1.0.
 
 ## Descoberta dinâmica de modelos por provedor
 

@@ -10,6 +10,8 @@ declare( strict_types=1 );
 namespace Oraculo_Tainacan\Search;
 
 use Oraculo_Tainacan\AI\AIProviderFactory;
+use Oraculo_Tainacan\Indexing\DocumentIndexer;
+use Oraculo_Tainacan\Vector\ChunkStore;
 use Oraculo_Tainacan\Vector\VectorStore;
 use Oraculo_Tainacan\Search\QueryParser;
 use WP_Error;
@@ -106,6 +108,8 @@ class SearchEngine {
 				return $similar_items;
 			}
 
+			$similar_items = $this->attach_passages( $query_embedding, $similar_items, $collection_ids, $max_results * 2, (float) $threshold );
+
 			if ( empty( $similar_items ) ) {
 				return $this->build_no_results_response( $query );
 			}
@@ -195,6 +199,8 @@ class SearchEngine {
 			if ( is_wp_error( $similar_items ) ) {
 				return $similar_items;
 			}
+
+			$similar_items = $this->attach_passages( $embedding_result['embedding'], $similar_items, $collection_ids, $limit, (float) ( $this->options['similarity_threshold'] ?? 0.3 ) );
 
 			return $this->format_items( $similar_items, $query, $limit );
 
@@ -293,6 +299,18 @@ class SearchEngine {
 			$text = preg_replace( '/\s*URL:\s*\S+/', '', (string) $item['content_text'] );
 			$text = \Oraculo_Tainacan\truncate_text( (string) $text, 500 );
 
+			// Trechos do documento que bateram com a pergunta, com arquivo e
+			// página: é deles que vem a resposta quando o assunto está no PDF.
+			foreach ( (array) ( $item['passages'] ?? array() ) as $passage ) {
+				$view  = $this->passage_view( $passage, '' );
+				$text .= "\n" . sprintf(
+					/* translators: 1: file and page label, 2: passage text */
+					__( 'Trecho de %1$s: %2$s', 'oraculo-tainacan' ),
+					$view['label'],
+					$view['context']
+				);
+			}
+
 			$context_parts[] = sprintf( '[%d] %s', $num, $text );
 		}
 
@@ -380,8 +398,97 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados.',
 - Escreva uma síntese curta (até 3 parágrafos ou uma lista de no máximo 6 tópicos) que responda à pergunta.
 - Cite os itens pelo número entre colchetes, por exemplo [1] ou [2][5], logo após a informação que vem deles.
 - Não escreva URLs nem fichas com título, autor e link: os itens já aparecem em cartões numerados abaixo da resposta.
+- Quando a informação vier de um trecho de documento, diga a página no texto (por exemplo: "na p. 12 do relatório [3]").
 - Pode usar **negrito** para destacar títulos e "- " para listas.',
 			'oraculo-tainacan'
+		);
+	}
+
+	/**
+	 * Junta aos itens os trechos de documento mais próximos da consulta
+	 *
+	 * A nota do item passa a ser a maior entre a do vetor de metadados e a
+	 * do melhor trecho (com bônus pequeno quando vários trechos batem), e
+	 * itens achados só pelo conteúdo do documento entram na lista.
+	 *
+	 * @param array $query_embedding Vetor da consulta.
+	 * @param array $items           Linhas do VectorStore::search().
+	 * @param array $collection_ids  Coleções.
+	 * @param int   $limit           Itens desejados.
+	 * @param float $threshold       Similaridade mínima.
+	 * @return array Itens reordenados, com 'passages' quando houver.
+	 */
+	private function attach_passages( array $query_embedding, array $items, array $collection_ids, int $limit, float $threshold ): array {
+		if ( ! DocumentIndexer::is_enabled() ) {
+			return $items;
+		}
+
+		$chunks = ( new ChunkStore() )->search( $query_embedding, $collection_ids, max( 30, $limit * 4 ), $threshold );
+		if ( empty( $chunks ) ) {
+			return $items;
+		}
+
+		$by_item = array();
+		foreach ( $chunks as $chunk ) {
+			$by_item[ $chunk['item_id'] ][] = $chunk;
+		}
+
+		$indexed = array();
+		foreach ( $items as $item ) {
+			$indexed[ (int) $item['item_id'] ] = $item;
+		}
+
+		$missing = array_diff( array_keys( $by_item ), array_keys( $indexed ) );
+		foreach ( $this->vector_store->get_by_item_ids( $missing ) as $row ) {
+			$row['similarity']                = 0.0;
+			$indexed[ (int) $row['item_id'] ] = $row;
+		}
+
+		foreach ( $by_item as $item_id => $list ) {
+			if ( ! isset( $indexed[ $item_id ] ) ) {
+				continue; // item sem vetor de metadados (despublicado/removido)
+			}
+			$score                              = (float) $list[0]['similarity'] + min( 0.03, 0.01 * ( count( $list ) - 1 ) );
+			$indexed[ $item_id ]['similarity']  = max( (float) $indexed[ $item_id ]['similarity'], $score );
+			$indexed[ $item_id ]['passages']    = array_slice( $list, 0, 2 );
+		}
+
+		$merged = array_values( $indexed );
+		usort( $merged, fn( $a, $b ) => $b['similarity'] <=> $a['similarity'] );
+
+		return array_slice( $merged, 0, max( $limit, count( $items ) ) );
+	}
+
+	/**
+	 * Trecho pronto para exibir: arquivo, página, excerto e link
+	 *
+	 * @param array  $passage Linha do ChunkStore::search().
+	 * @param string $query   Consulta (ancora o excerto; vazio = início).
+	 * @return array{file: string, page: int, label: string, text: string, context: string, url: string, similarity: float}
+	 */
+	private function passage_view( array $passage, string $query ): array {
+		$attachment_id = (int) ( $passage['attachment_id'] ?? 0 );
+		$page          = (int) ( $passage['page'] ?? 0 );
+		$file          = $attachment_id > 0 ? wp_basename( (string) get_attached_file( $attachment_id ) ) : __( 'documento', 'oraculo-tainacan' );
+		$url           = $attachment_id > 0 ? (string) wp_get_attachment_url( $attachment_id ) : '';
+
+		// Visualizador de PDF do navegador abre direto na página.
+		if ( '' !== $url && $page > 0 && 'application/pdf' === get_post_mime_type( $attachment_id ) ) {
+			$url .= '#page=' . $page;
+		}
+
+		$text = (string) $passage['chunk_text'];
+
+		return array(
+			'file'       => $file,
+			'page'       => $page,
+			'label'      => DocumentIndexer::location_label( $file, $page ),
+			// Excerto curto em volta do termo, para a tela.
+			'text'       => '' !== $query ? \Oraculo_Tainacan\generate_snippet( $text, \Oraculo_Tainacan\retrieval_query( $query ), 110 ) : \Oraculo_Tainacan\truncate_text( $text, 300 ),
+			// Trecho longo, para o modelo de IA responder (busca e chat).
+			'context'    => \Oraculo_Tainacan\truncate_text( $text, 700 ),
+			'url'        => $url,
+			'similarity' => round( (float) ( $passage['similarity'] ?? 0 ) * 100, 1 ),
 		);
 	}
 
@@ -422,6 +529,16 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados.',
 				'collection_name' => $item['collection_name'] ?? '',
 				'similarity'      => round( ( $item['similarity'] ?? 0 ) * 100, 1 ),
 				'metadata'        => $metadata,
+				'passages'        => array_map(
+					function ( $passage ) use ( $query, $for_cards ) {
+						$view = $this->passage_view( $passage, $query );
+						if ( $for_cards ) {
+							unset( $view['context'] ); // a tela não precisa do trecho longo
+						}
+						return $view;
+					},
+					(array) ( $item['passages'] ?? array() )
+				),
 			);
 			if ( $for_cards ) {
 				$entry['details']   = $this->summarize_metadata( $metadata, $title );
@@ -532,7 +649,7 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados.',
 			'index'       => \Oraculo_Tainacan\get_index_version(),
 			// Formato da resposta (citações [n] e cartões): aposenta respostas
 			// guardadas no formato anterior, com URLs em texto puro.
-			'format'      => 4,
+			'format'      => 5,
 		);
 
 		return 'oraculo_search_' . md5( wp_json_encode( $data ) );

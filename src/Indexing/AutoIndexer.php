@@ -9,6 +9,7 @@ declare( strict_types=1 );
 
 namespace Oraculo_Tainacan\Indexing;
 
+use Oraculo_Tainacan\Vector\ChunkStore;
 use Oraculo_Tainacan\Vector\VectorStore;
 
 /**
@@ -126,6 +127,62 @@ class AutoIndexer {
 
 		// Exclusão permanente: remove o vetor antes de o post sumir do banco.
 		add_action( 'before_delete_post', array( $this, 'on_before_delete_post' ) );
+
+		// Conteúdo dos documentos: OCR concluído (Tainacan OCR Search), anexo
+		// novo ou removido, índice de conteúdo do core regravado.
+		add_action( 'tainacan_ocr_search_text_updated', array( $this, 'on_document_text_changed' ), 10, 2 );
+		add_action( 'add_attachment', array( $this, 'on_attachment_changed' ) );
+		add_action( 'delete_attachment', array( $this, 'on_attachment_deleted' ) );
+		add_action( 'added_post_meta', array( $this, 'on_item_meta_changed' ), 10, 3 );
+		add_action( 'updated_post_meta', array( $this, 'on_item_meta_changed' ), 10, 3 );
+	}
+
+	/**
+	 * Texto de OCR gravado num anexo: reindexa o item dono
+	 *
+	 * @param int $attachment_id Anexo.
+	 * @param int $item_id       Item dono (0 se nenhum).
+	 */
+	public function on_document_text_changed( $attachment_id, $item_id = 0 ): void {
+		$item_id = (int) $item_id ? (int) $item_id : (int) get_post_field( 'post_parent', (int) $attachment_id );
+		if ( $item_id > 0 ) {
+			$this->sync_item( $item_id );
+		}
+	}
+
+	/**
+	 * Anexo novo num item
+	 *
+	 * @param int $attachment_id Anexo.
+	 */
+	public function on_attachment_changed( $attachment_id ): void {
+		$item_id = (int) get_post_field( 'post_parent', (int) $attachment_id );
+		if ( $item_id > 0 && self::get_collection_id_from_post_type( (string) get_post_type( $item_id ) ) > 0 ) {
+			$this->sync_item( $item_id );
+		}
+	}
+
+	/**
+	 * Anexo removido: some da busca no ato, e o item é reindexado
+	 *
+	 * @param int $attachment_id Anexo.
+	 */
+	public function on_attachment_deleted( $attachment_id ): void {
+		( new ChunkStore() )->delete_by( 'attachment_id', (int) $attachment_id );
+		$this->on_attachment_changed( $attachment_id );
+	}
+
+	/**
+	 * document_content_index regravado pelo core (ou pelo tainacan-ai)
+	 *
+	 * @param int    $meta_id  Meta.
+	 * @param int    $post_id  Post.
+	 * @param string $meta_key Chave.
+	 */
+	public function on_item_meta_changed( $meta_id, $post_id, $meta_key ): void {
+		if ( 'document_content_index' === $meta_key && self::get_collection_id_from_post_type( (string) get_post_type( (int) $post_id ) ) > 0 ) {
+			$this->sync_item( (int) $post_id );
+		}
 	}
 
 	/**
@@ -398,50 +455,20 @@ class AutoIndexer {
 
 			$item_ids = $this->get_due_items( $this->get_batch_size() );
 
-			if ( empty( $item_ids ) ) {
-				return $summary;
+			if ( ! empty( $item_ids ) ) {
+				$this->process_metadata_batch( $item_ids, $summary );
 			}
 
-			if ( null === $this->indexing_manager ) {
-				$this->indexing_manager = new IndexingManager();
+			// Conteúdo dos documentos (PDF, OCR): fila própria, com orçamento
+			// de tempo dentro do limite de 300 s do worker.
+			if ( DocumentIndexer::is_enabled() ) {
+				$docs                 = ( new DocumentIndexer() )->process_pending( 120 );
+				$summary['documents'] = $docs;
+				$summary['errors']    = array_slice( array_merge( $summary['errors'], $docs['errors'] ), 0, 10 );
+				if ( $docs['embedded'] > 0 ) {
+					\Oraculo_Tainacan\force_bump_index_version();
+				}
 			}
-
-			$result = $this->indexing_manager->index_items_by_id( $item_ids );
-
-			$done = array_map( 'intval', array_merge( $result['indexed_ids'], $result['skipped_ids'] ) );
-
-			foreach ( $done as $item_id ) {
-				$this->unqueue( $item_id );
-			}
-
-			// Tudo que não voltou resolvido continua pendente. Inclui os
-			// failed_ids e também IDs que a API simplesmente não devolveu —
-			// tratar pela ausência evita perder item em resposta truncada.
-			foreach ( array_diff( array_map( 'intval', $item_ids ), $done ) as $item_id ) {
-				$this->defer( $item_id );
-			}
-
-			$summary['processed'] = count( $item_ids );
-			$summary['indexed']   = count( $result['indexed_ids'] );
-			$summary['skipped']   = count( $result['skipped_ids'] );
-			$summary['failed']    = count( $item_ids ) - count( $done );
-			$summary['errors']    = array_slice( $result['errors'], 0, 10 );
-
-			// Passo CLIP (melhor esforço): sobe a imagem dos itens que ficaram
-			// em dia localmente. Falha remota não devolve o item à fila — quem
-			// re-tenta é a reconciliação diária, guiada pela meta ausente.
-			$clip = new ClipIndexer();
-			if ( $clip->is_enabled() && ! empty( $result['indexed_ids'] ) ) {
-				$clip_summary            = $clip->index_items( array_map( 'intval', $result['indexed_ids'] ) );
-				$summary['clip_sent']    = $clip_summary['sent'];
-				$summary['clip_skipped'] = $clip_summary['skipped'];
-				$summary['clip_failed']  = $clip_summary['failed'];
-				$summary['errors']       = array_slice( array_merge( $summary['errors'], $clip_summary['errors'] ), 0, 10 );
-			}
-
-			// Fecha o lote invalidando o cache de busca mesmo quando o bump por
-			// request já tinha sido gasto no primeiro upsert.
-			\Oraculo_Tainacan\force_bump_index_version();
 		} catch ( \Throwable $e ) {
 			$summary['errors'][] = $e->getMessage();
 
@@ -461,6 +488,64 @@ class AutoIndexer {
 		}
 
 		return $summary;
+	}
+
+	/**
+	 * Agenda uma passada próxima do worker (usado depois de marcar documentos)
+	 */
+	public static function schedule_kick(): void {
+		if ( ! wp_next_scheduled( self::CRON_HOOK, array( 'kick' ) ) ) {
+			wp_schedule_single_event( time() + 15, self::CRON_HOOK, array( 'kick' ) );
+		}
+	}
+
+	/**
+	 * Lote da fila de metadados (vetor do item)
+	 *
+	 * @param int[] $item_ids IDs vencidos.
+	 * @param array $summary  Resumo do worker (alterado por referência).
+	 */
+	private function process_metadata_batch( array $item_ids, array &$summary ): void {
+		if ( null === $this->indexing_manager ) {
+			$this->indexing_manager = new IndexingManager();
+		}
+
+		$result = $this->indexing_manager->index_items_by_id( $item_ids );
+
+		$done = array_map( 'intval', array_merge( $result['indexed_ids'], $result['skipped_ids'] ) );
+
+		foreach ( $done as $item_id ) {
+			$this->unqueue( $item_id );
+		}
+
+		// Tudo que não voltou resolvido continua pendente. Inclui os
+		// failed_ids e também IDs que a API simplesmente não devolveu —
+		// tratar pela ausência evita perder item em resposta truncada.
+		foreach ( array_diff( array_map( 'intval', $item_ids ), $done ) as $item_id ) {
+			$this->defer( $item_id );
+		}
+
+		$summary['processed'] = count( $item_ids );
+		$summary['indexed']   = count( $result['indexed_ids'] );
+		$summary['skipped']   = count( $result['skipped_ids'] );
+		$summary['failed']    = count( $item_ids ) - count( $done );
+		$summary['errors']    = array_slice( $result['errors'], 0, 10 );
+
+		// Passo CLIP (melhor esforço): sobe a imagem dos itens que ficaram
+		// em dia localmente. Falha remota não devolve o item à fila — quem
+		// re-tenta é a reconciliação diária, guiada pela meta ausente.
+		$clip = new ClipIndexer();
+		if ( $clip->is_enabled() && ! empty( $result['indexed_ids'] ) ) {
+			$clip_summary            = $clip->index_items( array_map( 'intval', $result['indexed_ids'] ) );
+			$summary['clip_sent']    = $clip_summary['sent'];
+			$summary['clip_skipped'] = $clip_summary['skipped'];
+			$summary['clip_failed']  = $clip_summary['failed'];
+			$summary['errors']       = array_slice( array_merge( $summary['errors'], $clip_summary['errors'] ), 0, 10 );
+		}
+
+		// Fecha o lote invalidando o cache de busca mesmo quando o bump por
+		// request já tinha sido gasto no primeiro upsert.
+		\Oraculo_Tainacan\force_bump_index_version();
 	}
 
 	/**
@@ -539,6 +624,15 @@ class AutoIndexer {
 	 * @return int
 	 */
 	public function count_pending(): int {
+		return $this->count_pending_metadata() + ( DocumentIndexer::is_enabled() ? DocumentIndexer::count_pending() : 0 );
+	}
+
+	/**
+	 * Itens vencidos na fila de metadados
+	 *
+	 * @return int
+	 */
+	private function count_pending_metadata(): int {
 		$post_types = self::get_item_post_types();
 
 		if ( empty( $post_types ) ) {

@@ -4,7 +4,7 @@ Tags: tainacan, ai, search, rag, openai
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 2.9.0
+Stable tag: 2.10.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -111,6 +111,13 @@ OpenAI is the most tested option. Ollama is recommended for fully local, private
 Only the text content of your archived items is sent to the AI provider you configure. When using Ollama, everything stays local.
 
 == Changelog ==
+
+= 2.10.0 =
+* Feature: search and the BIA chat find items by the content of their documents. Text comes from the Tainacan OCR Search plugin (`_tainacan_ocr_text`, per attachment, with page breaks), from the plugin's own extraction of PDFs that already have a text layer (pdftotext, cached per file), or from Tainacan's `document_content_index`. It is split into ~1,600-character passages per page, each with its own embedding, in the new table `oraculo_chunks` (float32 + binary signature, same two-phase search). Turn on with the "document" field in the indexing settings
+* Search merges passages into items (score = best of metadata vector and best passage); items found only by document content are included. Cards show "No documento" with file, page and excerpt, linking to the PDF page (`#page=N`); the AI context gets the passages and cites pages. BIA sources show file and page
+* Documents have their own queue (`_oraculo_docs_pending`) processed by the worker with a 120 s budget and at most 256 new passages per item per pass, retried with backoff and never dropped. Reindexed on OCR completion (`tainacan_ocr_search_text_updated`), attachment added or removed, and `document_content_index` changes; removing an item, collection or "all vectors" removes its passages
+* WP-CLI: `wp oraculo documents index|status --collection=<id>`
+* Fix: term highlighting used one replace per term, so a short term ("mar") matched inside the `<mark>` of a longer one ("história")
 
 = 2.9.0 =
 * UI: the AI answer panel can be collapsed and reopened without searching again. The close button became a "Recolher" / "Mostrar resposta" toggle; the collapsed bar shows the question and reopens on click, and returning to the AI tab brings back the last answer
