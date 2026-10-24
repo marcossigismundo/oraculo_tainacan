@@ -638,6 +638,10 @@ class DocumentIndexer {
 	 * @return bool
 	 */
 	private function is_ocr_candidate( int $attachment_id ): bool {
+		// Já passou pelo OCR e não tinha texto (página em branco): não é pendência.
+		if ( '' !== (string) get_post_meta( $attachment_id, '_tainacan_ocr_processed', true ) ) {
+			return false;
+		}
 		$mime = (string) get_post_mime_type( $attachment_id );
 		return 'application/pdf' === $mime || 0 === strpos( $mime, 'image/' );
 	}

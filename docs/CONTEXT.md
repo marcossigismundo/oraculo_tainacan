@@ -1,6 +1,6 @@
 # Oráculo Tainacan — Contexto do Projeto
 
-> Snapshot da versão 2.10.1 (indexação automática, CLIP como provedor, descoberta
+> Snapshot da versão 2.10.2 (indexação automática, CLIP como provedor, descoberta
 > dinâmica de modelos, chaves criptografadas, renovação do nonce REST no front,
 > busca vetorial em duas fases, resposta com citações [n] — `main`)
 
@@ -21,7 +21,7 @@ Arquitetura orientada a serviços com múltiplos provedores de IA intercambiáve
 
 | Campo | Valor |
 |---|---|
-| Versão declarada (`oraculo-tainacan.php` e `readme.txt`) | **2.10.1** |
+| Versão declarada (`oraculo-tainacan.php` e `readme.txt`) | **2.10.2** |
 | PHP mínimo | **8.0** (`declare(strict_types=1)` em todos os arquivos) |
 | WordPress mínimo | 6.0 |
 | Text domain | `oraculo-tainacan` |
