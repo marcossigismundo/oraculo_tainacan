@@ -227,9 +227,14 @@ class DocumentIndexer {
 	 * @return int
 	 */
 	public static function count_pending(): int {
+		$types = AutoIndexer::get_item_post_types();
+		if ( empty( $types ) ) {
+			return 0;
+		}
 		$query = new \WP_Query(
 			array(
-				'post_type'      => 'any',
+				// 'any' deixa de fora tipos com exclude_from_search, como os itens do Tainacan.
+				'post_type'      => $types,
 				'post_status'    => 'any',
 				'fields'         => 'ids',
 				'posts_per_page' => 1,
@@ -263,11 +268,16 @@ class DocumentIndexer {
 			'errors'    => array(),
 		);
 		$started = microtime( true );
+		$types   = AutoIndexer::get_item_post_types();
+		if ( empty( $types ) ) {
+			return $summary;
+		}
 
 		do {
 			$ids = get_posts(
 				array(
-					'post_type'      => 'any',
+					// 'any' deixa de fora tipos com exclude_from_search, como os itens do Tainacan.
+				'post_type'      => $types,
 					'post_status'    => 'any',
 					'fields'         => 'ids',
 					'posts_per_page' => 20,
@@ -350,10 +360,13 @@ class DocumentIndexer {
 
 		// Documento principal.
 		if ( $document_id > 0 ) {
-			$pages = $this->attachment_pages( $document_id );
+			$pending_before = $this->to_extract;
+			$pages          = $this->attachment_pages( $document_id );
 			if ( null === $pages ) {
 				$pages = $this->content_index_pages( $item_id );
-				if ( empty( $pages ) && $this->is_ocr_candidate( $document_id ) ) {
+				// Só conta como "precisa de OCR" o que foi de fato examinado
+				// (no modo relatório, PDF sem cache fica em "a extrair").
+				if ( empty( $pages ) && $this->is_ocr_candidate( $document_id ) && $this->to_extract === $pending_before ) {
 					++$needs_ocr;
 				}
 			}
@@ -391,10 +404,11 @@ class DocumentIndexer {
 			if ( $attachment_id === $document_id || $attachment_id === $thumbnail_id ) {
 				continue;
 			}
-			$pages = $this->attachment_pages( $attachment_id );
+			$pending_before = $this->to_extract;
+			$pages          = $this->attachment_pages( $attachment_id );
 			if ( ! empty( $pages ) ) {
 				$files[] = $this->file_entry( $attachment_id, 'attachment', $pages );
-			} elseif ( $this->is_ocr_candidate( $attachment_id ) ) {
+			} elseif ( $this->is_ocr_candidate( $attachment_id ) && $this->to_extract === $pending_before ) {
 				++$needs_ocr;
 			}
 		}
