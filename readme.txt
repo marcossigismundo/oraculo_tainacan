@@ -4,7 +4,7 @@ Tags: tainacan, ai, search, rag, openai
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 2.10.0
+Stable tag: 2.10.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -111,6 +111,9 @@ OpenAI is the most tested option. Ollama is recommended for fully local, private
 Only the text content of your archived items is sent to the AI provider you configure. When using Ollama, everything stays local.
 
 == Changelog ==
+
+= 2.10.1 =
+* Fix: the document queue queried post_type 'any', which skips Tainacan item types (exclude_from_search), so no document was ever processed; `documents status` counted unextracted PDFs as needing OCR
 
 = 2.10.0 =
 * Feature: search and the BIA chat find items by the content of their documents. Text comes from the Tainacan OCR Search plugin (`_tainacan_ocr_text`, per attachment, with page breaks), from the plugin's own extraction of PDFs that already have a text layer (pdftotext, cached per file), or from Tainacan's `document_content_index`. It is split into ~1,600-character passages per page, each with its own embedding, in the new table `oraculo_chunks` (float32 + binary signature, same two-phase search). Turn on with the "document" field in the indexing settings
