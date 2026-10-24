@@ -10,6 +10,8 @@ Arquitetura orientada a serviços com múltiplos provedores de IA intercambiáve
 > Para o detalhamento dos pontos de acoplamento com o Tainacan, o contrato das rotas REST
 > e os fluxos de indexação e busca, veja [INTEGRACAO-TAINACAN.md](INTEGRACAO-TAINACAN.md).
 >
+> **Para retomar o trabalho:** decisões, armadilhas e pendências estão em [MEMORIA.md](MEMORIA.md).
+>
 > Para o plano de busca no conteúdo de PDFs anexos e no OCR (tainacan-ocr-search,
 > tainacan-ai, `document_content_index`), veja [PLANO-BUSCA-PDF-OCR.md](PLANO-BUSCA-PDF-OCR.md).
 >
