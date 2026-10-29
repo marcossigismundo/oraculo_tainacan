@@ -31,6 +31,12 @@
   citam arquivo e página. Decisão: o Oráculo **não faz OCR**, só consome — o OCR fica no Tainacan
   OCR Search (local, livre, serve também à busca nativa).
 
+- **2.12.0 (29/10/2026), busca em duas etapas.** A IA é ~85% do tempo: `POST /search` com
+  `phase=items` devolve os cartões (~1,6 s no navegador) e um bilhete de uso único; `phase=answer`
+  com o bilhete escreve a síntese sobre a recuperação guardada (só item, similaridade e trechos) e o
+  JS troca só o bloco da resposta. O bilhete isenta a answer dos limites (a items já contou). Cache
+  do embedding da pergunta só na busca (2 h). Sem transação entre origem e tabela lateral: deadlock
+  na cópia desfazia também o vetor (achado do code-review high).
 - **2.11.0 (29/10/2026), busca vetorial dentro do MariaDB 11.7+.** Tabelas laterais estreitas
   `oraculo_vectors_native` e `oraculo_chunks_native` (id, item, coleção, anexo, `embedding_vec
   VECTOR(n)`), preenchidas por cron em faixas de id e espelhadas em toda gravação e remoção
@@ -66,12 +72,12 @@
 
 ## Pendências
 
-- **2.11.0 está só na branch `feature/native-vector-search`**, publicada no site do TainacanBiblio
-  (vetores de metadados medidos e testados: gravação, troca de dimensão, remoção, rebuild). Falta:
-  testar a tabela lateral dos **trechos** num site com documentos (o laboratório de OCR), decidir o
-  merge na `main` e a release. Robustez já coberta: lista de reenvio por tabela, estado por tabela
-  com merge no cron, gravação + lateral na mesma transação (`in_transaction()`), CREATE recusado
-  tentado de hora em hora.
+- **2.12.0 publicada (29/10/2026)**, release v2.12.0 com ZIP e o manual PDF (`docs/manual/`).
+  Falta testar a tabela lateral dos **trechos** num site com documentos (o laboratório de OCR, que
+  ainda está na 2.10.2) e, se houver interesse em publicar no diretório, instalar as regras do Plugin
+  Check no composer para o `phpcs.xml.dist` (TNC-R08). Ressalvas da revisão não corrigidas:
+  `AutoIndexer::enqueue_collection` faz ~3 consultas por item (enfileirar 42 mil itens de uma vez);
+  CSS da aba mira `.search-control-item--search` do tema; CLIP sem `_prime_post_caches`.
 
 - Teste de navegador com usuário logado na "Busca com IA" (só o visitante foi testado).
 - Fora do MariaDB 11.7+ a varredura continua em PHP (duas fases), com os limites da
