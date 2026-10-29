@@ -66,6 +66,13 @@
 
 ## Pendências
 
+- **2.11.0 está só na branch `feature/native-vector-search`**, publicada no site do TainacanBiblio
+  (vetores de metadados medidos e testados: gravação, troca de dimensão, remoção, rebuild). Falta:
+  testar a tabela lateral dos **trechos** num site com documentos (o laboratório de OCR), decidir o
+  merge na `main` e a release. Robustez já coberta: lista de reenvio por tabela, estado por tabela
+  com merge no cron, gravação + lateral na mesma transação (`in_transaction()`), CREATE recusado
+  tentado de hora em hora.
+
 - Teste de navegador com usuário logado na "Busca com IA" (só o visitante foi testado).
 - Fora do MariaDB 11.7+ a varredura continua em PHP (duas fases), com os limites da
   `ANALISE-LIMITE-VETORES.md`. No 11.7+ ela é no banco e linear (~3 µs por vetor): medir de novo
