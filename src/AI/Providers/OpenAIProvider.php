@@ -26,47 +26,54 @@ class OpenAIProvider extends AbstractAIProvider {
 	 * Modelos disponíveis com informações
 	 */
 	private const MODELS = array(
-		"gpt-5.2"      => array(
-			"name"         => "GPT-5.2",
-			"context"      => 400000,
-			"input_price"  => 0.00125,
-			"output_price" => 0.01,
-			"description"  => "Modelo topo de linha atual, melhor qualidade",
+		'gpt-4.1-mini' => array(
+			'name'         => 'GPT-4.1 Mini (recomendado)',
+			'context'      => 1047576,
+			'input_price'  => 0.0004,
+			'output_price' => 0.0016,
+			'description'  => 'Recomendado para busca e BIA: ~1,9 s por resposta no teste de carga, texto curto e correto',
 		),
-		"gpt-5.1"      => array(
-			"name"         => "GPT-5.1",
-			"context"      => 400000,
-			"input_price"  => 0.00125,
-			"output_price" => 0.01,
-			"description"  => "Geração anterior do topo de linha",
+		'gpt-5.2'      => array(
+			'name'         => 'GPT-5.2',
+			'context'      => 400000,
+			'input_price'  => 0.00125,
+			'output_price' => 0.01,
+			'description'  => 'Modelo topo de linha atual, melhor qualidade',
 		),
-		"gpt-5-mini"   => array(
-			"name"         => "GPT-5 Mini",
-			"context"      => 400000,
-			"input_price"  => 0.00025,
-			"output_price" => 0.002,
-			"description"  => "Ótimo custo-benefício, recomendado para RAG",
+		'gpt-5.1'      => array(
+			'name'         => 'GPT-5.1',
+			'context'      => 400000,
+			'input_price'  => 0.00125,
+			'output_price' => 0.01,
+			'description'  => 'Geração anterior do topo de linha',
 		),
-		"gpt-5-nano"   => array(
-			"name"         => "GPT-5 Nano",
-			"context"      => 400000,
-			"input_price"  => 0.00005,
-			"output_price" => 0.0004,
-			"description"  => "O mais rápido e econômico da família GPT-5",
+		'gpt-5-mini'   => array(
+			'name'         => 'GPT-5 Mini',
+			'context'      => 400000,
+			'input_price'  => 0.00025,
+			'output_price' => 0.002,
+			'description'  => 'Bom custo-benefício; ~4,4 s por resposta no teste',
 		),
-		"gpt-4o"       => array(
-			"name"         => "GPT-4o (legado)",
-			"context"      => 128000,
-			"input_price"  => 0.0025,
-			"output_price" => 0.01,
-			"description"  => "Geração anterior; mantido por compatibilidade",
+		'gpt-5-nano'   => array(
+			'name'         => 'GPT-5 Nano',
+			'context'      => 400000,
+			'input_price'  => 0.00005,
+			'output_price' => 0.0004,
+			'description'  => 'O mais econômico da família GPT-5; como raciocina antes de responder, levou ~6 s por resposta no teste',
 		),
-		"gpt-4o-mini"  => array(
-			"name"         => "GPT-4o Mini (legado)",
-			"context"      => 128000,
-			"input_price"  => 0.00015,
-			"output_price" => 0.0006,
-			"description"  => "Geração anterior econômica; mantido por compatibilidade",
+		'gpt-4o'       => array(
+			'name'         => 'GPT-4o (legado)',
+			'context'      => 128000,
+			'input_price'  => 0.0025,
+			'output_price' => 0.01,
+			'description'  => 'Geração anterior; mantido por compatibilidade',
+		),
+		'gpt-4o-mini'  => array(
+			'name'         => 'GPT-4o Mini (legado)',
+			'context'      => 128000,
+			'input_price'  => 0.00015,
+			'output_price' => 0.0006,
+			'description'  => 'Geração anterior econômica; mantido por compatibilidade',
 		),
 	);
 
@@ -397,7 +404,7 @@ class OpenAIProvider extends AbstractAIProvider {
 		}
 
 		$options = $this->prepare_options( $options );
-		$model   = $options['model'] ?? $this->get_config( 'model', 'gpt-5-mini' );
+		$model   = $options['model'] ?? $this->get_config( 'model', 'gpt-4.1-mini' );
 
 		$formatted_messages = $this->format_messages( $messages, $system_prompt );
 
@@ -464,7 +471,7 @@ class OpenAIProvider extends AbstractAIProvider {
 		}
 
 		$options = $this->prepare_options( $options );
-		$model   = $options['model'] ?? $this->get_config( 'model', 'gpt-5-mini' );
+		$model   = $options['model'] ?? $this->get_config( 'model', 'gpt-4.1-mini' );
 
 		$messages = $this->format_messages(
 			array(

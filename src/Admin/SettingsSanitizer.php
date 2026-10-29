@@ -81,7 +81,7 @@ class SettingsSanitizer {
 		}
 
 		// Modelos
-		$sanitized['openai_model']           = $text( 'openai_model', 'gpt-5-mini' );
+		$sanitized['openai_model']           = $text( 'openai_model', 'gpt-4.1-mini' );
 		$sanitized['openai_embedding_model'] = $text( 'openai_embedding_model', 'text-embedding-3-small' );
 		$sanitized['gemini_model']           = $text( 'gemini_model', 'gemini-2.5-flash' );
 		$sanitized['deepseek_model']         = $text( 'deepseek_model', 'deepseek-chat' );
@@ -109,6 +109,29 @@ class SettingsSanitizer {
 
 		$sanitized['batch_size'] = absint( $input['batch_size'] ?? $current['batch_size'] ?? 25 );
 		$sanitized['batch_size'] = max( 5, min( 100, $sanitized['batch_size'] ) );
+
+		// Limites de uso (tela Diagnóstico). Zero no global desliga o teto;
+		// por visitante, zero também desliga, como no filtro de sempre.
+		// Padrão 60 só para quem atualizou sem salvar: um save qualquer não pode
+		// quintuplicar o teto em silêncio. Instalação nova grava 300 na ativação.
+		$sanitized['rate_limit_global'] = min( 10000, absint( $input['rate_limit_global'] ?? $current['rate_limit_global'] ?? 60 ) );
+		$sanitized['rate_limit_search'] = min( 1000, absint( $input['rate_limit_search'] ?? $current['rate_limit_search'] ?? 10 ) );
+		$sanitized['rate_limit_chat']   = min( 1000, absint( $input['rate_limit_chat'] ?? $current['rate_limit_chat'] ?? 20 ) );
+
+		// Redes liberadas: um IP ou CIDR por linha; o que não for endereço sai.
+		$allow                             = preg_split( '/[\s,]+/', (string) ( $input['rate_limit_allowlist'] ?? $current['rate_limit_allowlist'] ?? '' ) );
+		$allow                             = array_filter(
+			(array) $allow,
+			static function ( $entry ): bool {
+				$parts = explode( '/', (string) $entry, 2 );
+				if ( false === filter_var( $parts[0], FILTER_VALIDATE_IP ) ) {
+					return false;
+				}
+				$max = false !== strpos( $parts[0], ':' ) ? 128 : 32;
+				return ! isset( $parts[1] ) || ( ctype_digit( $parts[1] ) && (int) $parts[1] <= $max );
+			}
+		);
+		$sanitized['rate_limit_allowlist'] = implode( "\n", array_slice( array_values( array_unique( $allow ) ), 0, 100 ) );
 
 		$sanitized['request_timeout'] = absint( $input['request_timeout'] ?? $current['request_timeout'] ?? 120 );
 		$sanitized['cache_duration']  = absint( $input['cache_duration'] ?? $current['cache_duration'] ?? 3600 );

@@ -66,7 +66,7 @@ class OraculoPage extends \Tainacan\Pages {
 		// Determinar qual sub-página exibir baseado no parâmetro tab
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- tab is a read-only navigation parameter with no side effects; value is whitelisted below.
 		$tab          = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : 'dashboard';
-		$allowed_tabs = array( 'dashboard', 'indexing', 'settings', 'analytics', 'debug' );
+		$allowed_tabs = array( 'dashboard', 'indexing', 'settings', 'diagnostics', 'analytics', 'debug' );
 		if ( ! in_array( $tab, $allowed_tabs, true ) ) {
 			$tab = 'dashboard';
 		}
@@ -83,6 +83,9 @@ class OraculoPage extends \Tainacan\Pages {
 				break;
 			case 'settings':
 				$this->render_settings_content();
+				break;
+			case 'diagnostics':
+				\Oraculo_Tainacan\oraculo_tainacan_render_template( 'admin/diagnostics.php' );
 				break;
 			case 'analytics':
 				$this->render_analytics_content();
@@ -133,7 +136,7 @@ class OraculoPage extends \Tainacan\Pages {
 	private function get_current_tab(): string {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- tab is a read-only navigation parameter with no side effects; value is whitelisted below.
 		$tab          = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : 'dashboard';
-		$allowed_tabs = array( 'dashboard', 'indexing', 'settings', 'analytics', 'debug' );
+		$allowed_tabs = array( 'dashboard', 'indexing', 'settings', 'diagnostics', 'analytics', 'debug' );
 
 		return in_array( $tab, $allowed_tabs, true ) ? $tab : 'dashboard';
 	}
@@ -184,11 +187,12 @@ class OraculoPage extends \Tainacan\Pages {
 			// JS por aba (extraídos dos antigos inline <script> dos templates)
 			$tab      = $this->get_current_tab();
 			$tab_deps = array(
-				'dashboard' => array( 'chart-js' ),
-				'analytics' => array( 'jquery', 'oraculo-admin-page', 'chart-js' ),
-				'settings'  => array( 'jquery', 'oraculo-admin-page' ),
-				'indexing'  => array( 'jquery', 'oraculo-admin-page' ),
-				'debug'     => array( 'jquery', 'oraculo-admin-page' ),
+				'dashboard'   => array( 'chart-js' ),
+				'analytics'   => array( 'jquery', 'oraculo-admin-page', 'chart-js' ),
+				'settings'    => array( 'jquery', 'oraculo-admin-page' ),
+				'indexing'    => array( 'jquery', 'oraculo-admin-page' ),
+				'diagnostics' => array( 'oraculo-admin-page' ),
+				'debug'       => array( 'jquery', 'oraculo-admin-page' ),
 			);
 
 			wp_enqueue_script(
@@ -281,19 +285,23 @@ class OraculoPage extends \Tainacan\Pages {
 		$version  = defined( 'ORACULO_TAINACAN_VERSION' ) ? ORACULO_TAINACAN_VERSION : '2.0.0';
 
 		$tabs = array(
-			'dashboard' => array(
+			'dashboard'   => array(
 				'label' => __( 'Dashboard', 'oraculo-tainacan' ),
 				'icon'  => 'dashicons-dashboard',
 			),
-			'indexing'  => array(
+			'indexing'    => array(
 				'label' => __( 'Indexação', 'oraculo-tainacan' ),
 				'icon'  => 'dashicons-database',
 			),
-			'settings'  => array(
+			'settings'    => array(
 				'label' => __( 'Configurações', 'oraculo-tainacan' ),
 				'icon'  => 'dashicons-admin-settings',
 			),
-			'analytics' => array(
+			'diagnostics' => array(
+				'label' => __( 'Diagnóstico', 'oraculo-tainacan' ),
+				'icon'  => 'dashicons-performance',
+			),
+			'analytics'   => array(
 				'label' => __( 'Analytics', 'oraculo-tainacan' ),
 				'icon'  => 'dashicons-chart-area',
 			),
@@ -366,6 +374,31 @@ class OraculoPage extends \Tainacan\Pages {
 	 */
 	private function get_js_strings(): array {
 		return array(
+			// Aba Diagnóstico (assets/js/admin/diagnostics.js).
+			'diagResult'             => __( 'Resultado do teste', 'oraculo-tainacan' ),
+			'diagBootstrap'          => __( 'Carga do WordPress nesta rota', 'oraculo-tainacan' ),
+			'diagPluginsLoaded'      => __( 'plugin(s) carregado(s)', 'oraculo-tainacan' ),
+			'diagFast'               => __( 'Modo rápido em ação', 'oraculo-tainacan' ),
+			'diagPool'               => __( 'Processos PHP próprios', 'oraculo-tainacan' ),
+			'diagYes'                => __( 'sim', 'oraculo-tainacan' ),
+			'diagNo'                 => __( 'não', 'oraculo-tainacan' ),
+			'diagSearchTest'         => __( 'Busca de teste', 'oraculo-tainacan' ),
+			'diagError'              => __( 'erro', 'oraculo-tainacan' ),
+			'diagEmbedding'          => __( 'Entender a pergunta (embedding, no provedor)', 'oraculo-tainacan' ),
+			'diagVectors'            => __( 'Comparar com o acervo (vetores)', 'oraculo-tainacan' ),
+			'diagItems'              => __( 'itens', 'oraculo-tainacan' ),
+			'diagLlm'                => __( 'Resposta curta da IA', 'oraculo-tainacan' ),
+			'diagLegend'             => __( 'Verde: dentro do que o teste de carga mostrou como bom. Amarelo: funciona, mas pesa quando muita gente usa ao mesmo tempo.', 'oraculo-tainacan' ),
+			'diagStatusOk'           => __( 'Em ordem', 'oraculo-tainacan' ),
+			'diagStatusWarn'         => __( 'Pode melhorar', 'oraculo-tainacan' ),
+			'diagPoolOn'             => __( 'ligado', 'oraculo-tainacan' ),
+			'diagPoolOnText'         => __( 'O teste passou pelo grupo de processos do Oráculo.', 'oraculo-tainacan' ),
+			'diagPoolOff'            => __( 'não encontrado', 'oraculo-tainacan' ),
+			'diagPoolOffText'        => __( 'O teste não passou por um grupo próprio (a receita do manual define a variável ORACULO_PHP_POOL nele).', 'oraculo-tainacan' ),
+			'diagFastNoEffect'       => __( 'ligado, sem efeito', 'oraculo-tainacan' ),
+			'diagFastNoEffectText'   => __( 'O arquivo está instalado, mas este pedido carregou todos os plugins. Algum cache de página ou proxy pode estar mudando o endereço da rota.', 'oraculo-tainacan' ),
+			'diagTesting'            => __( 'Testando… (alguns segundos)', 'oraculo-tainacan' ),
+			'diagFailed'             => __( 'O teste falhou:', 'oraculo-tainacan' ),
 			'confirmDelete'          => __( 'Tem certeza que deseja excluir?', 'oraculo-tainacan' ),
 			'confirmReindex'         => __( 'Tem certeza que deseja reindexar esta coleção? Isso pode levar alguns minutos.', 'oraculo-tainacan' ),
 			'indexing'               => __( 'Indexando...', 'oraculo-tainacan' ),
