@@ -1,6 +1,6 @@
 <?php
 /**
- * Busca vetorial nativa do MariaDB 11.7+ (coluna VECTOR)
+ * Busca vetorial nativa do MariaDB 11.7+ (tipo VECTOR)
  *
  * @package Oraculo_Tainacan
  */
@@ -10,57 +10,73 @@ declare( strict_types=1 );
 namespace Oraculo_Tainacan\Vector;
 
 /**
- * Coluna `embedding_vec VECTOR(n)` nas tabelas de vetores e de trechos
+ * Tabelas laterais `<tabela>_native (id, item_id, collection_id, attachment_id, embedding_vec VECTOR(n))`
  *
- * Com ela, o cosseno é calculado dentro do banco (em C) e o PHP só recebe os
+ * Com elas, o cosseno é calculado dentro do banco (em C) e o PHP só recebe os
  * ids mais próximos: nada de trazer os embeddings para a memória do PHP, que
  * era o limite medido em docs/ANALISE-LIMITE-VETORES.md. A busca é exata
- * (varredura no banco, sem índice): medido no MariaDB 11.8 com 38 mil vetores
- * de 1536 dimensões, ~110 ms no acervo todo e ~30 ms numa coleção de 8 mil.
+ * (varredura no banco, sem índice).
+ *
+ * Tabela lateral, não coluna na tabela de vetores: lá cada linha tem ~40 KB
+ * (texto, metadados, embedding em JSON) e a tabela passa do buffer do InnoDB;
+ * com a coluna dentro dela, a varredura do acervo todo levou 5–8 s lendo o
+ * disco. Estreita, medido no MariaDB 11.8 com 38 mil vetores de 1536
+ * dimensões: ~110 ms no acervo todo e ~30 ms numa coleção de 8 mil.
  *
  * Sem VECTOR INDEX de propósito: o HNSW do MariaDB filtra depois de buscar, e
  * com filtro por coleção (o caso comum aqui) devolveu 13–46% de recall e
  * consultas de até 30 s; também precisa de ~500 MB de cache para render.
  *
  * Servidor sem VECTOR (MySQL, MariaDB < 11.7): nada muda, a busca segue nas
- * duas fases em PHP. Linhas com outra dimensão (troca de modelo) ficam com
- * embedding_vec NULL; enquanto a consulta não tiver a dimensão da coluna, a
- * busca também usa o caminho antigo, e o cron reavalia a dimensão dominante.
+ * duas fases em PHP. Linhas com outra dimensão (troca de modelo) ficam fora
+ * da tabela lateral; enquanto a consulta não tiver a dimensão dela, a busca
+ * também usa o caminho antigo, e o cron reavalia a dimensão.
  */
 final class NativeVector {
 
-	/** Tabela de vetores de metadados. */
+	/** Vetores de metadados. */
 	public const VECTORS = 'vectors';
 
-	/** Tabela de trechos de documentos. */
+	/** Trechos de documentos. */
 	public const CHUNKS = 'chunks';
 
-	/** Cron que cria a coluna e a preenche em lotes. */
+	/** Cron que cria a tabela lateral e a preenche em lotes. */
 	public const CRON_HOOK = 'oraculo_native_vectors';
 
-	/** Estado por tabela: dim, cursor, ready, recheck. */
+	/** Estado por tabela: dim, cursor, ready, recheck, checked_at, off. */
 	public const STATE_OPTION = 'oraculo_native_vectors';
 
-	/** Lote do preenchimento (linhas por UPDATE). */
+	/** Lote do preenchimento (linhas por INSERT ... SELECT). */
 	private const BATCH = 1000;
 
+	/** Linhas recentes usadas para achar a dimensão do modelo atual. */
+	private const DIM_SAMPLE = 2000;
+
 	/**
-	 * Origem de cada tabela: sufixo, expressão que gera o VECTOR e expressão
-	 * da dimensão. Constantes: nada aqui vem de input.
+	 * Origem de cada tabela: tabela de origem, tabela lateral, expressão que
+	 * gera o VECTOR, expressão da dimensão e do anexo. Constantes: nada aqui
+	 * vem de input.
 	 */
 	private const SOURCES = array(
 		self::VECTORS => array(
-			'table' => 'oraculo_vectors',
-			'value' => 'VEC_FromText(embedding_data)',
-			'dims'  => 'JSON_LENGTH(embedding_data)',
+			'source'     => 'oraculo_vectors',
+			'native'     => 'oraculo_vectors_native',
+			'value'      => 'VEC_FromText(embedding_data)',
+			'dims'       => 'JSON_LENGTH(embedding_data)',
+			'attachment' => '0',
 		),
 		// O ChunkStore já guarda float32 little-endian, o formato do VECTOR.
 		self::CHUNKS  => array(
-			'table' => 'oraculo_chunks',
-			'value' => 'embedding',
-			'dims'  => 'LENGTH(embedding) / 4',
+			'source'     => 'oraculo_chunks',
+			'native'     => 'oraculo_chunks_native',
+			'value'      => 'embedding',
+			'dims'       => 'LENGTH(embedding) / 4',
+			'attachment' => 'attachment_id',
 		),
 	);
+
+	/** Colunas aceitas em forget(). */
+	private const FORGET_COLUMNS = array( 'id', 'item_id', 'collection_id', 'attachment_id' );
 
 	/**
 	 * O servidor de banco tem o tipo VECTOR?
@@ -116,7 +132,7 @@ final class NativeVector {
 	}
 
 	/**
-	 * Cron: cria/ajusta a coluna e preenche um lote de cada tabela
+	 * Cron: cria/ajusta a tabela lateral e preenche um lote de cada tabela
 	 */
 	public static function run_cron(): void {
 		if ( ! self::run( 20 ) ) {
@@ -125,7 +141,7 @@ final class NativeVector {
 	}
 
 	/**
-	 * Cria/ajusta a coluna e preenche até o prazo
+	 * Cria/ajusta as tabelas laterais e preenche até o prazo
 	 *
 	 * @param int $seconds Prazo (0 = sem limite, para o WP-CLI).
 	 * @return bool Todas as tabelas prontas.
@@ -155,7 +171,7 @@ final class NativeVector {
 	}
 
 	/**
-	 * Uma tabela: coluna na dimensão dominante e preenchimento por faixa de id
+	 * Uma tabela: lateral na dimensão do modelo atual e preenchimento por faixa de id
 	 *
 	 * @param string $kind     self::VECTORS | self::CHUNKS.
 	 * @param float  $deadline microtime limite (0 = sem limite).
@@ -164,60 +180,76 @@ final class NativeVector {
 	private static function step( string $kind, float $deadline ): bool {
 		global $wpdb;
 
-		$src   = self::SOURCES[ $kind ];
-		$table = $wpdb->prefix . $src['table'];
-		$state = self::state();
-		$cur   = $state[ $kind ] ?? array();
+		$src    = self::SOURCES[ $kind ];
+		$source = $wpdb->prefix . $src['source'];
+		$native = $wpdb->prefix . $src['native'];
+		$cur    = self::state()[ $kind ] ?? array();
 
 		if ( ! empty( $cur['off'] ) ) {
 			return true;
 		}
 
-		if ( $table !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema check in the cron path; no WP API.
+		if ( ! self::table_exists( $source ) ) {
 			// "Pronta, sem dimensão": o init não reagenda; a primeira gravação
 			// (sync) agenda de novo.
 			self::save( $kind, array( 'ready' => true ) );
 			return true;
 		}
 
-		$col_dim = self::column_dim( $table );
+		$dim = self::column_dim( $native );
 
-		if ( 0 === $col_dim || ! empty( $cur['recheck'] ) ) {
+		if ( 0 === $dim || ! empty( $cur['recheck'] ) ) {
 			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Plugin's own tables ($wpdb->prefix . class constant) and SQL expressions from the SOURCES constant; prepare() cannot bind DDL: VECTOR(n) takes the dimension as part of the column type, an int read from the table itself.
-			$dominant = (int) $wpdb->get_var( "SELECT {$src['dims']} AS d FROM {$table} GROUP BY d ORDER BY COUNT(*) DESC LIMIT 1" );
-			if ( $dominant <= 0 ) {
+			// Amostra das linhas mais recentes: é a dimensão do modelo em uso,
+			// e não lê o embedding da tabela inteira.
+			$wanted = (int) $wpdb->get_var(
+				$wpdb->prepare( "SELECT d FROM (SELECT {$src['dims']} AS d FROM {$source} ORDER BY id DESC LIMIT %d) AS r GROUP BY d ORDER BY COUNT(*) DESC LIMIT 1", self::DIM_SAMPLE )
+			);
+			if ( $wanted <= 0 ) {
 				// Tabela vazia: como acima.
 				self::save( $kind, array( 'ready' => true ) );
 				return true;
 			}
 
-			if ( $col_dim !== $dominant ) {
-				if ( $col_dim > 0 ) {
-					$wpdb->query( "ALTER TABLE {$table} DROP COLUMN embedding_vec" );
-				}
-				// No fim da tabela e anulável: ALGORITHM=INSTANT, sem reconstruir.
-				$wpdb->query( sprintf( 'ALTER TABLE %s ADD COLUMN embedding_vec VECTOR(%d) NULL DEFAULT NULL', $table, $dominant ) );
-				$col_dim = self::column_dim( $table );
-				if ( $col_dim !== $dominant ) {
-					return false; // ALTER recusado: tenta no próximo cron.
+			if ( $dim !== $wanted ) {
+				$wpdb->query( "DROP TABLE IF EXISTS {$native}" );
+				$wpdb->query(
+					sprintf(
+						'CREATE TABLE %s (
+							id BIGINT UNSIGNED NOT NULL,
+							item_id BIGINT UNSIGNED NOT NULL,
+							collection_id BIGINT UNSIGNED NOT NULL,
+							attachment_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+							embedding_vec VECTOR(%d) NOT NULL,
+							PRIMARY KEY (id),
+							KEY idx_collection (collection_id),
+							KEY idx_item (item_id),
+							KEY idx_attachment (attachment_id)
+						) %s',
+						$native,
+						$wanted,
+						$wpdb->get_charset_collate()
+					)
+				);
+				$dim = self::column_dim( $native );
+				if ( $dim !== $wanted ) {
+					return false; // CREATE recusado: tenta no próximo cron.
 				}
 				$cur = array( 'cursor' => 0 );
 			}
 			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
 
-			// A contagem lê o embedding de todas as linhas: no máximo uma vez
-			// por hora (ver search()).
 			$cur['checked_at'] = time();
 		}
 
-		$cur['dim']     = $col_dim;
+		$cur['dim']     = $dim;
 		$cur['recheck'] = false;
 		$cursor         = (int) ( $cur['cursor'] ?? 0 );
 
 		while ( empty( $cur['ready'] ) ) {
 			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table; values via placeholders; write path in cron.
 			$upto = (int) $wpdb->get_var(
-				$wpdb->prepare( "SELECT MAX(id) FROM (SELECT id FROM {$table} WHERE id > %d ORDER BY id LIMIT %d) AS r", $cursor, self::BATCH )
+				$wpdb->prepare( "SELECT MAX(id) FROM (SELECT id FROM {$source} WHERE id > %d ORDER BY id LIMIT %d) AS r", $cursor, self::BATCH )
 			);
 			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 
@@ -226,13 +258,13 @@ final class NativeVector {
 				break;
 			}
 
-			// Faixa de id, não "IS NULL": linha que o banco recusar (embedding
-			// ilegível) fica para trás em vez de travar o preenchimento.
-			if ( false === self::fill( $kind, $col_dim, 'id > %d AND id <= %d', array( $cursor, $upto ) ) ) {
+			// Faixa de id: linha que o banco recusar (embedding ilegível) fica
+			// para trás em vez de travar o preenchimento.
+			if ( false === self::fill( $kind, $dim, 'id > %d AND id <= %d', array( $cursor, $upto ) ) ) {
 				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table; values via placeholders; write path in cron.
-				$ids = $wpdb->get_col( $wpdb->prepare( "SELECT id FROM {$table} WHERE id > %d AND id <= %d", $cursor, $upto ) );
+				$ids = $wpdb->get_col( $wpdb->prepare( "SELECT id FROM {$source} WHERE id > %d AND id <= %d", $cursor, $upto ) );
 				foreach ( (array) $ids as $id ) {
-					self::fill( $kind, $col_dim, 'id = %d', array( (int) $id ) );
+					self::fill( $kind, $dim, 'id = %d', array( (int) $id ) );
 				}
 			}
 
@@ -250,31 +282,28 @@ final class NativeVector {
 	}
 
 	/**
-	 * Recalcula embedding_vec das linhas gravadas agora (upsert, insert)
+	 * Copia para a tabela lateral as linhas gravadas agora (upsert, insert)
 	 *
-	 * Sobrescreve sempre: um item reindexado não pode manter o vetor antigo.
+	 * Apaga antes: um item reindexado não pode manter o vetor antigo, nem um
+	 * vetor de outra dimensão ficar com o anterior.
 	 *
 	 * @param string $kind self::VECTORS | self::CHUNKS.
-	 * @param int[]  $ids  IDs da tabela.
+	 * @param int[]  $ids  IDs da tabela de origem.
 	 */
 	public static function sync( string $kind, array $ids ): void {
-		if ( ! self::supported() ) {
+		$cur = self::active( $kind );
+		if ( null === $cur ) {
 			return;
 		}
-
-		$state = self::state();
-		$dim   = (int) ( $state[ $kind ]['dim'] ?? 0 );
-		if ( ! empty( $state[ $kind ]['off'] ) ) {
-			return;
-		}
-		if ( $dim <= 0 ) {
-			self::schedule(); // Coluna ainda não existe (tabela estava vazia).
+		if ( empty( $cur['dim'] ) ) {
+			self::schedule(); // Tabela lateral ainda não existe (origem estava vazia).
 			return;
 		}
 
 		$ids = array_values( array_filter( array_map( 'intval', $ids ) ) );
 		foreach ( array_chunk( $ids, 500 ) as $chunk ) {
-			if ( false === self::fill( $kind, $dim, 'id IN (' . implode( ',', array_fill( 0, count( $chunk ), '%d' ) ) . ')', $chunk ) ) {
+			self::forget( $kind, array( 'id' => $chunk ) );
+			if ( false === self::fill( $kind, (int) $cur['dim'], 'id IN (' . implode( ',', array_fill( 0, count( $chunk ), '%d' ) ) . ')', $chunk ) ) {
 				// Falha passageira (lock, deadlock): o cron repassa a partir
 				// destas linhas, senão elas ficariam fora da busca para sempre.
 				$cur           = self::state()[ $kind ] ?? array();
@@ -284,6 +313,62 @@ final class NativeVector {
 				self::schedule();
 			}
 		}
+	}
+
+	/**
+	 * Apaga linhas da tabela lateral (espelha as remoções da origem)
+	 *
+	 * @param string                   $kind  self::VECTORS | self::CHUNKS.
+	 * @param array<string, int|int[]> $where Coluna => valor ou lista; vazio = tudo.
+	 */
+	public static function forget( string $kind, array $where = array() ): void {
+		global $wpdb;
+
+		$cur = self::active( $kind );
+		if ( null === $cur || empty( $cur['dim'] ) ) {
+			return;
+		}
+
+		$parts  = array();
+		$values = array();
+		foreach ( $where as $column => $value ) {
+			if ( ! in_array( $column, self::FORGET_COLUMNS, true ) ) {
+				return; // Coluna fora da lista: não apaga nada por engano.
+			}
+			$list = array_values( array_map( 'intval', (array) $value ) );
+			if ( empty( $list ) ) {
+				return;
+			}
+			$parts[] = $column . ' IN (' . implode( ',', array_fill( 0, count( $list ), '%d' ) ) . ')';
+			$values  = array_merge( $values, $list );
+		}
+
+		$native = $wpdb->prefix . self::SOURCES[ $kind ]['native'];
+		$sql    = "DELETE FROM {$native}" . ( $parts ? ' WHERE ' . implode( ' AND ', $parts ) : '' );
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table ($wpdb->prefix . class constant); columns from the FORGET_COLUMNS allowlist, values as %d placeholders built with array_fill; the unconditioned DELETE takes no input; write path.
+		$wpdb->query( $values ? $wpdb->prepare( $sql, $values ) : $sql );
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+	}
+
+	/**
+	 * Apaga da tabela lateral as linhas que não existem mais na origem
+	 *
+	 * Para remoções em massa sem lista de ids (limpeza por data).
+	 *
+	 * @param string $kind self::VECTORS | self::CHUNKS.
+	 */
+	public static function prune( string $kind ): void {
+		global $wpdb;
+
+		$cur = self::active( $kind );
+		if ( null === $cur || empty( $cur['dim'] ) ) {
+			return;
+		}
+
+		$src = self::SOURCES[ $kind ];
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own tables ($wpdb->prefix . class constant); no input; write path.
+		$wpdb->query( "DELETE n FROM {$wpdb->prefix}{$src['native']} n LEFT JOIN {$wpdb->prefix}{$src['source']} s ON s.id = n.id WHERE s.id IS NULL" );
 	}
 
 	/**
@@ -299,16 +384,12 @@ final class NativeVector {
 	public static function search( string $kind, array $query_embedding, array $collection_ids, int $limit, float $threshold ): ?array {
 		global $wpdb;
 
-		if ( ! self::supported() ) {
-			return null;
-		}
-
-		$state = self::state()[ $kind ] ?? array();
-		if ( empty( $state['ready'] ) || empty( $state['dim'] ) ) {
+		$state = self::active( $kind );
+		if ( null === $state || empty( $state['ready'] ) || empty( $state['dim'] ) ) {
 			return null;
 		}
 		if ( count( $query_embedding ) !== (int) $state['dim'] ) {
-			// Modelo trocado: a coluna pode estar na dimensão antiga.
+			// Modelo trocado: a tabela lateral pode estar na dimensão antiga.
 			self::request_recheck( $kind, $state );
 			return null;
 		}
@@ -321,26 +402,36 @@ final class NativeVector {
 		$collection_ids = array_values( array_filter( array_map( 'intval', $collection_ids ) ) );
 		$collection_sql = empty( $collection_ids )
 			? ''
-			: 'collection_id IN (' . implode( ',', array_fill( 0, count( $collection_ids ), '%d' ) ) . ') AND ';
-		$table          = $wpdb->prefix . self::SOURCES[ $kind ]['table'];
+			: 'WHERE collection_id IN (' . implode( ',', array_fill( 0, count( $collection_ids ), '%d' ) ) . ') ';
+		$native         = $wpdb->prefix . self::SOURCES[ $kind ]['native'];
 
 		// Erro aqui não vai para a tela: o caminho antigo responde.
 		$suppress = $wpdb->suppress_errors( true );
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table ($wpdb->prefix . class constant); IN-clause built with array_fill of %d placeholders matching $collection_ids count, merged with the query vector and limit into one replacements array; result depends on the query embedding, so there is no stable cache key.
-		$rows = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT id, 1 - VEC_DISTANCE_COSINE(embedding_vec, VEC_FromText(%s)) AS s FROM {$table} WHERE {$collection_sql}embedding_vec IS NOT NULL ORDER BY s DESC LIMIT %d",
-				array_merge( array( $query_text ), $collection_ids, array( $limit ) )
-			),
-			ARRAY_N
-		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 
-		$failed = '' !== $wpdb->last_error;
+		// O vetor da consulta é convertido uma vez, numa variável de sessão:
+		// VEC_FromText() dentro da expressão é reavaliado a cada linha
+		// (medido: +1,8 s em 8 mil linhas).
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Session variable for the next query; no WP API.
+		$ok = false !== $wpdb->query( $wpdb->prepare( 'SET @oraculo_q = VEC_FromText(%s)', $query_text ) );
+
+		$rows = array();
+		if ( $ok ) {
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table ($wpdb->prefix . class constant); IN-clause built with array_fill of %d placeholders matching $collection_ids count, merged with the limit into one replacements array; result depends on the query embedding, so there is no stable cache key.
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT id, 1 - VEC_DISTANCE_COSINE(embedding_vec, @oraculo_q) AS s FROM {$native} {$collection_sql}ORDER BY s DESC LIMIT %d",
+					array_merge( $collection_ids, array( $limit ) )
+				),
+				ARRAY_N
+			);
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+			$ok = '' === $wpdb->last_error;
+		}
+
 		$wpdb->suppress_errors( $suppress );
 
-		if ( $failed ) {
-			// Coluna sumiu ou mudou (tabela recriada): o cron reavalia.
+		if ( ! $ok ) {
+			// Tabela lateral sumiu ou mudou: o cron reavalia.
 			self::request_recheck( $kind, $state );
 			return null;
 		}
@@ -356,43 +447,25 @@ final class NativeVector {
 	}
 
 	/**
-	 * Pede ao cron que reavalie a coluna, no máximo uma vez por hora
-	 *
-	 * Sem o limite, cada busca durante uma troca de modelo faria o cron ler o
-	 * embedding de todas as linhas.
-	 *
-	 * @param string $kind  Tabela.
-	 * @param array  $state Estado atual da tabela.
-	 */
-	private static function request_recheck( string $kind, array $state ): void {
-		if ( ! empty( $state['recheck'] ) || time() - (int) ( $state['checked_at'] ?? 0 ) < HOUR_IN_SECONDS ) {
-			return;
-		}
-		$state['recheck'] = true;
-		self::save( $kind, $state );
-		self::schedule();
-	}
-
-	/**
-	 * Remove a coluna (WP-CLI), para levar o banco a MySQL ou MariaDB < 11.7
+	 * Remove as tabelas laterais (WP-CLI), para levar o banco a MySQL ou MariaDB < 11.7
 	 *
 	 * Desliga também a busca nativa até o próximo `sync`/`rebuild`.
 	 *
-	 * @return int Tabelas alteradas.
+	 * @return int Tabelas removidas.
 	 */
 	public static function drop(): int {
 		global $wpdb;
 
 		$dropped = 0;
 		foreach ( self::SOURCES as $kind => $src ) {
-			$table = $wpdb->prefix . $src['table'];
-			if ( self::column_dim( $table ) > 0 ) {
+			$native = $wpdb->prefix . $src['native'];
+			if ( self::table_exists( $native ) ) {
 				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Plugin's own table ($wpdb->prefix . class constant); DDL takes no placeholders; explicit admin action from WP-CLI.
-				if ( false !== $wpdb->query( "ALTER TABLE {$table} DROP COLUMN embedding_vec" ) ) {
+				if ( false !== $wpdb->query( "DROP TABLE {$native}" ) ) {
 					++$dropped;
 				}
 			}
-			// "off": nem o cron nem as gravações recriam a coluna até um
+			// "off": nem o cron nem as gravações recriam a tabela até um
 			// `sync`/`rebuild` explícito (reset()).
 			self::save(
 				$kind,
@@ -404,6 +477,15 @@ final class NativeVector {
 		}
 		wp_clear_scheduled_hook( self::CRON_HOOK );
 		return $dropped;
+	}
+
+	/**
+	 * Refaz do zero (WP-CLI): reavalia a dimensão e preenche de novo
+	 */
+	public static function reset(): void {
+		foreach ( array_keys( self::SOURCES ) as $kind ) {
+			self::save( $kind, array( 'recheck' => true ) );
+		}
 	}
 
 	/**
@@ -426,47 +508,88 @@ final class NativeVector {
 	}
 
 	/**
-	 * Refaz a coluna do zero (WP-CLI): reavalia a dimensão e preenche de novo
+	 * Estado da tabela quando a busca nativa está ligada
+	 *
+	 * @param string $kind Tabela.
+	 * @return array|null Null: servidor sem VECTOR ou desligada pelo WP-CLI.
 	 */
-	public static function reset(): void {
-		foreach ( array_keys( self::SOURCES ) as $kind ) {
-			self::save( $kind, array( 'recheck' => true ) );
+	private static function active( string $kind ): ?array {
+		if ( ! self::supported() ) {
+			return null;
 		}
+		$cur = self::state()[ $kind ] ?? array();
+		return empty( $cur['off'] ) ? $cur : null;
 	}
 
 	/**
-	 * UPDATE de embedding_vec num conjunto de linhas
+	 * Pede ao cron que reavalie a tabela lateral, no máximo uma vez por hora
+	 *
+	 * Sem o limite, cada busca durante uma troca de modelo agendaria o cron.
+	 *
+	 * @param string $kind  Tabela.
+	 * @param array  $state Estado atual da tabela.
+	 */
+	private static function request_recheck( string $kind, array $state ): void {
+		if ( ! empty( $state['recheck'] ) || time() - (int) ( $state['checked_at'] ?? 0 ) < HOUR_IN_SECONDS ) {
+			return;
+		}
+		$state['recheck'] = true;
+		self::save( $kind, $state );
+		self::schedule();
+	}
+
+	/**
+	 * Copia um conjunto de linhas da origem para a tabela lateral
 	 *
 	 * @param string $kind   Tabela.
-	 * @param int    $dim    Dimensão da coluna.
-	 * @param string $where  Condição com placeholders %d.
+	 * @param int    $dim    Dimensão da tabela lateral.
+	 * @param string $where  Condição sobre a origem, com placeholders %d.
 	 * @param int[]  $values Valores da condição.
 	 * @return int|false Linhas afetadas, ou false se o banco recusou.
 	 */
 	private static function fill( string $kind, int $dim, string $where, array $values ) {
 		global $wpdb;
 
-		$src   = self::SOURCES[ $kind ];
-		$table = $wpdb->prefix . $src['table'];
+		$src    = self::SOURCES[ $kind ];
+		$source = $wpdb->prefix . $src['source'];
+		$native = $wpdb->prefix . $src['native'];
 
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table and SQL expressions from the SOURCES constant; $where is built by this class with %d placeholders only; write path.
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own tables and SQL expressions from the SOURCES constant; $where is built by this class with %d placeholders only; write path.
 		return $wpdb->query(
 			$wpdb->prepare(
-				"UPDATE {$table} SET embedding_vec = IF({$src['dims']} = %d, {$src['value']}, NULL) WHERE {$where}",
-				array_merge( array( $dim ), $values )
+				"INSERT INTO {$native} (id, item_id, collection_id, attachment_id, embedding_vec)
+				SELECT id, item_id, collection_id, {$src['attachment']}, {$src['value']} FROM {$source} WHERE {$where} AND {$src['dims']} = %d
+				ON DUPLICATE KEY UPDATE item_id = VALUES(item_id), collection_id = VALUES(collection_id), attachment_id = VALUES(attachment_id), embedding_vec = VALUES(embedding_vec)",
+				array_merge( $values, array( $dim ) )
 			)
 		);
 		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 	}
 
 	/**
-	 * Dimensão da coluna embedding_vec (0 = não existe)
+	 * A tabela existe?
+	 *
+	 * @param string $table Tabela com prefixo.
+	 * @return bool
+	 */
+	private static function table_exists( string $table ): bool {
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema check in the cron path; no WP API.
+		return $table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
+	}
+
+	/**
+	 * Dimensão da coluna embedding_vec da tabela lateral (0 = não existe)
 	 *
 	 * @param string $table Tabela com prefixo.
 	 * @return int
 	 */
 	private static function column_dim( string $table ): int {
 		global $wpdb;
+
+		if ( ! self::table_exists( $table ) ) {
+			return 0;
+		}
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table ($wpdb->prefix . class constant); schema check in the cron path.
 		$column = $wpdb->get_row( $wpdb->prepare( "SHOW COLUMNS FROM {$table} LIKE %s", 'embedding_vec' ), ARRAY_A );

@@ -365,6 +365,7 @@ class Commands extends WP_CLI_Command {
 		} else {
 			global $wpdb;
 			$count = $wpdb->query( "TRUNCATE TABLE {$wpdb->prefix}oraculo_vectors" );
+			NativeVector::forget( NativeVector::VECTORS );
 			( new ChunkStore() )->truncate();
 			WP_CLI::success( 'Todos os vetores foram removidos.' );
 		}
@@ -459,7 +460,7 @@ class Commands extends WP_CLI_Command {
 	 * ## OPTIONS
 	 *
 	 * <action>
-	 * : status (situação), sync (cria e preenche agora, sem limite de tempo), rebuild (reavalia a dimensão e preenche de novo) ou drop (remove a coluna, para levar o banco a MySQL ou MariaDB < 11.7).
+	 * : status (situação), sync (cria e preenche agora, sem limite de tempo), rebuild (reavalia a dimensão e preenche de novo) ou drop (remove as tabelas laterais, para levar o banco a MySQL ou MariaDB < 11.7).
 	 * ---
 	 * options:
 	 *   - status
@@ -484,7 +485,7 @@ class Commands extends WP_CLI_Command {
 
 		$action = $args[0] ?? 'status';
 		if ( 'drop' === $action ) {
-			WP_CLI::log( sprintf( 'Coluna removida de %d tabela(s); busca nativa desligada até `wp oraculo native sync`.', NativeVector::drop() ) );
+			WP_CLI::log( sprintf( 'Tabelas laterais removidas: %d; busca nativa desligada até `wp oraculo native sync`.', NativeVector::drop() ) );
 		}
 
 		$off = in_array( true, array_column( NativeVector::status(), 'off' ), true );
@@ -496,7 +497,7 @@ class Commands extends WP_CLI_Command {
 			if ( NativeVector::run( 0 ) ) {
 				WP_CLI::log( sprintf( 'Concluído em %.1f s.', microtime( true ) - $start ) );
 			} else {
-				WP_CLI::warning( 'Outro processo está preenchendo a coluna (ou o ALTER foi recusado); o cron continua o trabalho. Confira com `wp oraculo native status`.' );
+				WP_CLI::warning( 'Outro processo está preenchendo as tabelas laterais (ou o CREATE foi recusado); o cron continua o trabalho. Confira com `wp oraculo native status`.' );
 			}
 		}
 

@@ -1068,6 +1068,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 			$table = $wpdb->prefix . 'oraculo_vectors';
             // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $table is plugin-owned (oraculo_vectors, built from $wpdb->prefix + literal); TRUNCATE TABLE cannot use $wpdb->prepare(); write operation, caching N/A.
 			$deleted = $wpdb->query( "TRUNCATE TABLE {$table}" );
+			Vector\NativeVector::forget( Vector\NativeVector::VECTORS );
 			( new Vector\ChunkStore() )->truncate();
 			wp_send_json_success(
 				array(

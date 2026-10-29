@@ -713,6 +713,13 @@ class VectorStore {
 			),
 			array( '%d', '%d' )
 		);
+		NativeVector::forget(
+			NativeVector::VECTORS,
+			array(
+				'item_id'       => $item_id,
+				'collection_id' => $collection_id,
+			)
+		);
 		// Trechos dos documentos saem junto: todo caminho de remoção do item
 		// (despublicar, excluir, reconciliação) passa por aqui.
 		( new ChunkStore() )->delete_by( 'item_id', $item_id );
@@ -736,6 +743,7 @@ class VectorStore {
 			array( 'collection_id' => $collection_id ),
 			array( '%d' )
 		);
+		NativeVector::forget( NativeVector::VECTORS, array( 'collection_id' => $collection_id ) );
 		( new ChunkStore() )->delete_by( 'collection_id', $collection_id );
 		\Oraculo_Tainacan\invalidate_index_caches();
 
@@ -870,6 +878,9 @@ class VectorStore {
 			)
 		);
         // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		if ( $result ) {
+			NativeVector::prune( NativeVector::VECTORS );
+		}
 		\Oraculo_Tainacan\invalidate_index_caches();
 		return $result;
 	}

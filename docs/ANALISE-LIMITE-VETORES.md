@@ -281,3 +281,8 @@ Conclusões:
    ~1,2 s com 400 mil (extrapolação).
 3. Não é preciso banco vetorial externo enquanto o volume ficar nessa faixa. A seção 5.5 continua
    sendo a rota para servidores sem MariaDB 11.7+ e para volumes bem maiores.
+4. **A coluna precisa ficar numa tabela estreita.** O benchmark usou uma tabela só com id, coleção e
+   vetor. Pôr a coluna na própria `oraculo_vectors` (1,28 GB, ~40 KB por linha por causa do texto,
+   dos metadados e do JSON do embedding) fez a varredura do acervo todo ir a 5–8 s, lendo do disco
+   páginas que não cabem no buffer de 512 MB. Por isso a 2.11.0 usa tabelas laterais
+   (`oraculo_vectors_native`, `oraculo_chunks_native`).

@@ -214,6 +214,7 @@ class ChunkStore {
 				)
 			);
 			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+			NativeVector::forget( NativeVector::CHUNKS, array( 'id' => $chunk ) );
 		}
 
 		if ( $deleted ) {
@@ -236,6 +237,7 @@ class ChunkStore {
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table; DELETE without conditions takes no input; write path.
 		$deleted = (int) $wpdb->query( "DELETE FROM {$this->table}" );
+		NativeVector::forget( NativeVector::CHUNKS );
 		\Oraculo_Tainacan\invalidate_index_caches();
 		return $deleted;
 	}
@@ -256,6 +258,7 @@ class ChunkStore {
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table; $column validated against the allowlist above; value via %d; write path.
 		$deleted = (int) $wpdb->query( $wpdb->prepare( "DELETE FROM {$this->table} WHERE {$column} = %d", $id ) );
+		NativeVector::forget( NativeVector::CHUNKS, array( $column => $id ) );
 
 		if ( $deleted ) {
 			\Oraculo_Tainacan\invalidate_index_caches();
