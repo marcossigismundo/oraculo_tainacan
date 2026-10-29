@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Oráculo Tainacan — como funciona</title>
+<style>
+  @page { size: A4; margin: 16mm 16mm 18mm 16mm; }
+  :root { --ink:#1d2b2a; --muted:#5b6b69; --line:#d6e2e0; --accent:#1f5f57; --accent2:#2f7d72; --soft:#eef5f4; --warn:#9a5b00; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Roboto, Arial, sans-serif; color: var(--ink); font-size: 10.3pt; line-height: 1.45; margin: 0; }
+  h1 { font-size: 24pt; margin: 0 0 4px; color: var(--accent); letter-spacing: -0.3px; }
+  h2 { font-size: 14.5pt; color: var(--accent); margin: 18px 0 6px; padding-bottom: 3px; border-bottom: 2px solid var(--line); break-after: avoid; }
+  h3 { font-size: 11.2pt; margin: 12px 0 4px; break-after: avoid; }
+  p { margin: 0 0 7px; }
+  ul, ol { margin: 0 0 8px 18px; padding: 0; }
+  li { margin: 0 0 3px; }
+  code { font-family: Consolas, "Cascadia Mono", monospace; font-size: 9pt; background: var(--soft); padding: 0 3px; border-radius: 3px; }
+  .lead { font-size: 11.5pt; color: var(--muted); margin-bottom: 12px; }
+  .meta { color: var(--muted); font-size: 9pt; margin-bottom: 14px; }
+  .page { break-after: page; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 8px 0 10px; }
+  .card { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: #fff; }
+  .card b { color: var(--accent); display: block; margin-bottom: 2px; }
+  .box { background: var(--soft); border-left: 4px solid var(--accent2); padding: 7px 10px; border-radius: 4px; margin: 8px 0; break-inside: avoid; }
+  .box.warn { border-left-color: var(--warn); background: #fbf4e8; }
+  table { border-collapse: collapse; width: 100%; margin: 6px 0 10px; font-size: 9.4pt; break-inside: avoid; }
+  th, td { border: 1px solid var(--line); padding: 4px 6px; text-align: left; vertical-align: top; }
+  th { background: var(--soft); color: var(--accent); font-weight: 600; }
+  td.num { text-align: right; white-space: nowrap; }
+  figure { margin: 8px 0 10px; break-inside: avoid; }
+  figure img { width: 100%; border: 1px solid var(--line); border-radius: 6px; display: block; }
+  figcaption { font-size: 8.6pt; color: var(--muted); margin-top: 3px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+  .two-narrow { display: grid; grid-template-columns: 1fr 230px; gap: 14px; align-items: start; }
+  svg text { font-family: "Segoe UI", Roboto, Arial, sans-serif; }
+  .toc { columns: 2; font-size: 9.6pt; margin: 6px 0 0 16px; }
+  .footer-note { font-size: 8.5pt; color: var(--muted); margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<!-- ============ 1 ============ -->
+<section class="page">
+  <h1>Oráculo Tainacan</h1>
+  <p class="lead">Busca em linguagem natural e assistente de conversa (BIA) para acervos Tainacan.</p>
+  <p class="meta">Versão 2.12.0 · outubro de 2026 · repositório <code>marcossigismundo/oraculo_tainacan</code></p>
+
+  <p>O Oráculo deixa o visitante perguntar ao acervo do jeito que perguntaria a uma pessoa, como “livros sobre a seca no sertão”. Ele devolve os itens mais próximos <b>pelo sentido</b>, e não só pelas palavras, e escreve uma síntese que cita esses itens. Tudo responde a partir do que está catalogado: o modelo de linguagem só lê os itens recuperados.</p>
+
+  <div class="grid3">
+    <div class="card"><b>Busca com IA</b>Uma aba ao lado da busca do Tainacan. Mostra os itens relacionados em cartões e uma resposta com citações numeradas [1], [2]…</div>
+    <div class="card"><b>BIA</b>Bibliotecária de IA em janela de conversa. Lembra o que foi perguntado antes e mostra as fontes de cada resposta.</div>
+    <div class="card"><b>Conteúdo dos documentos</b>Encontra itens pelo texto dos PDFs (camada de texto ou OCR) e aponta arquivo e página.</div>
+  </div>
+
+  <figure>
+    <img src="oraculo-tabs.png" alt="">
+    <figcaption>Na listagem de itens, a aba “Busca com IA” fica ao lado da busca tradicional do Tainacan, que continua funcionando igual.</figcaption>
+  </figure>
+
+  <h2>Sumário</h2>
+  <ol class="toc">
+    <li>Como funciona, em uma figura</li>
+    <li>O caminho de uma pergunta</li>
+    <li>A BIA</li>
+    <li>Busca dentro dos documentos</li>
+    <li>Indexação: como o acervo entra</li>
+    <li>Busca vetorial no banco (MariaDB 11.7+)</li>
+    <li>Configuração</li>
+    <li>Operação no dia a dia</li>
+    <li>Problemas comuns</li>
+    <li>Limites, custos e privacidade</li>
+  </ol>
+
+  <div class="box"><b>Em uma frase:</b> o plugin transforma cada item em um <i>vetor</i>, uma lista de números que representa o sentido do texto. Depois compara o vetor da pergunta com os do acervo para achar os mais parecidos, e só então pede ao modelo de linguagem um texto sobre esses itens.</div>
+</section>
+
+<!-- ============ 2 ============ -->
+<section class="page">
+  <h2>1. Como funciona, em uma figura</h2>
+  <p>São dois momentos independentes: a <b>indexação</b>, que prepara o acervo uma vez e depois acompanha as mudanças, e a <b>pergunta</b>, que acontece a cada busca.</p>
+
+  <svg viewBox="0 0 760 360" width="100%" role="img" aria-label="Arquitetura do Oráculo">
+    <defs>
+      <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2f7d72"/></marker>
+    </defs>
+    <!-- faixa indexação -->
+    <rect x="8" y="8" width="744" height="150" rx="10" fill="#f6faf9" stroke="#d6e2e0"/>
+    <text x="22" y="30" font-size="13" font-weight="700" fill="#1f5f57">INDEXAÇÃO (em segundo plano)</text>
+    <rect x="22" y="50" width="150" height="80" rx="8" fill="#fff" stroke="#9fc4be"/>
+    <text x="97" y="78" text-anchor="middle" font-size="12" font-weight="600">Itens do Tainacan</text>
+    <text x="97" y="96" text-anchor="middle" font-size="10" fill="#5b6b69">título, metadados,</text>
+    <text x="97" y="110" text-anchor="middle" font-size="10" fill="#5b6b69">PDFs e OCR</text>
+    <line x1="172" y1="90" x2="220" y2="90" stroke="#2f7d72" stroke-width="2" marker-end="url(#a)"/>
+    <rect x="222" y="50" width="150" height="80" rx="8" fill="#fff" stroke="#9fc4be"/>
+    <text x="297" y="78" text-anchor="middle" font-size="12" font-weight="600">Texto do item</text>
+    <text x="297" y="96" text-anchor="middle" font-size="10" fill="#5b6b69">+ trechos de cada</text>
+    <text x="297" y="110" text-anchor="middle" font-size="10" fill="#5b6b69">página do documento</text>
+    <line x1="372" y1="90" x2="420" y2="90" stroke="#2f7d72" stroke-width="2" marker-end="url(#a)"/>
+    <rect x="422" y="50" width="140" height="80" rx="8" fill="#e8f2f0" stroke="#2f7d72"/>
+    <text x="492" y="78" text-anchor="middle" font-size="12" font-weight="600">Modelo de</text>
+    <text x="492" y="94" text-anchor="middle" font-size="12" font-weight="600">embedding</text>
+    <text x="492" y="112" text-anchor="middle" font-size="10" fill="#5b6b69">OpenAI, Gemini, Ollama…</text>
+    <line x1="562" y1="90" x2="606" y2="90" stroke="#2f7d72" stroke-width="2" marker-end="url(#a)"/>
+    <!-- banco -->
+    <rect x="608" y="44" width="134" height="290" rx="10" fill="#fff" stroke="#1f5f57" stroke-width="1.5"/>
+    <text x="675" y="66" text-anchor="middle" font-size="12" font-weight="700" fill="#1f5f57">Banco do</text>
+    <text x="675" y="81" text-anchor="middle" font-size="12" font-weight="700" fill="#1f5f57">WordPress</text>
+    <text x="675" y="104" text-anchor="middle" font-size="10">vetores dos itens</text>
+    <text x="675" y="119" text-anchor="middle" font-size="10">trechos dos PDFs</text>
+    <text x="675" y="140" text-anchor="middle" font-size="10" fill="#5b6b69">tabelas laterais</text>
+    <text x="675" y="154" text-anchor="middle" font-size="10" fill="#5b6b69">VECTOR (MariaDB 11.7+)</text>
+    <!-- faixa pergunta -->
+    <rect x="8" y="176" width="590" height="176" rx="10" fill="#fbfdfc" stroke="#d6e2e0"/>
+    <text x="22" y="198" font-size="13" font-weight="700" fill="#1f5f57">PERGUNTA (a cada busca)</text>
+    <rect x="22" y="214" width="120" height="56" rx="8" fill="#fff" stroke="#9fc4be"/>
+    <text x="82" y="238" text-anchor="middle" font-size="12" font-weight="600">Visitante</text>
+    <text x="82" y="255" text-anchor="middle" font-size="10" fill="#5b6b69">“livros sobre…”</text>
+    <line x1="142" y1="242" x2="182" y2="242" stroke="#2f7d72" stroke-width="2" marker-end="url(#a)"/>
+    <rect x="184" y="214" width="120" height="56" rx="8" fill="#e8f2f0" stroke="#2f7d72"/>
+    <text x="244" y="238" text-anchor="middle" font-size="12" font-weight="600">Embedding</text>
+    <text x="244" y="255" text-anchor="middle" font-size="10" fill="#5b6b69">da pergunta</text>
+    <line x1="304" y1="242" x2="344" y2="242" stroke="#2f7d72" stroke-width="2" marker-end="url(#a)"/>
+    <rect x="346" y="214" width="130" height="56" rx="8" fill="#fff" stroke="#9fc4be"/>
+    <text x="411" y="238" text-anchor="middle" font-size="12" font-weight="600">Itens mais</text>
+    <text x="411" y="255" text-anchor="middle" font-size="12" font-weight="600">parecidos</text>
+    <path d="M476 236 C 540 236, 560 214, 606 214" fill="none" stroke="#2f7d72" stroke-width="2" stroke-dasharray="4 3" marker-end="url(#a)"/>
+    <text x="508" y="226" font-size="9.5" fill="#5b6b69">compara</text>
+    <line x1="411" y1="270" x2="411" y2="290" stroke="#2f7d72" stroke-width="2" marker-end="url(#a)"/>
+    <rect x="184" y="292" width="292" height="50" rx="8" fill="#e8f2f0" stroke="#2f7d72"/>
+    <text x="330" y="313" text-anchor="middle" font-size="12" font-weight="600">Modelo de linguagem escreve a síntese</text>
+    <text x="330" y="330" text-anchor="middle" font-size="10" fill="#5b6b69">lê só os itens recuperados e cita [1], [2]…</text>
+    <line x1="184" y1="317" x2="100" y2="317" stroke="#2f7d72" stroke-width="2" marker-end="url(#a)"/>
+    <line x1="82" y1="317" x2="82" y2="272" stroke="#2f7d72" stroke-width="2" marker-end="url(#a)"/>
+  </svg>
+
+  <table>
+    <tr><th style="width:24%">Peça</th><th>O que faz</th><th style="width:30%">Onde se configura</th></tr>
+    <tr><td><b>Modelo de embedding</b></td><td>Transforma texto em vetor. O mesmo modelo serve o acervo e a pergunta: trocar de modelo exige reindexar.</td><td>Configurações → Provedores</td></tr>
+    <tr><td><b>Banco vetorial</b></td><td>O próprio banco do WordPress. No MariaDB 11.7+, a comparação acontece dentro do banco (seção 6).</td><td>Automático</td></tr>
+    <tr><td><b>Modelo de linguagem</b></td><td>Escreve a resposta da busca e as falas da BIA a partir dos itens encontrados.</td><td>Configurações → Provedores</td></tr>
+    <tr><td><b>Fila de indexação</b></td><td>Acompanha itens criados, editados e removidos e atualiza os vetores sozinha.</td><td>Indexação</td></tr>
+  </table>
+
+  <p><b>Provedores aceitos:</b> OpenAI, Google Gemini, Claude (Anthropic), DeepSeek, Groq e Ollama, que roda no próprio servidor, sem enviar dados para fora. Há ainda o CLIP, da API de IA do IBRAM, para busca visual por imagem.</p>
+</section>
+
+<!-- ============ 3 ============ -->
+<section class="page">
+  <h2>2. O caminho de uma pergunta</h2>
+  <p>Desde a versão 2.12 a busca acontece <b>em duas etapas</b>. O modelo de linguagem responde por cerca de 85% do tempo total, então os cartões dos itens aparecem antes, e a síntese entra no mesmo painel quando fica pronta.</p>
+
+  <svg viewBox="0 0 760 210" width="100%" role="img" aria-label="Linha do tempo da busca em duas etapas">
+    <text x="10" y="20" font-size="11" fill="#5b6b69">tempo (segundos) — medido no site de testes do TainacanBiblio, 38 mil itens</text>
+    <line x1="60" y1="190" x2="740" y2="190" stroke="#9fb3b0"/>
+    <g font-size="10" fill="#5b6b69">
+      <text x="60" y="204">0</text><text x="188" y="204">1</text><text x="316" y="204">2</text><text x="444" y="204">3</text><text x="572" y="204">4</text><text x="700" y="204">5</text>
+    </g>
+    <text x="10" y="58" font-size="11" font-weight="700" fill="#1f5f57">Antes</text>
+    <rect x="60" y="42" width="680" height="24" rx="4" fill="#d8e3e1"/>
+    <text x="400" y="58" text-anchor="middle" font-size="10.5">tela vazia até tudo ficar pronto (~5,3 s)</text>
+    <text x="10" y="112" font-size="11" font-weight="700" fill="#1f5f57">Agora</text>
+    <rect x="60" y="96" width="64" height="24" rx="4" fill="#9fc4be"/>
+    <text x="92" y="88" text-anchor="middle" font-size="9.5">embedding</text>
+    <rect x="124" y="96" width="18" height="24" rx="2" fill="#5fa79c"/>
+    <text x="133" y="140" text-anchor="middle" font-size="9.5">vetores 0,13 s</text>
+    <rect x="142" y="96" width="70" height="24" rx="4" fill="#c7dcd8"/>
+    <text x="177" y="88" text-anchor="middle" font-size="9.5">página/rede</text>
+    <line x1="212" y1="80" x2="212" y2="186" stroke="#1f5f57" stroke-dasharray="3 3"/>
+    <text x="216" y="162" font-size="10.5" font-weight="700" fill="#1f5f57">cartões na tela (~1,6 s)</text>
+    <rect x="212" y="96" width="528" height="24" rx="4" fill="#e8f2f0" stroke="#2f7d72"/>
+    <text x="476" y="112" text-anchor="middle" font-size="10.5">modelo de linguagem escreve a síntese (~4 s)</text>
+    <line x1="740" y1="80" x2="740" y2="186" stroke="#1f5f57" stroke-dasharray="3 3"/>
+    <text x="736" y="178" text-anchor="end" font-size="10.5" font-weight="700" fill="#1f5f57">síntese (~5,5 s)</text>
+  </svg>
+
+  <div class="two">
+    <figure><img src="oraculo-cards.png" alt=""><figcaption>Etapa 1: cartões já na tela; a síntese aparece como “Elaborando a resposta…”.</figcaption></figure>
+    <figure><img src="oraculo-final.png" alt=""><figcaption>Etapa 2: a síntese entra no lugar, com as citações ligadas aos cartões.</figcaption></figure>
+  </div>
+
+  <h3>Passo a passo</h3>
+  <ol>
+    <li><b>Pergunta.</b> O plugin reduz a frase ao assunto (“o que tem sobre o nordeste?” → “nordeste”) e calcula o embedding. Se a mesma pergunta foi feita nas últimas 2 horas, reaproveita o embedding.</li>
+    <li><b>Recuperação.</b> Compara o vetor da pergunta com os do acervo, no escopo da tela (a coleção aberta ou o acervo todo), e junta os trechos de PDF que batem. Devolve os cartões e um <i>bilhete</i> de uso único.</li>
+    <li><b>Síntese.</b> Com o bilhete, o modelo de linguagem recebe os itens já recuperados, sem refazer a busca, e escreve uma resposta curta que cita os cartões.</li>
+    <li><b>Cache.</b> A resposta completa fica guardada por 1 hora. A mesma pergunta volta em uma chamada só, em menos de 1 segundo.</li>
+  </ol>
+  <div class="box">Clicar numa citação [n] leva ao cartão correspondente. “Refinar na busca tradicional” leva a pergunta para a busca nativa do Tainacan, com facetas e filtros.</div>
+</section>
+
+<!-- ============ 4 ============ -->
+<section class="page">
+  <h2>3. A BIA</h2>
+  <div class="two-narrow">
+    <div>
+      <p>A BIA é a bibliotecária de IA. Aparece como um botão no canto da página, ou dentro de uma página pelo shortcode <code>[oraculo_chat]</code>. A diferença para a busca é a <b>conversa</b>:</p>
+      <ul>
+        <li><b>Memória:</b> lembra as perguntas anteriores. Uma pergunta como “e quem escreveu?” herda o assunto da conversa.</li>
+        <li><b>Mesmo escopo e mesma recuperação da busca:</b> a BIA vê os mesmos itens que a aba “Busca com IA” mostraria para a mesma pergunta.</li>
+        <li><b>Fontes:</b> toda resposta lista os itens usados, com link. Quando o item vem de um PDF, mostra o arquivo e a página.</li>
+        <li><b>Avaliação:</b> 👍/👎 em cada resposta alimenta o painel de Analytics.</li>
+      </ul>
+      <h3>Shortcodes</h3>
+      <table>
+        <tr><th>Shortcode</th><th>Uso</th></tr>
+        <tr><td><code>[oraculo_search]</code></td><td>Caixa de busca com IA em qualquer página</td></tr>
+        <tr><td><code>[oraculo_chat height="600px" collections="12,15"]</code></td><td>BIA embutida, com altura e coleções definidas</td></tr>
+      </table>
+      <div class="box">A BIA liga e desliga em Configurações → Geral; a posição da janela fica em Aparência. A aba “Busca com IA” só carrega nas listagens de itens do Tainacan.</div>
+    </div>
+    <figure><img src="oraculo-bia.png" alt=""><figcaption>A BIA respondendo, com as fontes do acervo.</figcaption></figure>
+  </div>
+
+  <h2>4. Busca dentro dos documentos</h2>
+  <p>Quando o campo <b>document</b> está marcado em Configurações → Avançado → Campos para indexar, o plugin lê o texto dos anexos de cada item e o divide em trechos de cerca de 1.600 caracteres, um conjunto por página, cada um com o seu vetor. O texto vem de três fontes, nesta ordem:</p>
+  <ol>
+    <li>o OCR do plugin <b>Tainacan OCR Search</b>, para documentos digitalizados;</li>
+    <li>a camada de texto dos PDFs, extraída com <code>pdftotext</code>;</li>
+    <li>o índice de conteúdo que o próprio Tainacan guarda.</li>
+  </ol>
+  <p>Na busca, o item ganha pontos pelo melhor trecho. O cartão mostra “No documento”, com o arquivo, a página e o trecho, e o link abre o PDF já naquela página. O Oráculo <b>não faz OCR</b>: ele só consome o OCR do Tainacan OCR Search.</p>
+</section>
+
+<!-- ============ 5 ============ -->
+<section class="page">
+  <h2>5. Indexação: como o acervo entra</h2>
+  <svg viewBox="0 0 760 120" width="100%" role="img" aria-label="Fila de indexação">
+    <defs><marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#2f7d72"/></marker></defs>
+    <g font-size="11">
+      <rect x="8" y="30" width="150" height="58" rx="8" fill="#fff" stroke="#9fc4be"/><text x="83" y="55" text-anchor="middle" font-weight="600">Item salvo,</text><text x="83" y="71" text-anchor="middle" font-weight="600">publicado ou removido</text>
+      <line x1="158" y1="59" x2="200" y2="59" stroke="#2f7d72" stroke-width="2" marker-end="url(#b)"/>
+      <rect x="202" y="30" width="150" height="58" rx="8" fill="#e8f2f0" stroke="#2f7d72"/><text x="277" y="55" text-anchor="middle" font-weight="600">Fila</text><text x="277" y="71" text-anchor="middle" fill="#5b6b69" font-size="10">nada de IA no salvar</text>
+      <line x1="352" y1="59" x2="394" y2="59" stroke="#2f7d72" stroke-width="2" marker-end="url(#b)"/>
+      <rect x="396" y="30" width="170" height="58" rx="8" fill="#fff" stroke="#9fc4be"/><text x="481" y="55" text-anchor="middle" font-weight="600">Trabalhador (cron)</text><text x="481" y="71" text-anchor="middle" fill="#5b6b69" font-size="10">a cada 5 min, em lotes</text>
+      <line x1="566" y1="59" x2="608" y2="59" stroke="#2f7d72" stroke-width="2" marker-end="url(#b)"/>
+      <rect x="610" y="30" width="142" height="58" rx="8" fill="#fff" stroke="#1f5f57"/><text x="681" y="55" text-anchor="middle" font-weight="600">Vetores</text><text x="681" y="71" text-anchor="middle" fill="#5b6b69" font-size="10">atualizados</text>
+    </g>
+    <text x="8" y="112" font-size="10" fill="#5b6b69">Uma reconciliação diária confere se algum item ficou para trás. Item que não mudou (mesmo conteúdo) não é reprocessado.</text>
+  </svg>
+  <ul>
+    <li><b>Primeira indexação de uma coleção:</b> Oráculo → Indexação → escolher a coleção. Em acervos grandes, prefira o WP-CLI: <code>wp oraculo index --collection=&lt;id&gt;</code>.</li>
+    <li><b>O que entra no texto do item:</b> os campos marcados em Configurações → Avançado → Campos para indexar (título, descrição, metadados e, opcionalmente, o documento).</li>
+    <li><b>Só itens publicados</b> entram na busca pública. Despublicar ou excluir um item tira o vetor e os trechos dele.</li>
+    <li><b>Trocou o modelo de embedding?</b> Reindexe tudo. Vetores de modelos diferentes não se comparam.</li>
+  </ul>
+
+  <h2>6. Busca vetorial no banco (MariaDB 11.7+)</h2>
+  <p>Até a versão 2.10, o PHP lia todos os vetores e fazia a comparação um a um. Isso limitava a busca a acervos pequenos: com 10 mil itens, eram 6,5 s e ~500 MB de memória por busca. A partir da 2.11, se o banco for <b>MariaDB 11.7 ou mais novo</b>, o plugin mantém tabelas laterais com o tipo <code>VECTOR</code>. A comparação acontece <b>dentro do banco</b>, e o PHP recebe apenas os ids dos mais próximos.</p>
+  <table>
+    <tr><th>Escopo da busca (38.102 vetores reais)</th><th class="num">Antes (PHP)</th><th class="num">Agora (no banco)</th></tr>
+    <tr><td>Acervo todo</td><td class="num">512 ms</td><td class="num"><b>115 ms</b></td></tr>
+    <tr><td>Uma coleção com 30 mil itens</td><td class="num">419 ms</td><td class="num"><b>135 ms</b></td></tr>
+    <tr><td>Uma coleção com 8 mil itens</td><td class="num">233 ms</td><td class="num"><b>33 ms</b></td></tr>
+  </table>
+  <ul>
+    <li><b>Resultado exato:</b> cada vetor é comparado, sem aproximação. O método antigo perdia parte dos vizinhos (82% em comum no top-20 da coleção menor).</li>
+    <li><b>Automático:</b> as tabelas são criadas e preenchidas em segundo plano (38 mil vetores em ~45 s) e acompanham toda gravação e remoção.</li>
+    <li><b>Sem MariaDB 11.7+</b> (MySQL ou MariaDB anterior) nada muda: a busca segue no método antigo.</li>
+  </ul>
+  <div class="box warn"><b>Atenção ao copiar o banco</b> para um servidor com MySQL ou MariaDB anterior ao 11.7: rode antes <code>wp oraculo native drop</code>. Esses servidores não restauram as tabelas com tipo <code>VECTOR</code>. No servidor novo, a busca volta ao método antigo sem nenhum ajuste.</div>
+</section>
+
+<!-- ============ 6 ============ -->
+<section class="page">
+  <h2>7. Configuração</h2>
+  <p>Fica em <b>Tainacan → Oráculo</b>. As telas são: Painel, Indexação, Analytics, Configurações e Debug. As abas de Configurações:</p>
+  <table>
+    <tr><th style="width:20%">Aba</th><th>O que se ajusta</th></tr>
+    <tr><td><b>Provedores</b></td><td>Provedor e chave de API, modelo de linguagem e modelo de embedding; teste de conexão.</td></tr>
+    <tr><td><b>Geral</b></td><td>Ligar a busca e a BIA; quantos itens mostrar (padrão 10); similaridade mínima (padrão 0,3); limite de tokens da resposta.</td></tr>
+    <tr><td><b>Prompts</b></td><td>Instruções de sistema, de busca e de conversa, globais ou por coleção. As regras de citação [n] são acrescentadas pelo plugin.</td></tr>
+    <tr><td><b>Aparência</b></td><td>Cores e textos da BIA, posição da janela, mostrar fontes e relevância, feedback.</td></tr>
+    <tr><td><b>Tainacan</b></td><td>Aba “Busca com IA” nas listagens: rótulo, texto do campo, escopo (coleção aberta ou acervo todo), sugestões de perguntas e link direto (<code>?oraculo_q=</code>).</td></tr>
+    <tr><td><b>Avançado</b></td><td><b>Campos para indexar</b> (incluindo o documento), tamanho do lote, tempo limite das requisições, duração do cache (padrão 1 h), modo debug e manutenção (limpar cache, limpar vetores, exportar configurações).</td></tr>
+  </table>
+
+  <h2>8. Operação no dia a dia</h2>
+  <p>Todos os comandos rodam a partir da pasta do site, com <code>wp oraculo …</code>.</p>
+  <table>
+    <tr><th style="width:38%">Comando</th><th>Para quê</th></tr>
+    <tr><td><code>status</code></td><td>Situação geral: provedores, vetores, fila.</td></tr>
+    <tr><td><code>index --collection=ID</code></td><td>Indexa ou atualiza uma coleção.</td></tr>
+    <tr><td><code>documents index|status --collection=ID</code></td><td>Trechos dos PDFs: indexar ou ver o que falta (inclui PDFs que precisam de OCR).</td></tr>
+    <tr><td><code>queue</code></td><td>Fila da indexação automática.</td></tr>
+    <tr><td><code>native status|sync|rebuild|drop</code></td><td>Busca no banco: situação, preencher agora, refazer do zero, remover (antes de levar o banco para outro servidor).</td></tr>
+    <tr><td><code>search "pergunta" --limit=5</code></td><td>Testa uma busca completa pelo terminal, com tempo e fontes.</td></tr>
+    <tr><td><code>test_connection</code> · <code>providers</code></td><td>Confere chaves e modelos dos provedores.</td></tr>
+    <tr><td><code>clear_vectors [--collection=ID]</code></td><td>Apaga vetores, de uma coleção ou de todas. Depois, reindexe.</td></tr>
+    <tr><td><code>stats</code> · <code>export</code> · <code>optimize</code></td><td>Estatísticas de uso, exportação e manutenção das tabelas.</td></tr>
+  </table>
+</section>
+
+<!-- ============ 7 ============ -->
+<section>
+  <h2>9. Problemas comuns</h2>
+  <table>
+    <tr><th style="width:34%">Sintoma</th><th style="width:33%">Causa provável</th><th>O que fazer</th></tr>
+    <tr><td>Nenhum resultado para nada</td><td>Coleção não indexada, ou modelo de embedding trocado sem reindexar</td><td><code>wp oraculo status</code>; reindexar a coleção</td></tr>
+    <tr><td>Item novo não aparece</td><td>A fila ainda não rodou (o cron roda a cada 5 min)</td><td><code>wp oraculo queue</code>; conferir se o WP-Cron roda no servidor</td></tr>
+    <tr><td>Busca lenta (vários segundos antes dos cartões)</td><td>Busca no banco desligada ou ainda preenchendo</td><td><code>wp oraculo native status</code>; se preciso, <code>native sync</code></td></tr>
+    <tr><td>Cartões rápidos, síntese demorada</td><td>Normal: é o modelo de linguagem (~4 s com gpt-5-nano)</td><td>Modelo mais rápido em Provedores; menos itens em Geral (contexto menor)</td></tr>
+    <tr><td>“Muitas requisições”</td><td>Limite por visitante (10 buscas/min) ou teto do site (60 chamadas de IA/min)</td><td>Esperar um minuto; os limites são ajustáveis por filtro</td></tr>
+    <tr><td>PDF não é encontrado pelo conteúdo</td><td>PDF digitalizado sem OCR, ou campo “document” desligado</td><td><code>wp oraculo documents status --collection=ID</code>; rodar o OCR</td></tr>
+    <tr><td>Resposta “estranha”</td><td>A IA só fala do que achou: o problema costuma estar nos dados</td><td>Ver os cartões: se não são pertinentes, rever metadados e campos indexados</td></tr>
+  </table>
+
+  <h2>10. Limites, custos e privacidade</h2>
+  <ul>
+    <li><b>Limites de uso:</b> 10 buscas e 20 mensagens da BIA por minuto por visitante, e 60 chamadas de IA por minuto no site todo. A busca em duas etapas conta uma vez só.</li>
+    <li><b>Custo por busca</b> (OpenAI): um embedding da pergunta e cerca de 2 mil tokens no modelo de linguagem. O cache de 1 hora evita pagar de novo pela mesma pergunta.</li>
+    <li><b>O que sai do servidor:</b> com provedor externo, a pergunta e o texto dos itens recuperados vão ao provedor. Com <b>Ollama</b>, nada sai do servidor, mas a resposta fica bem mais lenta numa máquina sem GPU.</li>
+    <li><b>Sugestões públicas</b> só mostram buscas feitas por pelo menos 3 visitantes diferentes. O que uma pessoa digitou sozinha nunca vira sugestão.</li>
+    <li><b>Registros:</b> buscas e conversas ficam em tabelas próprias e são apagadas por uma rotina diária de retenção.</li>
+  </ul>
+  <p class="footer-note">Medições feitas em 29/10/2026 no site de testes do TainacanBiblio (VPS de 1 vCPU e 4 GB, MariaDB 11.8, 38.102 vetores de 1.536 dimensões, embeddings <code>text-embedding-3-small</code>, respostas gpt-5-nano). Detalhes técnicos em <code>docs/ANALISE-LIMITE-VETORES.md</code> e <code>docs/CONTEXT.md</code> no repositório.</p>
+</section>
+
+</body>
+</html>
