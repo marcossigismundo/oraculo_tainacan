@@ -65,6 +65,13 @@ class RestController extends WP_REST_Controller {
 							'minimum' => 1,
 							'maximum' => 50,
 						),
+						// items: só os cartões, sem o modelo de linguagem;
+						// answer: a síntese sobre a recuperação da etapa items.
+						'phase'       => array(
+							'type'    => 'string',
+							'default' => '',
+							'enum'    => array( '', 'items', 'answer' ),
+						),
 					),
 				),
 			)
@@ -519,7 +526,17 @@ class RestController extends WP_REST_Controller {
 		 */
 		$max_per_minute = (int) apply_filters( 'oraculo_tainacan_rest_rate_limit', $defaults[ $feature ] ?? 10, $feature );
 
-		if ( $max_per_minute > 0 && ! $this->check_rate_limit( $feature, $max_per_minute ) ) {
+		// Busca em duas etapas: a pergunta conta uma vez no limite por IP (na
+		// etapa items) e uma vez no teto global de IA (na answer, que chama o
+		// modelo). Answer sem items antes conta nos dois, como a busca inteira.
+		$phase        = 'search' === $feature ? (string) $request->get_param( 'phase' ) : '';
+		$answer_after = 'answer' === $phase && ( new SearchEngine() )->has_pending_retrieval(
+			(string) $request->get_param( 'query' ),
+			array_map( 'intval', (array) $request->get_param( 'collections' ) ),
+			(int) $request->get_param( 'max_results' )
+		);
+
+		if ( $max_per_minute > 0 && ! $answer_after && ! $this->check_rate_limit( $feature, $max_per_minute ) ) {
 			return new WP_Error(
 				'oraculo_rate_limited',
 				__( 'Muitas requisições. Aguarde alguns instantes e tente novamente.', 'oraculo-tainacan' ),
@@ -529,7 +546,7 @@ class RestController extends WP_REST_Controller {
 
 		// Teto global do site para chamadas que consomem IA (todos os IPs somados):
 		// o limite por IP não protege contra abuso distribuído (botnets/scrapers).
-		if ( in_array( $feature, array( 'search', 'chat' ), true ) ) {
+		if ( in_array( $feature, array( 'search', 'chat' ), true ) && 'items' !== $phase ) {
 			/**
 			 * Filtra o máximo global de chamadas de IA por minuto (search + chat, site inteiro).
 			 *
@@ -591,6 +608,7 @@ class RestController extends WP_REST_Controller {
 			$request->get_param( 'collections' ),
 			array(
 				'max_results' => $request->get_param( 'max_results' ),
+				'phase'       => (string) $request->get_param( 'phase' ),
 			)
 		);
 

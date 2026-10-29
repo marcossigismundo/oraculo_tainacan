@@ -74,6 +74,11 @@ class SearchEngine {
 			return $this->clip_search( $query, $collection_ids, $options );
 		}
 
+		// Duas etapas (2.11): 'items' devolve os cartões sem chamar o modelo de
+		// linguagem (~85% do tempo da busca) e guarda a recuperação; 'answer'
+		// gera a síntese em cima dela. Vazio = tudo numa chamada.
+		$phase = (string) ( $options['phase'] ?? '' );
+
 		// Verificar cache
 		$cache_key = $this->get_cache_key( $query, $collection_ids );
 		$cached    = get_transient( $cache_key );
@@ -83,37 +88,41 @@ class SearchEngine {
 		}
 
 		try {
-			// 1. Gerar embedding da query
-			$embedding_provider = $this->ai_factory->create_for_embeddings();
-			$embedding_result   = $embedding_provider->generate_embedding( \Oraculo_Tainacan\retrieval_query( $query ) );
-
-			if ( is_wp_error( $embedding_result ) ) {
-				return $embedding_result;
-			}
-
-			$query_embedding = $embedding_result['embedding'];
-
-			// 2. Buscar itens similares no vector store
 			// Cast na origem: o WP-CLI e as opções salvas trazem string, e
 			// prepare_context() exige int (strict_types).
 			$max_results = (int) ( $options['max_results'] ?? $this->options['max_results'] ?? 10 );
 			$threshold   = (float) ( $options['similarity_threshold'] ?? $this->options['similarity_threshold'] ?? 0.3 );
 
-			$similar_items = $this->vector_store->search(
-				$query_embedding,
-				$collection_ids,
-				$max_results * 2, // Buscar mais para filtrar depois
-				$threshold
-			);
+			$retrieval_key = $this->get_retrieval_key( $query, $collection_ids, $max_results );
+			$similar_items = 'answer' === $phase ? get_transient( $retrieval_key ) : false;
 
-			if ( is_wp_error( $similar_items ) ) {
-				return $similar_items;
+			if ( ! is_array( $similar_items ) ) {
+				$similar_items = $this->retrieve( $query, $collection_ids, $max_results, $threshold );
+				if ( is_wp_error( $similar_items ) ) {
+					return $similar_items;
+				}
 			}
-
-			$similar_items = $this->attach_passages( $query_embedding, $similar_items, $collection_ids, $max_results * 2, (float) $threshold );
 
 			if ( empty( $similar_items ) ) {
 				return $this->build_no_results_response( $query );
+			}
+
+			if ( 'items' === $phase ) {
+				// Tempo de sobra para a segunda chamada chegar.
+				set_transient( $retrieval_key, $similar_items, 5 * MINUTE_IN_SECONDS );
+
+				return array(
+					'query'            => $query,
+					'response'         => null,
+					'phase'            => 'items',
+					'items'            => $this->format_items( $similar_items, $query, $max_results, true ),
+					'total_results'    => count( $similar_items ),
+					'response_time_ms' => round( ( microtime( true ) - $start_time ) * 1000 ),
+					'from_cache'       => false,
+				);
+			}
+			if ( 'answer' === $phase ) {
+				delete_transient( $retrieval_key );
 			}
 
 			// 3. Preparar contexto para o LLM
@@ -184,15 +193,14 @@ class SearchEngine {
 	 */
 	public function semantic_search( string $query, array $collection_ids = array(), int $limit = 10 ) {
 		try {
-			$embedding_provider = $this->ai_factory->create_for_embeddings();
-			$embedding_result   = $embedding_provider->generate_embedding( \Oraculo_Tainacan\retrieval_query( $query ) );
+			$query_embedding = $this->embed_query( $query );
 
-			if ( is_wp_error( $embedding_result ) ) {
-				return $embedding_result;
+			if ( is_wp_error( $query_embedding ) ) {
+				return $query_embedding;
 			}
 
 			$similar_items = $this->vector_store->search(
-				$embedding_result['embedding'],
+				$query_embedding,
 				$collection_ids,
 				$limit,
 				(float) ( $this->options['similarity_threshold'] ?? 0.3 )
@@ -202,7 +210,7 @@ class SearchEngine {
 				return $similar_items;
 			}
 
-			$similar_items = $this->attach_passages( $embedding_result['embedding'], $similar_items, $collection_ids, $limit, (float) ( $this->options['similarity_threshold'] ?? 0.3 ) );
+			$similar_items = $this->attach_passages( $query_embedding, $similar_items, $collection_ids, $limit, (float) ( $this->options['similarity_threshold'] ?? 0.3 ) );
 
 			return $this->format_items( $similar_items, $query, $limit );
 
@@ -655,6 +663,95 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados.',
 		);
 
 		return 'oraculo_search_' . md5( wp_json_encode( $data ) );
+	}
+
+	/**
+	 * Chave da recuperação guardada entre as etapas 'items' e 'answer'
+	 *
+	 * @param string $query          Pergunta.
+	 * @param int[]  $collection_ids Coleções.
+	 * @param int    $max_results    Itens pedidos.
+	 * @return string
+	 */
+	private function get_retrieval_key( string $query, array $collection_ids, int $max_results ): string {
+		return 'oraculo_ret_' . md5( $this->get_cache_key( $query, $collection_ids ) . '|' . $max_results );
+	}
+
+	/**
+	 * A etapa 'items' desta busca acabou de rodar? (a 'answer' não conta de novo no limite de uso)
+	 *
+	 * @param string $query          Pergunta.
+	 * @param int[]  $collection_ids Coleções.
+	 * @param int    $max_results    Itens pedidos.
+	 * @return bool
+	 */
+	public function has_pending_retrieval( string $query, array $collection_ids, int $max_results ): bool {
+		return is_array( get_transient( $this->get_retrieval_key( trim( $query ), $collection_ids, $max_results ) ) );
+	}
+
+	/**
+	 * Recupera os itens mais próximos da pergunta (embedding, vetores, trechos)
+	 *
+	 * @param string $query          Pergunta.
+	 * @param int[]  $collection_ids Coleções.
+	 * @param int    $max_results    Itens pedidos.
+	 * @param float  $threshold      Similaridade mínima.
+	 * @return array|WP_Error
+	 */
+	private function retrieve( string $query, array $collection_ids, int $max_results, float $threshold ) {
+		$query_embedding = $this->embed_query( $query );
+		if ( is_wp_error( $query_embedding ) ) {
+			return $query_embedding;
+		}
+
+		$similar_items = $this->vector_store->search(
+			$query_embedding,
+			$collection_ids,
+			$max_results * 2, // Buscar mais para filtrar depois.
+			$threshold
+		);
+		if ( is_wp_error( $similar_items ) ) {
+			return $similar_items;
+		}
+
+		return $this->attach_passages( $query_embedding, $similar_items, $collection_ids, $max_results * 2, $threshold );
+	}
+
+	/**
+	 * Embedding da pergunta, com cache
+	 *
+	 * A mesma pergunta (sugestões, deep links, a BIA repetindo o assunto) não
+	 * paga de novo a chamada ao provedor (~0,5 s). A chave leva provedor e
+	 * modelo: trocar o modelo não reaproveita vetor de outra dimensão.
+	 *
+	 * @param string $query Pergunta.
+	 * @return float[]|WP_Error
+	 */
+	private function embed_query( string $query ) {
+		$provider = $this->ai_factory->create_for_embeddings();
+		$text     = \Oraculo_Tainacan\retrieval_query( $query );
+		$key      = 'oraculo_qemb_' . md5(
+			(string) wp_json_encode(
+				array(
+					$provider->get_id(),
+					$this->options[ $provider->get_id() . '_embedding_model' ] ?? '',
+					$text,
+				)
+			)
+		);
+
+		$cached = get_transient( $key );
+		if ( is_array( $cached ) && ! empty( $cached ) ) {
+			return $cached;
+		}
+
+		$result = $provider->generate_embedding( $text );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		set_transient( $key, $result['embedding'], 12 * HOUR_IN_SECONDS );
+		return $result['embedding'];
 	}
 
 	/**

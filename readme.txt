@@ -4,7 +4,7 @@ Tags: tainacan, ai, search, rag, openai
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 2.11.0
+Stable tag: 2.12.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -111,6 +111,11 @@ OpenAI is the most tested option. Ollama is recommended for fully local, private
 Only the text content of your archived items is sent to the AI provider you configure. When using Ollama, everything stays local.
 
 == Changelog ==
+
+= 2.12.0 =
+* Performance: "Busca com IA" answers in two steps. The first request (`phase=items`) returns the item cards without calling the language model — about 85% of the search time — and keeps the retrieval for five minutes; the second (`phase=answer`) writes the synthesis on top of it, without embedding or searching again. Cards show in under a second; the synthesis arrives in the same panel. Cached answers and "nothing found" come complete in the first request. A request without `phase` works as before
+* Performance: the embedding of the question is cached for 12 hours (key: provider, model and text), in the search and in the BIA chat — repeated questions, suggestions and deep links skip ~0.5 s
+* Rate limits: a two-step search counts once per IP (on `items`) and once in the global AI ceiling (on `answer`)
 
 = 2.11.0 =
 * Performance: on MariaDB 11.7+ the vector search runs inside the database. Two narrow side tables (`oraculo_vectors_native`, `oraculo_chunks_native`: id, item, collection and a `VECTOR(n)` column) are filled in the background and kept in sync on every write and delete; the cosine is computed by the database and only the closest ids come back to PHP — no embeddings loaded into PHP memory. Side tables, not a column in the vectors table: its ~40 KB rows outgrow the InnoDB buffer and a full scan took 5–8 s. Measured on MariaDB 11.8 with 38,000 vectors of 1,536 dimensions
