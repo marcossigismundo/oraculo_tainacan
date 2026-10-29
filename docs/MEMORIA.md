@@ -31,7 +31,26 @@
   citam arquivo e página. Decisão: o Oráculo **não faz OCR**, só consome — o OCR fica no Tainacan
   OCR Search (local, livre, serve também à busca nativa).
 
+- **2.11.0 (29/10/2026), busca vetorial dentro do MariaDB 11.7+.** Tabelas laterais estreitas
+  `oraculo_vectors_native` e `oraculo_chunks_native` (id, item, coleção, anexo, `embedding_vec
+  VECTOR(n)`), preenchidas por cron em faixas de id e espelhadas em toda gravação e remoção
+  (`NativeVector`); o cosseno é calculado no banco e só os ids voltam. **Tabela lateral, não
+  coluna:** a de vetores tem ~40 KB por linha (1,28 GB no site do TainacanBiblio, buffer do InnoDB
+  de 512 MB) e, com a coluna dentro dela, varrer o acervo todo levou 5–8 s lendo o disco. Medido no MariaDB 11.8 do site do
+  TainacanBiblio (38 mil vetores, 1536 dimensões): varredura exata ~110 ms no acervo todo, ~30 ms
+  numa coleção de 8 mil. **Sem índice HNSW de propósito:** com filtro por coleção ele devolveu
+  13–46% de recall e consultas de 18–32 s (filtra depois de buscar), e só rende com ~500 MB de
+  cache. Resolve os muros de memória e transferência da `ANALISE-LIMITE-VETORES.md` sem banco
+  vetorial externo; continua O(n) no banco (~3 µs por vetor), então um índice só faria sentido
+  acima de ~100–200 mil vetores e sem filtro.
+
 ## Armadilhas que já custaram tempo
+
+- **VECTOR no MariaDB.** `vector` é palavra reservada (por isso `embedding_vec`); a coluna tem
+  dimensão fixa, então linhas de outro modelo ficam fora da tabela lateral; o `VEC_FromText` aceita
+  o JSON do `embedding_data` e o BLOB float32 do `ChunkStore` vai direto para a coluna.
+  `VEC_FromText(%s)` dentro do `ORDER BY` é reavaliado **a cada linha** (+1,8 s em 8 mil): converter
+  uma vez numa variável de sessão (`SET @oraculo_q = …`).
 
 - **Itens do Tainacan têm `exclude_from_search`.** Consulta com `post_type => 'any'` não acha
   nenhum item. Use a lista explícita (`AutoIndexer::get_item_post_types()`).
@@ -47,8 +66,16 @@
 
 ## Pendências
 
+- **2.11.0 está só na branch `feature/native-vector-search`**, publicada no site do TainacanBiblio
+  (vetores de metadados medidos e testados: gravação, troca de dimensão, remoção, rebuild). Falta:
+  testar a tabela lateral dos **trechos** num site com documentos (o laboratório de OCR), decidir o
+  merge na `main` e a release. Robustez já coberta: lista de reenvio por tabela, estado por tabela
+  com merge no cron, gravação + lateral na mesma transação (`in_transaction()`), CREATE recusado
+  tentado de hora em hora.
+
 - Teste de navegador com usuário logado na "Busca com IA" (só o visitante foi testado).
-- A varredura dos trechos é O(nº de trechos) por consulta; acervo com muitos PDFs grandes pede o
-  serviço vetorial externo descrito em `ANALISE-LIMITE-VETORES.md`.
+- Fora do MariaDB 11.7+ a varredura continua em PHP (duas fases), com os limites da
+  `ANALISE-LIMITE-VETORES.md`. No 11.7+ ela é no banco e linear (~3 µs por vetor): medir de novo
+  quando um site passar de ~100 mil vetores + trechos.
 - Existe uma 3.0.0 inativa num terceiro site de teste que não está no GitHub (registrada no
   repositório de infraestrutura).

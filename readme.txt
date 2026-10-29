@@ -4,7 +4,7 @@ Tags: tainacan, ai, search, rag, openai
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 2.10.2
+Stable tag: 2.12.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -111,6 +111,25 @@ OpenAI is the most tested option. Ollama is recommended for fully local, private
 Only the text content of your archived items is sent to the AI provider you configure. When using Ollama, everything stays local.
 
 == Changelog ==
+
+= 2.12.0 =
+* Performance: "Busca com IA" answers in two steps. The first request (`phase=items`) returns the item cards without calling the language model (about 85% of the search time) plus a single-use ticket; the second (`phase=answer`, with the ticket) writes the synthesis on top of the stored retrieval, without embedding or searching again. Cards show in about a second; only the answer block is filled in when the synthesis arrives, so focus and scroll on the cards stay. Cached answers and "nothing found" come complete in the first request; with sources hidden the tab keeps a single request. A request without `phase` works as before
+* Performance: the embedding of a search question is cached for 2 hours (key: provider, model and text); the BIA chat does not cache (messages rarely repeat)
+* Performance: the two-phase PHP fallback caps vectors still without a binary signature at the rescore pool (a whole collection used to go to the PHP cosine)
+* Rate limits: a two-step search counts once, on `items`, in the per-IP and in the global AI limits; `answer` is exempt only with the ticket from `items`, consumed on first use
+* Security: public suggestions only show searches made by at least 3 different visitors (`oraculo_tainacan_popular_min_visitors`), so one person neither publishes what they typed nor pushes a text into the list by repeating it; the query works under ONLY_FULL_GROUP_BY (MySQL 5.7+), where it used to fail and return nothing
+* Security: the analytics CSV export neutralizes spreadsheet formulas typed by visitors (=, +, -, @); the `height` attribute of `[oraculo_chat]` only accepts a number and a unit (no extra CSS); feedback labels in the shortcode result are escaped
+* Synchronous indexing checks the nonce and capability before raising limits, and raises memory with `wp_raise_memory_limit()`
+* Native vectors: writes and deletes no longer run inside a transaction with the side tables (a deadlock while copying to the side table would also roll back the vector itself); copy failures go to the retry list and failed deletes schedule a prune
+* Header: `Requires Plugins: tainacan`
+
+= 2.11.0 =
+* Performance: on MariaDB 11.7+ the vector search runs inside the database. Two narrow side tables (`oraculo_vectors_native`, `oraculo_chunks_native`: id, item, collection and a `VECTOR(n)` column) are filled in the background and kept in sync on every write and delete; the cosine is computed by the database and only the closest ids come back to PHP — no embeddings loaded into PHP memory. Side tables, not a column in the vectors table: its ~40 KB rows outgrow the InnoDB buffer and a full scan took 5–8 s. Measured on MariaDB 11.8 with 38,000 vectors of 1,536 dimensions
+* No vector (HNSW) index on purpose: MariaDB filters after searching the index, and with a collection filter it returned 13–46% recall and queries of up to 30 s
+* Other databases (MySQL, MariaDB < 11.7), or while the column is being filled, keep the two-phase search. Rows with another dimension (embedding model changed) are left out of the database search; the side tables follow the dimension of the current model on their own
+* WP-CLI: `wp oraculo native status|sync|rebuild|drop`. A dump with the side tables only restores on MariaDB 11.7+: run `wp oraculo native drop` before moving it to MySQL or an older MariaDB
+* Fix: vector export with embeddings no longer includes the binary `embedding_bits` column
+* Fix: `wp oraculo search --limit=N` died with a TypeError (the limit arrived as a string under strict_types)
 
 = 2.10.2 =
 * Fix: an attachment already processed by Tainacan OCR Search that has no text (blank page) is no longer reported as needing OCR

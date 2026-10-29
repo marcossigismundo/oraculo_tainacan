@@ -3,7 +3,7 @@
  * Plugin Name: Oráculo Tainacan
  * Plugin URI: https://github.com/tainacan/oraculo-tainacan
  * Description: Sistema avançado de busca em linguagem natural com IA para acervos Tainacan. Integra RAG (Retrieval-Augmented Generation) com múltiplos provedores de IA.
- * Version: 2.10.2
+ * Version: 2.12.0
  * Author: Tainacan Community
  * Author URI: https://tainacan.org
  * License: GPL-2.0+
@@ -12,6 +12,7 @@
  * Domain Path: /languages
  * Requires at least: 6.0
  * Requires PHP: 8.0
+ * Requires Plugins: tainacan
  *
  * @package Oraculo_Tainacan
  */
@@ -26,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Constantes do plugin
-define( 'ORACULO_TAINACAN_VERSION', '2.10.2' );
+define( 'ORACULO_TAINACAN_VERSION', '2.12.0' );
 define( 'ORACULO_TAINACAN_FILE', __FILE__ );
 define( 'ORACULO_TAINACAN_PATH', plugin_dir_path( __FILE__ ) );
 define( 'ORACULO_TAINACAN_URL', plugin_dir_url( __FILE__ ) );
@@ -199,6 +200,9 @@ final class Oraculo_Tainacan {
 		// Preenche as assinaturas binárias dos vetores gravados antes da 2.7.0.
 		add_action( Vector\VectorStore::CRON_BACKFILL, array( Vector\VectorStore::class, 'run_backfill_cron' ) );
 
+		// MariaDB 11.7+: cria e preenche a coluna VECTOR (busca no banco).
+		add_action( Vector\NativeVector::CRON_HOOK, array( Vector\NativeVector::class, 'run_cron' ) );
+
 		// Tainacan hooks (a integração principal é feita via Tainacan Pages API)
 
 		// Shortcodes
@@ -264,6 +268,7 @@ final class Oraculo_Tainacan {
 		wp_clear_scheduled_hook( Indexing\AutoIndexer::CRON_HOOK, array( 'kick' ) );
 		wp_clear_scheduled_hook( Indexing\AutoIndexer::CRON_RECONCILE );
 		wp_clear_scheduled_hook( Vector\VectorStore::CRON_BACKFILL );
+		wp_clear_scheduled_hook( Vector\NativeVector::CRON_HOOK );
 
 		// Sem isto, um lock deixado por um worker interrompido bloquearia a fila
 		// por LOCK_TIMEOUT depois da reativação.
@@ -623,6 +628,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 		// tabela existente.
 		Vector\VectorStore::maybe_upgrade_schema();
 		Vector\ChunkStore::maybe_create_table();
+		Vector\NativeVector::maybe_schedule();
 
 		// Inicializar serviços (admin page é inicializada via Tainacan Pages API)
 		$this->services['api']       = new API\RestController();
@@ -851,21 +857,19 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 	 */
 	public function ajax_index_collection(): void {
 		try {
-			// Aumentar limites para indexação síncrona
-			if ( function_exists( 'set_time_limit' ) ) {
-                // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Long-running indexing batch; conditional and harmless if disabled.
-				@set_time_limit( 300 );
-			}
-			if ( function_exists( 'ini_set' ) ) {
-                // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Memory limit increase for large indexing jobs; conditional and harmless if disabled.
-				@ini_set( 'memory_limit', '512M' );
-			}
-
 			check_ajax_referer( 'oraculo_admin', 'nonce' );
 
 			if ( ! current_user_can( 'manage_options' ) ) {
 				wp_send_json_error( array( 'message' => __( 'Permissão negada.', 'oraculo-tainacan' ) ) );
 				return;
+			}
+
+			// Limites da indexação síncrona, só depois do nonce e da permissão.
+			// Memória pela API do WordPress (WP_MAX_MEMORY_LIMIT, 256M por padrão).
+			wp_raise_memory_limit( 'admin' );
+			if ( function_exists( 'set_time_limit' ) ) {
+				// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Synchronous admin indexing batch; WordPress has no API for the execution time limit, and the call is skipped where the host disables it.
+				@set_time_limit( 300 );
 			}
 
 			$collection_id = absint( $_POST['collection_id'] ?? 0 );
@@ -1059,11 +1063,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 		}
 
 		try {
-			global $wpdb;
-			$table = $wpdb->prefix . 'oraculo_vectors';
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $table is plugin-owned (oraculo_vectors, built from $wpdb->prefix + literal); TRUNCATE TABLE cannot use $wpdb->prepare(); write operation, caching N/A.
-			$deleted = $wpdb->query( "TRUNCATE TABLE {$table}" );
-			( new Vector\ChunkStore() )->truncate();
+			( new Vector\VectorStore() )->truncate_all();
 			wp_send_json_success(
 				array(
 					'message' => __( 'Todos os vetores foram removidos.', 'oraculo-tainacan' ),

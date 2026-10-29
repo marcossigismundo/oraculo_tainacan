@@ -156,9 +156,9 @@
             // Feedback
             if (OraculoFrontend.enableFeedback !== false) {
                 html += '  <div class="oraculo-feedback">';
-                html += '    <span class="oraculo-feedback-label">' + OraculoFrontend.strings.helpful + '</span>';
-                html += '    <button class="oraculo-feedback-btn positive">' + OraculoFrontend.strings.yes + ' 👍</button>';
-                html += '    <button class="oraculo-feedback-btn negative">' + OraculoFrontend.strings.no + ' 👎</button>';
+                html += '    <span class="oraculo-feedback-label">' + OraculoTainacan.escapeHtml(OraculoFrontend.strings.helpful) + '</span>';
+                html += '    <button class="oraculo-feedback-btn positive">' + OraculoTainacan.escapeHtml(OraculoFrontend.strings.yes) + ' 👍</button>';
+                html += '    <button class="oraculo-feedback-btn negative">' + OraculoTainacan.escapeHtml(OraculoFrontend.strings.no) + ' 👎</button>';
                 html += '  </div>';
             }
 

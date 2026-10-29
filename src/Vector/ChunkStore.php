@@ -150,9 +150,20 @@ class ChunkStore {
 	 * @return int Gravados.
 	 */
 	public function insert_many( array $rows ): int {
+		return $this->insert_rows( $rows );
+	}
+
+	/**
+	 * Grava os trechos
+	 *
+	 * @param array $rows Ver insert_many().
+	 * @return int Gravados.
+	 */
+	private function insert_rows( array $rows ): int {
 		global $wpdb;
 
-		$saved = 0;
+		$saved   = 0;
+		$new_ids = array();
 		foreach ( $rows as $row ) {
 			$embedding = (array) $row['embedding'];
 			// INSERT IGNORE + chave única (item_id, content_hash): dois indexadores
@@ -178,10 +189,12 @@ class ChunkStore {
 			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 			if ( $ok ) {
 				++$saved;
+				$new_ids[] = (int) $wpdb->insert_id;
 			}
 		}
 
 		if ( $saved ) {
+			NativeVector::sync( NativeVector::CHUNKS, $new_ids );
 			\Oraculo_Tainacan\invalidate_index_caches();
 		}
 		return $saved;
@@ -194,6 +207,16 @@ class ChunkStore {
 	 * @return int Apagados.
 	 */
 	public function delete_ids( array $ids ): int {
+		return $this->delete_rows( $ids );
+	}
+
+	/**
+	 * Apaga trechos por id
+	 *
+	 * @param int[] $ids IDs.
+	 * @return int Apagados.
+	 */
+	private function delete_rows( array $ids ): int {
 		global $wpdb;
 
 		$ids = array_values( array_filter( array_map( 'intval', $ids ) ) );
@@ -211,6 +234,7 @@ class ChunkStore {
 				)
 			);
 			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+			NativeVector::forget( NativeVector::CHUNKS, array( 'id' => $chunk ) );
 		}
 
 		if ( $deleted ) {
@@ -231,8 +255,14 @@ class ChunkStore {
 			return 0;
 		}
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table; DELETE without conditions takes no input; write path.
-		$deleted = (int) $wpdb->query( "DELETE FROM {$this->table}" );
+		$deleted = (int) \call_user_func(
+			function () use ( $wpdb ) {
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table; DELETE without conditions takes no input; write path.
+				$deleted = (int) $wpdb->query( "DELETE FROM {$this->table}" );
+				NativeVector::forget( NativeVector::CHUNKS );
+				return $deleted;
+			}
+		);
 		\Oraculo_Tainacan\invalidate_index_caches();
 		return $deleted;
 	}
@@ -251,8 +281,14 @@ class ChunkStore {
 			return 0;
 		}
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table; $column validated against the allowlist above; value via %d; write path.
-		$deleted = (int) $wpdb->query( $wpdb->prepare( "DELETE FROM {$this->table} WHERE {$column} = %d", $id ) );
+		$deleted = (int) \call_user_func(
+			function () use ( $wpdb, $column, $id ) {
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table; $column validated against the allowlist above; value via %d; write path.
+				$deleted = (int) $wpdb->query( $wpdb->prepare( "DELETE FROM {$this->table} WHERE {$column} = %d", $id ) );
+				NativeVector::forget( NativeVector::CHUNKS, array( $column => $id ) );
+				return $deleted;
+			}
+		);
 
 		if ( $deleted ) {
 			\Oraculo_Tainacan\invalidate_index_caches();
@@ -280,6 +316,12 @@ class ChunkStore {
 		$collection_sql = '';
 		if ( ! empty( $collection_ids ) ) {
 			$collection_sql = 'collection_id IN (' . implode( ',', array_fill( 0, count( $collection_ids ), '%d' ) ) . ') AND ';
+		}
+
+		// MariaDB 11.7+: cosseno no banco, só os ids voltam (ver NativeVector).
+		$native = NativeVector::search( NativeVector::CHUNKS, $query_embedding, $collection_ids, $limit, $threshold );
+		if ( null !== $native ) {
+			return $this->rows_for_scores( $native );
 		}
 
 		$query_bits = \Oraculo_Tainacan\embedding_sign_bits( $query_embedding );
@@ -347,19 +389,64 @@ class ChunkStore {
 					continue;
 				}
 				unset( $row['embedding'] );
-				// Cast na origem: strict_types + $wpdb devolvendo string.
-				$row['id']            = (int) $row['id'];
-				$row['item_id']       = (int) $row['item_id'];
-				$row['collection_id'] = (int) $row['collection_id'];
-				$row['attachment_id'] = (int) $row['attachment_id'];
-				$row['page']          = (int) $row['page'];
-				$row['similarity']    = $similarity;
-				$scored[]             = $row;
+				$scored[] = self::hydrate( $row, $similarity );
 			}
 		}
 
 		usort( $scored, fn( $a, $b ) => $b['similarity'] <=> $a['similarity'] );
 		return array_slice( $scored, 0, $limit );
+	}
+
+	/**
+	 * Linhas dos trechos já pontuados pelo banco
+	 *
+	 * @param array<int, float> $scores id => similaridade.
+	 * @return array<int, array> Trechos com similarity, do mais próximo ao menos.
+	 */
+	private function rows_for_scores( array $scores ): array {
+		global $wpdb;
+
+		if ( empty( $scores ) ) {
+			return array();
+		}
+
+		$ids = array_map( 'intval', array_keys( $scores ) );
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table; IN-clause built with array_fill of %d placeholders matching $ids count; result depends on the query embedding.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT id, item_id, collection_id, attachment_id, source, page, chunk_text FROM {$this->table} WHERE id IN (" . implode( ',', array_fill( 0, count( $ids ), '%d' ) ) . ')',
+				$ids
+			),
+			ARRAY_A
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+
+		$scored = array();
+		foreach ( (array) $rows as $row ) {
+			$scored[] = self::hydrate( $row, $scores[ (int) $row['id'] ] );
+		}
+
+		usort( $scored, fn( $a, $b ) => $b['similarity'] <=> $a['similarity'] );
+		return $scored;
+	}
+
+	/**
+	 * Linha de trecho com tipos corretos e similaridade
+	 *
+	 * @param array $row        Linha do banco (sem embedding).
+	 * @param float $similarity Similaridade.
+	 * @return array
+	 */
+	private static function hydrate( array $row, float $similarity ): array {
+		// Cast na origem: strict_types + $wpdb devolvendo string.
+		$row['id']            = (int) $row['id'];
+		$row['item_id']       = (int) $row['item_id'];
+		$row['collection_id'] = (int) $row['collection_id'];
+		$row['attachment_id'] = (int) $row['attachment_id'];
+		$row['page']          = (int) $row['page'];
+		$row['similarity']    = $similarity;
+		return $row;
 	}
 
 	/**

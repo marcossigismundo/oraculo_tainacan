@@ -563,13 +563,22 @@
         this.appendActions();
     };
 
-    OraculoAiTab.prototype.renderResult = function (data, elapsedSeconds) {
+    OraculoAiTab.prototype.renderResult = function (data, elapsedSeconds, pending) {
         this.hasResult = true;
         var self = this;
         var html = '';
         var items = Array.isArray(data.items) ? data.items : [];
 
-        html += '<div class="oraculo-ai-answer">' + formatAnswer(data.response, items) + '</div>';
+        if (pending) {
+            // Cartões já na tela; a síntese chega na segunda etapa.
+            this.stopLoadingMessages();
+            html += '<div class="oraculo-ai-answer is-pending" aria-busy="true">' +
+                '<div class="oraculo-ai-loading-status">' + SPARKLE_ICON +
+                '<span class="oraculo-ai-loading-text">' + escapeHtml(config.strings.loading3) + '</span></div>' +
+                '<div class="oraculo-ai-skeleton"><span></span><span></span><span></span></div></div>';
+        } else {
+            html += '<div class="oraculo-ai-answer">' + formatAnswer(data.response, items) + '</div>';
+        }
 
         if (config.showSources && items.length) {
             html += '<div class="oraculo-ai-sources"><h4>' + SEARCH_ICON + ' ' +
@@ -634,6 +643,43 @@
         }
 
         this.panelBody.innerHTML = html;
+
+        if (pending) {
+            return; // Citações, feedback, ações e o evento público vêm com a síntese.
+        }
+        this.finishResult(data);
+    };
+
+    /**
+     * Síntese da etapa answer: troca só o bloco da resposta, sem redesenhar os
+     * cartões que a pessoa já pode estar lendo (foco e rolagem ficam).
+     * Se a recuperação mudou (bilhete vencido), redesenha tudo.
+     */
+    OraculoAiTab.prototype.fillAnswer = function (data, itemsResult, elapsedSeconds) {
+        var answer = this.panelBody.querySelector('.oraculo-ai-answer.is-pending');
+        var before = (itemsResult.items || []).map(function (i) { return i.url; }).join('|');
+        var after = (data.items || []).map(function (i) { return i.url; }).join('|');
+        if (!answer || before !== after) {
+            this.renderResult(data, elapsedSeconds);
+            return;
+        }
+
+        answer.classList.remove('is-pending');
+        answer.removeAttribute('aria-busy');
+        answer.innerHTML = formatAnswer(data.response, data.items || []);
+
+        if (elapsedSeconds != null) {
+            var time = document.createElement('p');
+            time.className = 'oraculo-ai-response-time';
+            time.textContent = sprintfS(config.strings.responseTime, elapsedSeconds);
+            this.panelBody.appendChild(time);
+        }
+        this.finishResult(data);
+    };
+
+    /** Citações ligadas aos cartões, feedback, ações e o evento público. */
+    OraculoAiTab.prototype.finishResult = function (data) {
+        var self = this;
 
         // Cartões citados no texto ganham destaque; clicar na citação leva ao cartão
         Array.prototype.forEach.call(this.panelBody.querySelectorAll('.oraculo-ai-cite'), function (cite) {
@@ -752,46 +798,102 @@
         this.showPanel();
 
         var startTime = Date.now();
+        var elapsed = function () {
+            return ((Date.now() - startTime) / 1000).toFixed(1);
+        };
+        var request = function (phase, ticket) {
+            // OraculoRest renova o nonce e repete uma vez se a sessão mudou.
+            return window.OraculoRest.post(config.restUrl + 'search', {
+                query: query,
+                collections: config.collections,
+                max_results: config.maxResults,
+                phase: phase,
+                ticket: ticket || ''
+            });
+        };
 
-        // OraculoRest renova o nonce e repete uma vez se a sessão mudou.
-        window.OraculoRest.post(config.restUrl + 'search', {
-            query: query,
-            collections: config.collections,
-            max_results: config.maxResults
-        })
+        // Duas etapas: os cartões chegam sem esperar o modelo de linguagem
+        // (~85% do tempo); a síntese entra no mesmo painel quando fica pronta.
+        // Resposta do cache ou "nada encontrado" já vêm completas na primeira.
+        // Sem os cartões na tela, a primeira etapa não mostraria nada: uma
+        // chamada só.
+        request(config.showSources ? 'items' : '')
             .then(function (envelope) {
-                self.finishSearch();
-
-                var payload = envelope.payload;
-
-                // WP_Error do permission_callback (nonce 401, rate-limit 429,
-                // teto global 503, recurso desativado 403) chega como
-                // {code, message, data:{status}} — sem o envelope success/data.
-                // Já o handler de busca devolve 400 com {success:false, error} —
-                // sem ler `error` aqui, a mensagem real (ex: provedor mal
-                // configurado) era descartada e só sobrava o texto genérico.
-                if (!envelope.ok || (payload && payload.code && payload.message)) {
-                    self.renderError((payload && (payload.message || payload.error)) || config.strings.error);
+                var result = self.readSearchResult(envelope);
+                if (!result) {
+                    self.finishSearch();
+                    return;
+                }
+                if (result.response) {
+                    self.finishSearch();
+                    self.renderResult(result, elapsed());
                     return;
                 }
 
-                if (payload && payload.success === false) {
-                    self.renderError(payload.error || payload.message);
-                    return;
-                }
-
-                var result = payload && payload.data ? payload.data : payload;
-                if (result && result.response) {
-                    var elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-                    self.renderResult(result, elapsed);
-                } else {
-                    self.renderError(config.strings.noResults);
-                }
+                self.renderResult(result, null, true);
+                return request('answer', result.ticket).then(function (answerEnvelope) {
+                    self.finishSearch();
+                    var answer = self.readSearchResult(answerEnvelope, true);
+                    if (answer && answer.response) {
+                        self.fillAnswer(answer, result, elapsed());
+                    } else {
+                        // Cartões ficam; só a síntese falhou.
+                        self.renderAnswerError((answer && answer.error) || config.strings.error);
+                    }
+                });
             })
             .catch(function () {
                 self.finishSearch();
-                self.renderError(config.strings.error);
+                if (self.panelBody.querySelector('.oraculo-ai-answer.is-pending')) {
+                    self.renderAnswerError(config.strings.error);
+                } else {
+                    self.renderError(config.strings.error);
+                }
             });
+    };
+
+    /**
+     * Lê o envelope de /search: devolve o resultado ou, em erro, mostra a
+     * mensagem (keepCards: só na área da síntese) e devolve null/{error}.
+     */
+    OraculoAiTab.prototype.readSearchResult = function (envelope, keepCards) {
+        var payload = envelope.payload;
+        var message = null;
+
+        // WP_Error do permission_callback (nonce 401, rate-limit 429,
+        // teto global 503, recurso desativado 403) chega como
+        // {code, message, data:{status}} — sem o envelope success/data.
+        // Já o handler de busca devolve 400 com {success:false, error} —
+        // sem ler `error` aqui, a mensagem real (ex: provedor mal
+        // configurado) era descartada e só sobrava o texto genérico.
+        if (!envelope.ok || (payload && payload.code && payload.message)) {
+            message = (payload && (payload.message || payload.error)) || config.strings.error;
+        } else if (payload && payload.success === false) {
+            message = payload.error || payload.message;
+        }
+
+        var result = payload && payload.data ? payload.data : payload;
+        if (!message && !(result && (result.response || (Array.isArray(result.items) && result.items.length)))) {
+            message = config.strings.noResults;
+        }
+
+        if (message) {
+            if (keepCards) {
+                return { error: message };
+            }
+            this.renderError(message);
+            return null;
+        }
+        return result;
+    };
+
+    OraculoAiTab.prototype.renderAnswerError = function (message) {
+        var answer = this.panelBody.querySelector('.oraculo-ai-answer');
+        if (answer) {
+            answer.classList.remove('is-pending');
+            answer.innerHTML = '<div class="oraculo-ai-error"><p>' + escapeHtml(message || config.strings.error) + '</p></div>';
+        }
+        this.appendActions();
     };
 
     OraculoAiTab.prototype.finishSearch = function () {

@@ -253,3 +253,36 @@ O muro de 256M foi localizado por bissecção (`php -d memory_limit=256M`: 3.500
 passa com 212 MB; 5.000 falha). Ao final, as 10.000 linhas sintéticas foram
 removidas e a tabela reotimizada (`OPTIMIZE TABLE`), voltando a 0,1 MB — nenhum
 resíduo em base de dados.
+
+---
+
+## 8. Atualização (29/10/2026): MariaDB 11.8 com tipo `VECTOR` — implementado na 2.11.0
+
+A VPS de testes roda MariaDB 11.8.9, que tem o tipo `VECTOR`, `VEC_DISTANCE_COSINE` e
+`VECTOR INDEX` (HNSW) — a rota 5.4. Benchmark com os **38.102 vetores reais** do site do
+TainacanBiblio (1536 dimensões, `text-embedding-3-small`), 30 consultas por cenário, numa cópia
+em banco separado:
+
+| Método | Acervo todo (38 mil) | Uma coleção (8 mil) |
+|---|---|---|
+| PHP, duas fases (2.7–2.10) | ~0,2 s (30 mil) | — |
+| **Coluna VECTOR, varredura exata no SQL** | **~110 ms**, recall 100% | **25–31 ms**, recall 100% |
+| HNSW (M=16), cache padrão 16 MB | 7–8 ms, recall 97,7% | 0,25–1,2 s, recall 13%, faltam resultados |
+| HNSW, cache 512 MB | <1 ms, recall 99–99,7% | **18–32 s**, recall 46% |
+
+Conclusões:
+
+1. O HNSW do MariaDB **não serve com filtro por coleção** (busca no índice e filtra depois) — e o
+   escopo por coleção é o uso principal da busca e da BIA. Também precisa de ~500 MB de cache
+   (`mhnsw_max_cache_size`) e ocupou 160 MB em disco.
+2. O ganho decisivo é a **coluna VECTOR com a distância calculada no banco**, sem índice: nada de
+   embeddings no PHP (somem os muros de memória e de transferência das seções 2–3), resultado
+   exato, filtro por coleção que só acelera. Custo linear de ~3 µs por vetor: ~0,3 s com 100 mil,
+   ~1,2 s com 400 mil (extrapolação).
+3. Não é preciso banco vetorial externo enquanto o volume ficar nessa faixa. A seção 5.5 continua
+   sendo a rota para servidores sem MariaDB 11.7+ e para volumes bem maiores.
+4. **A coluna precisa ficar numa tabela estreita.** O benchmark usou uma tabela só com id, coleção e
+   vetor. Pôr a coluna na própria `oraculo_vectors` (1,28 GB, ~40 KB por linha por causa do texto,
+   dos metadados e do JSON do embedding) fez a varredura do acervo todo ir a 5–8 s, lendo do disco
+   páginas que não cabem no buffer de 512 MB. Por isso a 2.11.0 usa tabelas laterais
+   (`oraculo_vectors_native`, `oraculo_chunks_native`).

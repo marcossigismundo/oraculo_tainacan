@@ -65,6 +65,19 @@ class RestController extends WP_REST_Controller {
 							'minimum' => 1,
 							'maximum' => 50,
 						),
+						// items: só os cartões, sem o modelo de linguagem;
+						// answer: a síntese sobre a recuperação da etapa items.
+						'phase'       => array(
+							'type'    => 'string',
+							'default' => '',
+							'enum'    => array( '', 'items', 'answer' ),
+						),
+						// Devolvido pela etapa items; isenta a answer dos limites.
+						'ticket'      => array(
+							'type'    => 'string',
+							'default' => '',
+							'pattern' => '^([A-Za-z0-9]{24})?$',
+						),
 					),
 				),
 			)
@@ -519,7 +532,13 @@ class RestController extends WP_REST_Controller {
 		 */
 		$max_per_minute = (int) apply_filters( 'oraculo_tainacan_rest_rate_limit', $defaults[ $feature ] ?? 10, $feature );
 
-		if ( $max_per_minute > 0 && ! $this->check_rate_limit( $feature, $max_per_minute ) ) {
+		// Busca em duas etapas: a pergunta conta nos limites uma vez, na etapa
+		// items. A answer só é isenta com o bilhete que a items devolveu, de uso
+		// único (consumido aqui); sem ele, conta como uma busca inteira.
+		$phase        = 'search' === $feature ? (string) $request->get_param( 'phase' ) : '';
+		$answer_after = 'answer' === $phase && SearchEngine::claim_ticket( (string) $request->get_param( 'ticket' ) );
+
+		if ( $max_per_minute > 0 && ! $answer_after && ! $this->check_rate_limit( $feature, $max_per_minute ) ) {
 			return new WP_Error(
 				'oraculo_rate_limited',
 				__( 'Muitas requisições. Aguarde alguns instantes e tente novamente.', 'oraculo-tainacan' ),
@@ -529,7 +548,7 @@ class RestController extends WP_REST_Controller {
 
 		// Teto global do site para chamadas que consomem IA (todos os IPs somados):
 		// o limite por IP não protege contra abuso distribuído (botnets/scrapers).
-		if ( in_array( $feature, array( 'search', 'chat' ), true ) ) {
+		if ( in_array( $feature, array( 'search', 'chat' ), true ) && ! $answer_after ) {
 			/**
 			 * Filtra o máximo global de chamadas de IA por minuto (search + chat, site inteiro).
 			 *
@@ -591,6 +610,8 @@ class RestController extends WP_REST_Controller {
 			$request->get_param( 'collections' ),
 			array(
 				'max_results' => $request->get_param( 'max_results' ),
+				'phase'       => (string) $request->get_param( 'phase' ),
+				'ticket'      => (string) $request->get_param( 'ticket' ),
 			)
 		);
 
