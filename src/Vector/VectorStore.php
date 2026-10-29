@@ -264,12 +264,14 @@ class VectorStore {
 			$record,
 			$formats
 		);
+		// Antes do sync: as consultas dele sobrescrevem $wpdb->insert_id.
+		$insert_id = (int) $wpdb->insert_id;
 		if ( false !== $result ) {
-			NativeVector::sync( NativeVector::VECTORS, array( (int) $wpdb->insert_id ) );
+			NativeVector::sync( NativeVector::VECTORS, array( $insert_id ) );
 		}
 		\Oraculo_Tainacan\invalidate_index_caches();
 
-		return $result !== false ? $wpdb->insert_id : new WP_Error( 'insert_failed', __( 'Falha ao inserir vetor.', 'oraculo-tainacan' ) );
+		return $result !== false ? $insert_id : new WP_Error( 'insert_failed', __( 'Falha ao inserir vetor.', 'oraculo-tainacan' ) );
 	}
 
 	/**
