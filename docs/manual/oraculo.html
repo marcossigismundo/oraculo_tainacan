@@ -43,7 +43,7 @@
 <section class="page">
   <h1>Oráculo Tainacan</h1>
   <p class="lead">Busca em linguagem natural e assistente de conversa (BIA) para acervos Tainacan.</p>
-  <p class="meta">Versão 2.12.0 · outubro de 2026 · repositório <code>marcossigismundo/oraculo_tainacan</code></p>
+  <p class="meta">Versão 2.13.0 · outubro de 2026 · repositório <code>marcossigismundo/oraculo_tainacan</code></p>
 
   <p>O Oráculo deixa o visitante perguntar ao acervo do jeito que perguntaria a uma pessoa, como “livros sobre a seca no sertão”. Ele devolve os itens mais próximos <b>pelo sentido</b>, e não só pelas palavras, e escreve uma síntese que cita esses itens. Tudo responde a partir do que está catalogado: o modelo de linguagem só lê os itens recuperados.</p>
 
@@ -70,6 +70,7 @@
     <li>Operação no dia a dia</li>
     <li>Problemas comuns</li>
     <li>Limites, custos e privacidade</li>
+    <li>Uso intenso: muita gente ao mesmo tempo</li>
   </ol>
 
   <div class="box"><b>Em uma frase:</b> o plugin transforma cada item em um <i>vetor</i>, uma lista de números que representa o sentido do texto. Depois compara o vetor da pergunta com os do acervo para achar os mais parecidos, e só então pede ao modelo de linguagem um texto sobre esses itens.</div>
@@ -264,7 +265,7 @@
 <!-- ============ 6 ============ -->
 <section class="page">
   <h2>7. Configuração</h2>
-  <p>Fica em <b>Tainacan → Oráculo</b>. As telas são: Painel, Indexação, Analytics, Configurações e Debug. As abas de Configurações:</p>
+  <p>Fica em <b>Tainacan → Oráculo</b>. As telas são: Painel, Indexação, Configurações, <b>Diagnóstico</b> (seção 11), Analytics e Debug. As abas de Configurações:</p>
   <table>
     <tr><th style="width:20%">Aba</th><th>O que se ajusta</th></tr>
     <tr><td><b>Provedores</b></td><td>Provedor e chave de API, modelo de linguagem e modelo de embedding; teste de conexão.</td></tr>
@@ -299,21 +300,93 @@
     <tr><td>Nenhum resultado para nada</td><td>Coleção não indexada, ou modelo de embedding trocado sem reindexar</td><td><code>wp oraculo status</code>; reindexar a coleção</td></tr>
     <tr><td>Item novo não aparece</td><td>A fila ainda não rodou (o cron roda a cada 5 min)</td><td><code>wp oraculo queue</code>; conferir se o WP-Cron roda no servidor</td></tr>
     <tr><td>Busca lenta (vários segundos antes dos cartões)</td><td>Busca no banco desligada ou ainda preenchendo</td><td><code>wp oraculo native status</code>; se preciso, <code>native sync</code></td></tr>
-    <tr><td>Cartões rápidos, síntese demorada</td><td>Normal: é o modelo de linguagem (~4 s com gpt-5-nano)</td><td>Modelo mais rápido em Provedores; menos itens em Geral (contexto menor)</td></tr>
-    <tr><td>“Muitas requisições”</td><td>Limite por visitante (10 buscas/min) ou teto do site (60 chamadas de IA/min)</td><td>Esperar um minuto; os limites são ajustáveis por filtro</td></tr>
+    <tr><td>Cartões rápidos, síntese demorada</td><td>Normal: é o modelo de linguagem (~2 s com gpt-4.1-mini, ~6 s com gpt-5-nano)</td><td>Modelo recomendado em Provedores; menos itens em Geral (contexto menor)</td></tr>
+    <tr><td>“Muitas requisições”</td><td>Limite por visitante (10 buscas/min) ou teto do site (300 chamadas de IA/min)</td><td>Esperar um minuto; ajustar em <b>Diagnóstico → Limites de uso</b>, ou liberar a rede da escola/museu</td></tr>
+    <tr><td>Site inteiro lento quando muita gente usa a IA</td><td>Busca e páginas disputam os mesmos processos PHP</td><td>Seção 11: modo rápido e processos PHP próprios</td></tr>
     <tr><td>PDF não é encontrado pelo conteúdo</td><td>PDF digitalizado sem OCR, ou campo “document” desligado</td><td><code>wp oraculo documents status --collection=ID</code>; rodar o OCR</td></tr>
     <tr><td>Resposta “estranha”</td><td>A IA só fala do que achou: o problema costuma estar nos dados</td><td>Ver os cartões: se não são pertinentes, rever metadados e campos indexados</td></tr>
   </table>
 
   <h2>10. Limites, custos e privacidade</h2>
   <ul>
-    <li><b>Limites de uso:</b> 10 buscas e 20 mensagens da BIA por minuto por visitante, e 60 chamadas de IA por minuto no site todo. A busca em duas etapas conta uma vez só.</li>
-    <li><b>Custo por busca</b> (OpenAI): um embedding da pergunta e cerca de 2 mil tokens no modelo de linguagem. O cache de 1 hora evita pagar de novo pela mesma pergunta.</li>
+    <li><b>Limites de uso:</b> 10 buscas e 20 mensagens da BIA por minuto por visitante, e 300 chamadas de IA por minuto no site todo, ajustáveis na aba Diagnóstico. A busca em duas etapas conta uma vez só. Redes liberadas (escola, museu atrás de um único IP) ficam sem o limite por visitante.</li>
+    <li><b>Custo por busca</b> (OpenAI): um embedding da pergunta e cerca de 2 mil tokens no modelo de linguagem. Pela tabela da OpenAI, cerca de US$ 1 a cada mil perguntas com gpt-4.1-mini e US$ 0,30 com gpt-5-nano (confira na sua conta). O cache de 1 hora evita pagar de novo pela mesma pergunta, inclusive na primeira mensagem da BIA.</li>
     <li><b>O que sai do servidor:</b> com provedor externo, a pergunta e o texto dos itens recuperados vão ao provedor. Com <b>Ollama</b>, nada sai do servidor, mas a resposta fica bem mais lenta numa máquina sem GPU.</li>
     <li><b>Sugestões públicas</b> só mostram buscas feitas por pelo menos 3 visitantes diferentes. O que uma pessoa digitou sozinha nunca vira sugestão.</li>
     <li><b>Registros:</b> buscas e conversas ficam em tabelas próprias e são apagadas por uma rotina diária de retenção.</li>
   </ul>
-  <p class="footer-note">Medições feitas em 29/10/2026 no site de testes do TainacanBiblio (VPS de 1 vCPU e 4 GB, MariaDB 11.8, 38.102 vetores de 1.536 dimensões, embeddings <code>text-embedding-3-small</code>, respostas gpt-5-nano). Detalhes técnicos em <code>docs/ANALISE-LIMITE-VETORES.md</code> e <code>docs/CONTEXT.md</code> no repositório.</p>
+  <p class="footer-note">Medições feitas em 29/10/2026 no site de testes do TainacanBiblio (VPS de 1 vCPU e 4 GB, MariaDB 11.8, 38.102 vetores de 1.536 dimensões, embeddings <code>text-embedding-3-small</code>, respostas gpt-5-nano e gpt-4.1-mini). Detalhes técnicos em <code>docs/ANALISE-LIMITE-VETORES.md</code> e <code>docs/CONTEXT.md</code> no repositório.</p>
+</section>
+
+<!-- ============ 8 ============ -->
+<section class="page" style="break-before: page;">
+  <h2>11. Uso intenso: muita gente ao mesmo tempo</h2>
+  <p>Cada pergunta prende um processo PHP do servidor enquanto espera o provedor de IA responder. Com muita gente ao mesmo tempo, esses processos acabam, as perguntas entram em fila e o resto do site fica lento junto. Para medir, disparamos <b>40 buscas e 30 conversas com a BIA</b> contra o site de testes (VPS de <b>1 núcleo</b> e 4 GB) e repetimos com cada ajuste.</p>
+
+  <h3>Todos no mesmo segundo (o pior caso)</h3>
+  <table>
+    <tr><th>Configuração</th><th>Tudo atendido</th><th>Cartões</th><th>Busca completa</th><th>BIA</th><th>Página inicial</th></tr>
+    <tr><td>Antes (6 processos, gpt-5-nano, todos os plugins)</td><td class="num">64 s</td><td class="num">10,6 s</td><td class="num">48 s</td><td class="num">27 s</td><td class="num">22,6 s</td></tr>
+    <tr><td>+ modelo gpt-4.1-mini</td><td class="num">40 s</td><td class="num">7,8 s</td><td class="num">32 s</td><td class="num">18,5 s</td><td class="num">10,7 s</td></tr>
+    <tr><td>+ processos PHP próprios</td><td class="num">38 s</td><td class="num">10,5 s</td><td class="num">31 s</td><td class="num">22 s</td><td class="num"><b>0,8 s</b></td></tr>
+    <tr><td><b>+ modo rápido</b> (a configuração recomendada)</td><td class="num"><b>26,5 s</b></td><td class="num"><b>4,9 s</b></td><td class="num"><b>22 s</b></td><td class="num"><b>14 s</b></td><td class="num"><b>0,7 s</b></td></tr>
+  </table>
+  <p style="font-size:9pt;color:var(--muted)">Tempos por pessoa: mediana (metade esperou menos). Nenhum dos 770 pedidos dos testes falhou.</p>
+
+  <h3>As mesmas 70 pessoas chegando ao longo de 20 segundos</h3>
+  <table>
+    <tr><th>Configuração</th><th>Cartões</th><th>Busca completa</th><th>BIA</th><th>Página inicial</th></tr>
+    <tr><td>Antes</td><td class="num">6,8 s</td><td class="num">19,4 s</td><td class="num">9,6 s</td><td class="num">5,2 s</td></tr>
+    <tr><td><b>Recomendada</b></td><td class="num"><b>0,9 s</b></td><td class="num"><b>3,0 s</b></td><td class="num"><b>2,2 s</b></td><td class="num"><b>0,8 s</b></td></tr>
+  </table>
+  <p>Espalhadas por um minuto inteiro, as duas configurações atendem como se houvesse uma pessoa só (cartões em 0,6–0,7 s). A diferença aparece nos picos.</p>
+
+  <div class="two">
+    <div>
+      <h3>O que cada ajuste faz</h3>
+      <ul>
+        <li><b>Modelo de linguagem.</b> gpt-4.1-mini respondeu em ~1,9 s, com texto curto e correto; gpt-5-nano em ~6 s (ele “raciocina” antes); gpt-4o-mini inventou links. É o padrão nas instalações novas.</li>
+        <li><b>Modo rápido</b> (plugin, um clique). Nas rotas da busca e da BIA, carrega só o Oráculo: 0,05 s de CPU por pedido, contra 0,13 s com todos os plugins. Resultados idênticos.</li>
+        <li><b>Processos PHP próprios</b> (servidor). Não aceleram o Oráculo; impedem que ele derrube o site durante o pico.</li>
+        <li><b>Limites de uso.</b> O teto antigo (60/min) recusaria parte desse pico; o padrão agora é 300.</li>
+        <li><b>Mais processos não ajudam</b> num núcleo só: com 16, a CPU saturou e os cartões pioraram. Acima disso, o que rende é CPU (2 a 4 núcleos).</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Modelo local (Ollama)</h3>
+      <p>Na mesma VPS, sem placa de vídeo: <b>qwen2.5 1.5B</b> levou 58–70 s e afirmou que dois livros tratavam de Brasília (não tratavam); <b>qwen3-vl 2B</b>, 210 s, com links inventados. O Ollama atende uma pergunta por vez: 70 pessoas esperariam mais de uma hora. Serve para tarefas em segundo plano ou num servidor com GPU, não para a busca ao vivo.</p>
+      <div class="box"><b>O que vem com o plugin e o que é do servidor:</b> modelo, modo rápido, limites e cache vêm com o plugin e funcionam em qualquer hospedagem (o modo rápido precisa poder gravar em <code>wp-content/mu-plugins</code>). Os processos PHP próprios são configuração do servidor.</div>
+    </div>
+  </div>
+</section>
+
+<section class="page">
+  <h2>A aba Diagnóstico</h2>
+  <p>Em <b>Tainacan → Oráculo → Diagnóstico</b>, cada item mostra a situação (verde, amarelo, vermelho), o que ela significa e o que fazer. O botão <b>Testar agora</b> faz uma busca de teste pelo mesmo caminho do visitante e mede cada etapa; é ele que confirma o modo rápido e os processos próprios funcionando de verdade.</p>
+  <div class="two">
+    <figure><img src="oraculo-diagnostico-1.png" alt="" style="max-height:230px;object-fit:contain;object-position:top"><figcaption>Placar, teste ao vivo e as primeiras verificações. Carga do WordPress em 0,04 s com o modo rápido.</figcaption></figure>
+    <figure><img src="oraculo-diagnostico-2.png" alt="" style="max-height:230px;object-fit:contain;object-position:top"><figcaption>Modo rápido (liga e desliga com um clique), processos próprios confirmados pelo teste e o formulário dos limites.</figcaption></figure>
+  </div>
+
+  <h3>Receita: processos PHP próprios (PHP-FPM + nginx)</h3>
+  <p>Para quem administra o servidor. Em hospedagem compartilhada isso costuma não ser possível; o Oráculo funciona igual, só sem a proteção do resto do site.</p>
+  <p><b>1. Um grupo de processos novo</b>, cópia do grupo do site (mesmo usuário), em <code>/etc/php/8.2/fpm/pool.d/zz-meusite-oraculo.conf</code>:</p>
+<pre style="font-size:8pt;line-height:1.3;background:var(--soft);padding:5px 9px;border-radius:4px;margin:3px 0 6px;">[meusite-oraculo]
+listen = 127.0.0.1:17101          ; porta livre
+user = meusite
+group = meusite
+pm = ondemand
+pm.max_children = 10              ; num núcleo só, mais que 10 não ajuda
+process.priority = 10             ; as páginas do site passam na frente
+env[ORACULO_PHP_POOL] = oraculo   ; é por ela que o Diagnóstico reconhece o grupo</pre>
+  <p><b>2. No nginx</b>, no nível <code>http</code> (um arquivo em <code>sites-enabled</code> serve), escolha o grupo pelo endereço:</p>
+<pre style="font-size:8pt;line-height:1.3;background:var(--soft);padding:5px 9px;border-radius:4px;margin:3px 0 6px;">map $request_uri $meusite_php {
+  ~^/wp-json/oraculo/  127.0.0.1:17101;   # site em subpasta: ~^/subpasta/wp-json/oraculo/
+  default              127.0.0.1:17001;   # o grupo de sempre do site
+}</pre>
+  <p>e, no bloco <code>location ~ \.php$</code> do site, troque o <code>fastcgi_pass</code> fixo por <code>fastcgi_pass $meusite_php;</code>.</p>
+  <p><b>3.</b> <code>php-fpm8.2 -t &amp;&amp; nginx -t</code>, recarregue os dois e clique em <b>Testar agora</b>: “Processos PHP próprios: sim (oraculo)”.</p>
+  <div class="box warn"><b>Painéis como o CloudPanel</b> regravam o vhost quando ele é editado pela interface, e a linha do <code>fastcgi_pass</code> volta ao original. Depois de mexer no site pelo painel, rode o teste de novo.</div>
 </section>
 
 </body>

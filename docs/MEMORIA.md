@@ -1,7 +1,7 @@
 # Memória do projeto (decisões, armadilhas, pendências)
 
 > Para retomar o trabalho em outra máquina ou instância. Complementa o
-> [CONTEXT.md](CONTEXT.md), que descreve a arquitetura. Atualizado em 24/10/2026 (versão 2.10.2).
+> [CONTEXT.md](CONTEXT.md), que descreve a arquitetura. Atualizado em 29/10/2026 (versão 2.13.0).
 > Endereços, credenciais e comandos de servidor ficam no repositório privado de infraestrutura,
 > não aqui (este repositório é público).
 
@@ -9,8 +9,9 @@
 
 - Repositório `marcossigismundo/oraculo_tainacan`, branch `main`. A pasta local se chama
   `oraculo_tainacan`; no site, o plugin fica em `oraculo-tainacan` (com hífen).
-- Instalado em dois sites de teste: o do TainacanBiblio (sem busca em documentos) e o
-  laboratório de OCR, que tem a coleção "OCR — documentos digitalizados (laboratório)".
+- Instalado em dois sites de teste: o do TainacanBiblio (sem busca em documentos; 2.13.0) e o
+  laboratório de OCR, que tem a coleção "OCR — documentos digitalizados (laboratório)" (fica na
+  2.10.2 por decisão do Marcos; o deploy pelo mapa publica nos dois — voltar o laboratório depois).
 
 ## Linha do tempo das decisões
 
@@ -37,6 +38,17 @@
   JS troca só o bloco da resposta. O bilhete isenta a answer dos limites (a items já contou). Cache
   do embedding da pergunta só na busca (2 h). Sem transação entre origem e tabela lateral: deadlock
   na cópia desfazia também o vetor (achado do code-review high).
+- **2.13.0 (29/10/2026), uso intenso.** Teste de carga com 40 buscas + 30 conversas simultâneas
+  numa VPS de 1 núcleo: o gargalo eram os processos PHP presos esperando a IA e, ao aumentá-los, a
+  CPU. Configuração recomendada = gpt-4.1-mini + modo rápido + processos PHP próprios: pior caso de
+  64 s para 26,5 s; página inicial de 22,6 s para 0,7 s durante o pico. Entregas: aba
+  **Diagnóstico** (`Admin\Diagnostics`, teste ao vivo em `POST diagnostics/probe`), **modo rápido**
+  (`Performance\FastRest` copia `mu-plugin/oraculo-tainacan-rest-leve.php` para `mu-plugins`; nas
+  rotas search/chat/probe filtra `option_active_plugins` para só o Oráculo, + Tainacan no modo CLIP,
+  que usa `get_permalink`), limites como opções (`rate_limit_*`, teto global 60 → 300, redes
+  liberadas por CIDR sobre `REMOTE_ADDR`), cache da 1ª mensagem da BIA, gpt-4.1-mini como padrão.
+  Modelo local (qwen 1.5B/2B no Ollama, CPU) descartado para uso ao vivo: 58–210 s e alucinação.
+  Números completos no manual (seção 11) e no repositório de infraestrutura.
 - **2.11.0 (29/10/2026), busca vetorial dentro do MariaDB 11.7+.** Tabelas laterais estreitas
   `oraculo_vectors_native` e `oraculo_chunks_native` (id, item, coleção, anexo, `embedding_vec
   VECTOR(n)`), preenchidas por cron em faixas de id e espelhadas em toda gravação e remoção
@@ -58,6 +70,13 @@
   `VEC_FromText(%s)` dentro do `ORDER BY` é reavaliado **a cada linha** (+1,8 s em 8 mil): converter
   uma vez numa variável de sessão (`SET @oraculo_q = …`).
 
+- **Modo rápido e `Requires Plugins`.** O mu-plugin tira o Tainacan da lista de ativos só nas
+  rotas do Oráculo; funciona porque o núcleo não confere dependências ao carregar. Nunca deixar a
+  lista enxuta ser gravada: o mu-plugin bloqueia `update_option('active_plugins')` nesses pedidos.
+  Qualquer código novo na busca/chat que chame classe do Tainacan quebra no modo rápido — inclua o
+  Tainacan em `FastRest::plugins()` ou evite a chamada.
+- **Grupo PHP próprio** é reconhecido pela variável `ORACULO_PHP_POOL` (receita do manual). Editar
+  o vhost pelo painel do CloudPanel apaga o `fastcgi_pass $…_php`.
 - **Itens do Tainacan têm `exclude_from_search`.** Consulta com `post_type => 'any'` não acha
   nenhum item. Use a lista explícita (`AutoIndexer::get_item_post_types()`).
 - **Cache da busca.** A chave leva `format` (5 desde a 2.10.0). Mudou o formato da resposta,
@@ -72,6 +91,8 @@
 
 ## Pendências
 
+- **2.13.0 (29/10/2026)**: Gemini (Flash-Lite) não entrou na comparação de modelos por falta de
+  chave; o teste de carga em `docs/manual` é reproduzível com o mesmo cenário.
 - **2.12.0 publicada (29/10/2026)**, release v2.12.0 com ZIP e o manual PDF (`docs/manual/`).
   Falta testar a tabela lateral dos **trechos** num site com documentos (o laboratório de OCR, que
   ainda está na 2.10.2) e, se houver interesse em publicar no diretório, instalar as regras do Plugin

@@ -131,14 +131,21 @@ superfície pública. Endpoints e suas proteções:
 
 | Grupo | Rotas | Proteção |
 |---|---|---|
-| Público | `/search`, `/chat`, `/feedback` | gate `enable_<feature>` + nonce `wp_rest` + rate-limit por IP (10/20/30 por min) + teto global de 60 chamadas de IA/min |
+| Público | `/search`, `/chat`, `/feedback` | gate `enable_<feature>` + nonce `wp_rest` + rate-limit por IP (opções `rate_limit_search`/`rate_limit_chat`, padrão 10/20; feedback 30) + teto global (`rate_limit_global`, padrão 300 chamadas de IA/min); IPs em `rate_limit_allowlist` (CIDR) sem limite por IP |
 | Leitura ligada à busca | `/collections`, `/suggestions` | `enable_search` |
 | Usuário logado | `/conversations`, `/conversations/{session}/messages` | `is_user_logged_in()` + checagem de posse |
 | Mutação de conversa | `/conversations/{session}/end` | nonce `wp_rest` + posse |
-| Admin | indexação, analytics, vetores, provedores, settings, health | `manage_options` |
+| Admin | indexação, analytics, vetores, provedores, settings, health, `diagnostics/probe` (teste ao vivo da aba Diagnóstico) | `manage_options` |
 
 Caps de entrada no schema: `query` ≤ 500 caracteres, `message` ≤ 2000, `collections` ≤ 20 itens.
-Filtros para ajustar limites: `oraculo_tainacan_rest_rate_limit`, `oraculo_tainacan_rest_global_rate_limit`.
+Filtros para ajustar limites (prevalecem sobre as opções): `oraculo_tainacan_rest_rate_limit`, `oraculo_tainacan_rest_global_rate_limit`.
+
+**Modo rápido (2.13.0)**: `src/Performance/FastRest.php` instala `mu-plugin/oraculo-tainacan-rest-leve.php`
+em `wp-content/mu-plugins` (opção `oraculo_tainacan_fast_rest` = enabled + basenames mantidos; o
+primeiro é o Oráculo). Em POST para `/oraculo/v1/(search|chat|diagnostics/probe)` o mu-plugin
+filtra `option_active_plugins` e define `ORACULO_TAINACAN_FAST_REST`. `FastRest::maintain()`
+(admin_init) recopia o arquivo após atualização; a desativação o remove. Filtro
+`oraculo_tainacan_fast_rest_plugins`.
 
 **AJAX** — apenas `wp_ajax_` (admin autenticado), sem handlers `nopriv`:
 `oraculo_index_collection`, `oraculo_get_indexing_status`, `oraculo_test_connection`,
