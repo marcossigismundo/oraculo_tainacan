@@ -94,8 +94,10 @@ class SearchEngine {
 			$query_embedding = $embedding_result['embedding'];
 
 			// 2. Buscar itens similares no vector store
-			$max_results = $options['max_results'] ?? $this->options['max_results'] ?? 10;
-			$threshold   = $options['similarity_threshold'] ?? $this->options['similarity_threshold'] ?? 0.3;
+			// Cast na origem: o WP-CLI e as opções salvas trazem string, e
+			// prepare_context() exige int (strict_types).
+			$max_results = (int) ( $options['max_results'] ?? $this->options['max_results'] ?? 10 );
+			$threshold   = (float) ( $options['similarity_threshold'] ?? $this->options['similarity_threshold'] ?? 0.3 );
 
 			$similar_items = $this->vector_store->search(
 				$query_embedding,

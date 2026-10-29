@@ -118,6 +118,7 @@ Only the text content of your archived items is sent to the AI provider you conf
 * Other databases (MySQL, MariaDB < 11.7), or while the column is being filled, keep the two-phase search. Rows with another dimension (embedding model changed) are left out of the database search; the side tables follow the dimension of the current model on their own
 * WP-CLI: `wp oraculo native status|sync|rebuild|drop`. A dump with the side tables only restores on MariaDB 11.7+: run `wp oraculo native drop` before moving it to MySQL or an older MariaDB
 * Fix: vector export with embeddings no longer includes the binary `embedding_bits` column
+* Fix: `wp oraculo search --limit=N` died with a TypeError (the limit arrived as a string under strict_types)
 
 = 2.10.2 =
 * Fix: an attachment already processed by Tainacan OCR Search that has no text (blank page) is no longer reported as needing OCR
