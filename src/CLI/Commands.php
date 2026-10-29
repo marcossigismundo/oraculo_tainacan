@@ -363,10 +363,7 @@ class Commands extends WP_CLI_Command {
 			$count = $vector_store->delete_collection( $collection_id );
 			WP_CLI::success( "Removidos {$count} vetores da coleção #{$collection_id}." );
 		} else {
-			global $wpdb;
-			$count = $wpdb->query( "TRUNCATE TABLE {$wpdb->prefix}oraculo_vectors" );
-			NativeVector::forget( NativeVector::VECTORS );
-			( new ChunkStore() )->truncate();
+			$vector_store->truncate_all();
 			WP_CLI::success( 'Todos os vetores foram removidos.' );
 		}
 	}
@@ -497,7 +494,7 @@ class Commands extends WP_CLI_Command {
 			if ( NativeVector::run( 0 ) ) {
 				WP_CLI::log( sprintf( 'Concluído em %.1f s.', microtime( true ) - $start ) );
 			} else {
-				WP_CLI::warning( 'Outro processo está preenchendo as tabelas laterais (ou o CREATE foi recusado); o cron continua o trabalho. Confira com `wp oraculo native status`.' );
+				WP_CLI::warning( 'Não terminou: outro processo está preenchendo, o CREATE foi recusado ou há linhas para reenviar; o cron continua o trabalho. Confira abaixo.' );
 			}
 		}
 
@@ -508,6 +505,9 @@ class Commands extends WP_CLI_Command {
 				$label = sprintf( 'preenchendo (até o id %d)', $info['cursor'] );
 			} else {
 				$label = $info['dim'] ? 'pronta (busca no banco)' : 'sem dados ainda';
+			}
+			if ( $info['retry'] ) {
+				$label .= sprintf( ' | %d linha(s) para reenviar', $info['retry'] );
 			}
 			WP_CLI::log( sprintf( '%-8s dimensão %s | %s', $kind, $info['dim'] ? (string) $info['dim'] : '-', $label ) );
 		}

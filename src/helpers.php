@@ -1023,6 +1023,43 @@ function force_bump_index_version(): void {
 }
 
 /**
+ * Roda escritas em mais de uma tabela numa transação.
+ *
+ * Os vetores e as tabelas laterais da busca nativa (NativeVector) mudam
+ * juntos: um processo que morre no meio não pode deixar um sem o outro.
+ * Aninhável: só a chamada mais externa abre e fecha a transação. Exceção
+ * desfaz e é repassada.
+ *
+ * @param callable $writes Escritas.
+ * @return mixed Retorno de $writes.
+ */
+function in_transaction( callable $writes ) {
+	global $wpdb;
+	static $depth = 0;
+
+	if ( $depth > 0 ) {
+		return $writes();
+	}
+
+	++$depth;
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control; no WP API.
+	$wpdb->query( 'START TRANSACTION' );
+	try {
+		$result = $writes();
+	} catch ( \Throwable $e ) {
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control; no WP API.
+		$wpdb->query( 'ROLLBACK' );
+		$depth = 0;
+		throw $e;
+	}
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control; no WP API.
+	$wpdb->query( 'COMMIT' );
+	$depth = 0;
+
+	return $result;
+}
+
+/**
  * Invalida todo o cache derivado do índice vetorial após uma escrita.
  *
  * Combina a limpeza do object-cache group com o bump da versão do índice, que

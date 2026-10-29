@@ -150,6 +150,17 @@ class ChunkStore {
 	 * @return int Gravados.
 	 */
 	public function insert_many( array $rows ): int {
+		// Trechos e tabela lateral da busca nativa mudam juntos.
+		return (int) \Oraculo_Tainacan\in_transaction( fn() => $this->insert_rows( $rows ) );
+	}
+
+	/**
+	 * Grava os trechos (dentro da transação de insert_many())
+	 *
+	 * @param array $rows Ver insert_many().
+	 * @return int Gravados.
+	 */
+	private function insert_rows( array $rows ): int {
 		global $wpdb;
 
 		$saved   = 0;
@@ -197,6 +208,16 @@ class ChunkStore {
 	 * @return int Apagados.
 	 */
 	public function delete_ids( array $ids ): int {
+		return (int) \Oraculo_Tainacan\in_transaction( fn() => $this->delete_rows( $ids ) );
+	}
+
+	/**
+	 * Apaga trechos por id (dentro da transação de delete_ids())
+	 *
+	 * @param int[] $ids IDs.
+	 * @return int Apagados.
+	 */
+	private function delete_rows( array $ids ): int {
 		global $wpdb;
 
 		$ids = array_values( array_filter( array_map( 'intval', $ids ) ) );
@@ -235,9 +256,14 @@ class ChunkStore {
 			return 0;
 		}
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table; DELETE without conditions takes no input; write path.
-		$deleted = (int) $wpdb->query( "DELETE FROM {$this->table}" );
-		NativeVector::forget( NativeVector::CHUNKS );
+		$deleted = (int) \Oraculo_Tainacan\in_transaction(
+			function () use ( $wpdb ) {
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table; DELETE without conditions takes no input; write path.
+				$deleted = (int) $wpdb->query( "DELETE FROM {$this->table}" );
+				NativeVector::forget( NativeVector::CHUNKS );
+				return $deleted;
+			}
+		);
 		\Oraculo_Tainacan\invalidate_index_caches();
 		return $deleted;
 	}
@@ -256,9 +282,14 @@ class ChunkStore {
 			return 0;
 		}
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table; $column validated against the allowlist above; value via %d; write path.
-		$deleted = (int) $wpdb->query( $wpdb->prepare( "DELETE FROM {$this->table} WHERE {$column} = %d", $id ) );
-		NativeVector::forget( NativeVector::CHUNKS, array( $column => $id ) );
+		$deleted = (int) \Oraculo_Tainacan\in_transaction(
+			function () use ( $wpdb, $column, $id ) {
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table; $column validated against the allowlist above; value via %d; write path.
+				$deleted = (int) $wpdb->query( $wpdb->prepare( "DELETE FROM {$this->table} WHERE {$column} = %d", $id ) );
+				NativeVector::forget( NativeVector::CHUNKS, array( $column => $id ) );
+				return $deleted;
+			}
+		);
 
 		if ( $deleted ) {
 			\Oraculo_Tainacan\invalidate_index_caches();

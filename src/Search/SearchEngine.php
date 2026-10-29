@@ -195,7 +195,7 @@ class SearchEngine {
 				$embedding_result['embedding'],
 				$collection_ids,
 				$limit,
-				$this->options['similarity_threshold'] ?? 0.3
+				(float) ( $this->options['similarity_threshold'] ?? 0.3 )
 			);
 
 			if ( is_wp_error( $similar_items ) ) {

@@ -21,7 +21,7 @@ namespace Oraculo_Tainacan\Vector;
  * (texto, metadados, embedding em JSON) e a tabela passa do buffer do InnoDB;
  * com a coluna dentro dela, a varredura do acervo todo levou 5–8 s lendo o
  * disco. Estreita, medido no MariaDB 11.8 com 38 mil vetores de 1536
- * dimensões: ~110 ms no acervo todo e ~30 ms numa coleção de 8 mil.
+ * dimensões: ~120 ms no acervo todo e ~30 ms numa coleção de 8 mil.
  *
  * Sem VECTOR INDEX de propósito: o HNSW do MariaDB filtra depois de buscar, e
  * com filtro por coleção (o caso comum aqui) devolveu 13–46% de recall e
@@ -31,6 +31,11 @@ namespace Oraculo_Tainacan\Vector;
  * duas fases em PHP. Linhas com outra dimensão (troca de modelo) ficam fora
  * da tabela lateral; enquanto a consulta não tiver a dimensão dela, a busca
  * também usa o caminho antigo, e o cron reavalia a dimensão.
+ *
+ * Estado por tabela (opção STATE_OPTION_<tabela>): dim (existe ⇔ a tabela
+ * lateral existe), cursor e ready do preenchimento, recheck, checked_at,
+ * error_at, off. Linhas cuja cópia falhou vão para uma lista de reenvio
+ * (RETRY_OPTION_<tabela>), processada pelo cron sem desligar a busca.
  */
 final class NativeVector {
 
@@ -43,8 +48,14 @@ final class NativeVector {
 	/** Cron que cria a tabela lateral e a preenche em lotes. */
 	public const CRON_HOOK = 'oraculo_native_vectors';
 
-	/** Estado por tabela: dim, cursor, ready, recheck, checked_at, off. */
-	public const STATE_OPTION = 'oraculo_native_vectors';
+	/** Prefixo da opção de estado (uma por tabela). */
+	public const STATE_OPTION = 'oraculo_native_vectors_';
+
+	/** Prefixo da lista de reenvio: id => tentativas. */
+	private const RETRY_OPTION = 'oraculo_native_retry_';
+
+	/** Tentativas antes de desistir de uma linha (embedding que o banco recusa). */
+	private const MAX_ATTEMPTS = 5;
 
 	/** Lote do preenchimento (linhas por INSERT ... SELECT). */
 	private const BATCH = 1000;
@@ -104,16 +115,15 @@ final class NativeVector {
 	}
 
 	/**
-	 * Agenda o cron se alguma tabela ainda não está pronta (no init; barato)
+	 * Agenda o cron se alguma tabela tem trabalho pendente (no init; barato)
 	 */
 	public static function maybe_schedule(): void {
 		if ( ! self::supported() ) {
 			return;
 		}
 
-		$state = self::state();
 		foreach ( array_keys( self::SOURCES ) as $kind ) {
-			if ( empty( $state[ $kind ]['ready'] ) || ! empty( $state[ $kind ]['recheck'] ) ) {
+			if ( self::has_work( $kind ) ) {
 				self::schedule();
 				return;
 			}
@@ -135,8 +145,12 @@ final class NativeVector {
 	 * Cron: cria/ajusta a tabela lateral e preenche um lote de cada tabela
 	 */
 	public static function run_cron(): void {
-		if ( ! self::run( 20 ) ) {
-			self::schedule( 5 );
+		self::run( 20 );
+		foreach ( array_keys( self::SOURCES ) as $kind ) {
+			if ( self::has_work( $kind ) ) {
+				self::schedule( 5 );
+				return;
+			}
 		}
 	}
 
@@ -152,7 +166,7 @@ final class NativeVector {
 		}
 
 		// Um processo por vez; lock vencido (processo que morreu) sai em 10 min.
-		$lock = self::STATE_OPTION . '_lock';
+		$lock = self::STATE_OPTION . 'lock';
 		if ( ! add_option( $lock, time(), '', false ) ) {
 			if ( time() - (int) get_option( $lock, 0 ) > 10 * MINUTE_IN_SECONDS ) {
 				delete_option( $lock );
@@ -171,7 +185,7 @@ final class NativeVector {
 	}
 
 	/**
-	 * Uma tabela: lateral na dimensão do modelo atual e preenchimento por faixa de id
+	 * Uma tabela: lateral na dimensão do modelo atual, reenvios e preenchimento
 	 *
 	 * @param string $kind     self::VECTORS | self::CHUNKS.
 	 * @param float  $deadline microtime limite (0 = sem limite).
@@ -183,15 +197,18 @@ final class NativeVector {
 		$src    = self::SOURCES[ $kind ];
 		$source = $wpdb->prefix . $src['source'];
 		$native = $wpdb->prefix . $src['native'];
-		$cur    = self::state()[ $kind ] ?? array();
+		$cur    = self::state( $kind );
 
 		if ( ! empty( $cur['off'] ) ) {
 			return true;
 		}
+		// CREATE recusado (sem privilégio, servidor sem VECTOR): uma tentativa por hora.
+		if ( time() - (int) ( $cur['error_at'] ?? 0 ) < HOUR_IN_SECONDS ) {
+			return true;
+		}
 
 		if ( ! self::table_exists( $source ) ) {
-			// "Pronta, sem dimensão": o init não reagenda; a primeira gravação
-			// (sync) agenda de novo.
+			// Pronta, sem dimensão: a primeira gravação (sync) agenda de novo.
 			self::save( $kind, array( 'ready' => true ) );
 			return true;
 		}
@@ -205,9 +222,22 @@ final class NativeVector {
 			$wanted = (int) $wpdb->get_var(
 				$wpdb->prepare( "SELECT d FROM (SELECT {$src['dims']} AS d FROM {$source} ORDER BY id DESC LIMIT %d) AS r GROUP BY d ORDER BY COUNT(*) DESC LIMIT 1", self::DIM_SAMPLE )
 			);
+
 			if ( $wanted <= 0 ) {
-				// Tabela vazia: como acima.
-				self::save( $kind, array( 'ready' => true ) );
+				// Origem vazia: esvazia a lateral, se houver, e guarda a
+				// dimensão dela para as próximas gravações (sync) copiarem.
+				if ( $dim > 0 ) {
+					$wpdb->query( "DELETE FROM {$native}" );
+				}
+				self::save(
+					$kind,
+					array(
+						'ready'      => true,
+						'dim'        => $dim,
+						'checked_at' => time(),
+					)
+				);
+				self::clear_retry( $kind );
 				return true;
 			}
 
@@ -233,19 +263,30 @@ final class NativeVector {
 				);
 				$dim = self::column_dim( $native );
 				if ( $dim !== $wanted ) {
-					return false; // CREATE recusado: tenta no próximo cron.
+					self::save( $kind, array( 'error_at' => time() ) );
+					return false;
 				}
 				$cur = array( 'cursor' => 0 );
+				self::clear_retry( $kind );
 			}
 			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
 
+			$cur['dim']        = $dim;
+			$cur['recheck']    = false;
 			$cur['checked_at'] = time();
+			$cur['error_at']   = 0;
+			$cur['retry']      = ! empty( self::state( $kind )['retry'] );
+			// Gravado já: um recheck pedido daqui em diante é novo e vale.
+			self::save( $kind, $cur );
 		}
 
-		$cur['dim']     = $dim;
-		$cur['recheck'] = false;
-		$cursor         = (int) ( $cur['cursor'] ?? 0 );
+		// Sem recheck o bloco acima não roda: a dimensão vem da tabela que existe
+		// (estado apagado não pode deixar a busca sem dimensão para sempre).
+		$cur['dim'] = $dim;
 
+		self::process_retry( $kind, $dim );
+
+		$cursor = (int) ( $cur['cursor'] ?? 0 );
 		while ( empty( $cur['ready'] ) ) {
 			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table; values via placeholders; write path in cron.
 			$upto = (int) $wpdb->get_var(
@@ -254,38 +295,39 @@ final class NativeVector {
 			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 
 			if ( $upto <= $cursor ) {
+				// Passada completa: o que sobrou na lateral sem origem (remoção
+				// feita enquanto ela era refeita) sai agora.
+				self::prune( $kind );
 				$cur['ready'] = true;
 				break;
 			}
 
-			// Faixa de id: linha que o banco recusar (embedding ilegível) fica
-			// para trás em vez de travar o preenchimento.
 			if ( false === self::fill( $kind, $dim, 'id > %d AND id <= %d', array( $cursor, $upto ) ) ) {
+				// Lote recusado: as linhas vão para o reenvio, uma a uma, e o
+				// preenchimento segue.
 				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table; values via placeholders; write path in cron.
-				$ids = $wpdb->get_col( $wpdb->prepare( "SELECT id FROM {$source} WHERE id > %d AND id <= %d", $cursor, $upto ) );
-				foreach ( (array) $ids as $id ) {
-					self::fill( $kind, $dim, 'id = %d', array( (int) $id ) );
-				}
+				self::add_retry( $kind, array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare( "SELECT id FROM {$source} WHERE id > %d AND id <= %d", $cursor, $upto ) ) ) );
 			}
 
 			$cursor        = $upto;
 			$cur['cursor'] = $cursor;
-			self::save( $kind, $cur );
+			self::save_progress( $kind, $cur );
 
 			if ( $deadline > 0 && microtime( true ) > $deadline ) {
 				break;
 			}
 		}
 
-		self::save( $kind, $cur );
-		return ! empty( $cur['ready'] );
+		self::save_progress( $kind, $cur );
+		return ! empty( $cur['ready'] ) && empty( self::retry( $kind ) );
 	}
 
 	/**
 	 * Copia para a tabela lateral as linhas gravadas agora (upsert, insert)
 	 *
 	 * Apaga antes: um item reindexado não pode manter o vetor antigo, nem um
-	 * vetor de outra dimensão ficar com o anterior.
+	 * vetor de outra dimensão ficar com o anterior. Chamar dentro da mesma
+	 * transação da gravação na origem (in_transaction()).
 	 *
 	 * @param string $kind self::VECTORS | self::CHUNKS.
 	 * @param int[]  $ids  IDs da tabela de origem.
@@ -304,12 +346,9 @@ final class NativeVector {
 		foreach ( array_chunk( $ids, 500 ) as $chunk ) {
 			self::forget( $kind, array( 'id' => $chunk ) );
 			if ( false === self::fill( $kind, (int) $cur['dim'], 'id IN (' . implode( ',', array_fill( 0, count( $chunk ), '%d' ) ) . ')', $chunk ) ) {
-				// Falha passageira (lock, deadlock): o cron repassa a partir
-				// destas linhas, senão elas ficariam fora da busca para sempre.
-				$cur           = self::state()[ $kind ] ?? array();
-				$cur['cursor'] = min( (int) ( $cur['cursor'] ?? 0 ), min( $chunk ) - 1 );
-				$cur['ready']  = false;
-				self::save( $kind, $cur );
+				// Falha passageira (lock, deadlock): o cron reenvia só estas
+				// linhas; a busca nativa continua ligada.
+				self::add_retry( $kind, $chunk );
 				self::schedule();
 			}
 		}
@@ -349,12 +388,17 @@ final class NativeVector {
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table ($wpdb->prefix . class constant); columns from the FORGET_COLUMNS allowlist, values as %d placeholders built with array_fill; the unconditioned DELETE takes no input; write path.
 		$wpdb->query( $values ? $wpdb->prepare( $sql, $values ) : $sql );
 		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+
+		if ( empty( $where ) ) {
+			self::clear_retry( $kind );
+		}
 	}
 
 	/**
 	 * Apaga da tabela lateral as linhas que não existem mais na origem
 	 *
-	 * Para remoções em massa sem lista de ids (limpeza por data).
+	 * Para remoções em massa sem lista de ids (limpeza por data) e para o fim
+	 * de cada preenchimento completo.
 	 *
 	 * @param string $kind self::VECTORS | self::CHUNKS.
 	 */
@@ -474,34 +518,47 @@ final class NativeVector {
 					'off'   => true,
 				)
 			);
+			self::clear_retry( $kind );
 		}
 		wp_clear_scheduled_hook( self::CRON_HOOK );
 		return $dropped;
 	}
 
 	/**
-	 * Refaz do zero (WP-CLI): reavalia a dimensão e preenche de novo
+	 * Refaz do zero (WP-CLI): reavalia a dimensão e copia tudo de novo
+	 *
+	 * Mantém a dimensão (a tabela lateral continua lá e recebendo as remoções)
+	 * até o cron decidir; a busca nativa fica desligada durante a nova cópia.
 	 */
 	public static function reset(): void {
 		foreach ( array_keys( self::SOURCES ) as $kind ) {
-			self::save( $kind, array( 'recheck' => true ) );
+			$cur = self::state( $kind );
+			self::save(
+				$kind,
+				array(
+					'dim'     => empty( $cur['off'] ) ? (int) ( $cur['dim'] ?? 0 ) : 0,
+					'cursor'  => 0,
+					'recheck' => true,
+				)
+			);
 		}
 	}
 
 	/**
 	 * Situação para o WP-CLI
 	 *
-	 * @return array<string, array{dim: int, ready: bool, cursor: int, off: bool}>
+	 * @return array<string, array{dim: int, ready: bool, cursor: int, off: bool, retry: int}>
 	 */
 	public static function status(): array {
 		$out = array();
 		foreach ( array_keys( self::SOURCES ) as $kind ) {
-			$cur          = self::state()[ $kind ] ?? array();
+			$cur          = self::state( $kind );
 			$out[ $kind ] = array(
 				'dim'    => (int) ( $cur['dim'] ?? 0 ),
 				'ready'  => ! empty( $cur['ready'] ),
 				'cursor' => (int) ( $cur['cursor'] ?? 0 ),
 				'off'    => ! empty( $cur['off'] ),
+				'retry'  => count( self::retry( $kind ) ),
 			);
 		}
 		return $out;
@@ -517,8 +574,23 @@ final class NativeVector {
 		if ( ! self::supported() ) {
 			return null;
 		}
-		$cur = self::state()[ $kind ] ?? array();
+		$cur = self::state( $kind );
 		return empty( $cur['off'] ) ? $cur : null;
+	}
+
+	/**
+	 * A tabela tem trabalho para o cron?
+	 *
+	 * @param string $kind Tabela.
+	 * @return bool
+	 */
+	private static function has_work( string $kind ): bool {
+		$cur = self::state( $kind );
+		if ( ! empty( $cur['off'] ) || time() - (int) ( $cur['error_at'] ?? 0 ) < HOUR_IN_SECONDS ) {
+			return false;
+		}
+		// "retry" é só a marca (autoload); a lista fica numa opção à parte.
+		return empty( $cur['ready'] ) || ! empty( $cur['recheck'] ) || ! empty( $cur['retry'] );
 	}
 
 	/**
@@ -567,6 +639,96 @@ final class NativeVector {
 	}
 
 	/**
+	 * Reenvia, uma a uma, as linhas cuja cópia falhou
+	 *
+	 * @param string $kind Tabela.
+	 * @param int    $dim  Dimensão da tabela lateral.
+	 */
+	private static function process_retry( string $kind, int $dim ): void {
+		$start   = self::retry( $kind );
+		$pending = $start;
+		if ( empty( $pending ) ) {
+			return;
+		}
+
+		foreach ( $start as $id => $attempts ) {
+			if ( false !== self::fill( $kind, $dim, 'id = %d', array( (int) $id ) ) || $attempts + 1 >= self::MAX_ATTEMPTS ) {
+				// Copiada, ou recusada de vez (embedding ilegível): fica de
+				// fora da busca nativa, como fica da antiga.
+				unset( $pending[ $id ] );
+			} else {
+				$pending[ $id ] = $attempts + 1;
+			}
+		}
+
+		// Relê antes de gravar: uma gravação pode ter acrescentado ids agora.
+		foreach ( self::retry( $kind ) as $id => $attempts ) {
+			if ( ! array_key_exists( $id, $start ) ) {
+				$pending[ $id ] = $attempts;
+			}
+		}
+		if ( empty( $pending ) ) {
+			self::clear_retry( $kind );
+		} else {
+			update_option( self::RETRY_OPTION . $kind, $pending, false );
+		}
+	}
+
+	/**
+	 * Lista de reenvio
+	 *
+	 * @param string $kind Tabela.
+	 * @return array<int, int> id => tentativas.
+	 */
+	private static function retry( string $kind ): array {
+		wp_cache_delete( self::RETRY_OPTION . $kind, 'options' );
+		$list = get_option( self::RETRY_OPTION . $kind, array() );
+		return is_array( $list ) ? $list : array();
+	}
+
+	/**
+	 * Acrescenta ids à lista de reenvio
+	 *
+	 * @param string $kind Tabela.
+	 * @param int[]  $ids  IDs da origem.
+	 */
+	private static function add_retry( string $kind, array $ids ): void {
+		if ( empty( $ids ) ) {
+			return;
+		}
+		$list = self::retry( $kind );
+		foreach ( $ids as $id ) {
+			$list[ (int) $id ] = $list[ (int) $id ] ?? 0;
+		}
+		update_option( self::RETRY_OPTION . $kind, $list, false );
+		self::set_retry_flag( $kind, true );
+	}
+
+	/**
+	 * Esvazia a lista de reenvio
+	 *
+	 * @param string $kind Tabela.
+	 */
+	private static function clear_retry( string $kind ): void {
+		delete_option( self::RETRY_OPTION . $kind );
+		self::set_retry_flag( $kind, false );
+	}
+
+	/**
+	 * Marca no estado (autoload) se há reenvio pendente
+	 *
+	 * @param string $kind Tabela.
+	 * @param bool   $on   Pendente.
+	 */
+	private static function set_retry_flag( string $kind, bool $on ): void {
+		$cur = self::state( $kind );
+		if ( (bool) ( $cur['retry'] ?? false ) !== $on ) {
+			$cur['retry'] = $on;
+			self::save( $kind, $cur );
+		}
+	}
+
+	/**
 	 * A tabela existe?
 	 *
 	 * @param string $table Tabela com prefixo.
@@ -598,12 +760,13 @@ final class NativeVector {
 	}
 
 	/**
-	 * Estado salvo
+	 * Estado de uma tabela
 	 *
-	 * @return array<string, array>
+	 * @param string $kind Tabela.
+	 * @return array
 	 */
-	private static function state(): array {
-		$state = get_option( self::STATE_OPTION, array() );
+	private static function state( string $kind ): array {
+		$state = get_option( self::STATE_OPTION . $kind, array() );
 		return is_array( $state ) ? $state : array();
 	}
 
@@ -614,8 +777,29 @@ final class NativeVector {
 	 * @param array  $value Estado.
 	 */
 	private static function save( string $kind, array $value ): void {
-		$state          = self::state();
-		$state[ $kind ] = $value;
-		update_option( self::STATE_OPTION, $state, true );
+		update_option( self::STATE_OPTION . $kind, $value, true );
+	}
+
+	/**
+	 * Grava o progresso do cron sem apagar o que outro processo pediu
+	 *
+	 * Um `drop` (off) ou um recheck gravados durante a passada valem mais que
+	 * a cópia em memória do cron.
+	 *
+	 * @param string $kind Tabela.
+	 * @param array  $cur  Estado do cron.
+	 */
+	private static function save_progress( string $kind, array $cur ): void {
+		wp_cache_delete( self::STATE_OPTION . $kind, 'options' );
+		wp_cache_delete( 'alloptions', 'options' );
+		$fresh = self::state( $kind );
+		if ( ! empty( $fresh['off'] ) ) {
+			return;
+		}
+		if ( ! empty( $fresh['recheck'] ) ) {
+			$cur['recheck'] = true;
+		}
+		$cur['retry'] = ! empty( $fresh['retry'] );
+		self::save( $kind, $cur );
 	}
 }
