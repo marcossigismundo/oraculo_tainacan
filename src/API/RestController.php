@@ -72,6 +72,12 @@ class RestController extends WP_REST_Controller {
 							'default' => '',
 							'enum'    => array( '', 'items', 'answer' ),
 						),
+						// Devolvido pela etapa items; isenta a answer dos limites.
+						'ticket'      => array(
+							'type'    => 'string',
+							'default' => '',
+							'pattern' => '^([A-Za-z0-9]{24})?$',
+						),
 					),
 				),
 			)
@@ -526,15 +532,11 @@ class RestController extends WP_REST_Controller {
 		 */
 		$max_per_minute = (int) apply_filters( 'oraculo_tainacan_rest_rate_limit', $defaults[ $feature ] ?? 10, $feature );
 
-		// Busca em duas etapas: a pergunta conta uma vez no limite por IP (na
-		// etapa items) e uma vez no teto global de IA (na answer, que chama o
-		// modelo). Answer sem items antes conta nos dois, como a busca inteira.
+		// Busca em duas etapas: a pergunta conta nos limites uma vez, na etapa
+		// items. A answer só é isenta com o bilhete que a items devolveu, de uso
+		// único (consumido aqui); sem ele, conta como uma busca inteira.
 		$phase        = 'search' === $feature ? (string) $request->get_param( 'phase' ) : '';
-		$answer_after = 'answer' === $phase && ( new SearchEngine() )->has_pending_retrieval(
-			(string) $request->get_param( 'query' ),
-			array_map( 'intval', (array) $request->get_param( 'collections' ) ),
-			(int) $request->get_param( 'max_results' )
-		);
+		$answer_after = 'answer' === $phase && SearchEngine::claim_ticket( (string) $request->get_param( 'ticket' ) );
 
 		if ( $max_per_minute > 0 && ! $answer_after && ! $this->check_rate_limit( $feature, $max_per_minute ) ) {
 			return new WP_Error(
@@ -546,7 +548,7 @@ class RestController extends WP_REST_Controller {
 
 		// Teto global do site para chamadas que consomem IA (todos os IPs somados):
 		// o limite por IP não protege contra abuso distribuído (botnets/scrapers).
-		if ( in_array( $feature, array( 'search', 'chat' ), true ) && 'items' !== $phase ) {
+		if ( in_array( $feature, array( 'search', 'chat' ), true ) && ! $answer_after ) {
 			/**
 			 * Filtra o máximo global de chamadas de IA por minuto (search + chat, site inteiro).
 			 *
@@ -609,6 +611,7 @@ class RestController extends WP_REST_Controller {
 			array(
 				'max_results' => $request->get_param( 'max_results' ),
 				'phase'       => (string) $request->get_param( 'phase' ),
+				'ticket'      => (string) $request->get_param( 'ticket' ),
 			)
 		);
 

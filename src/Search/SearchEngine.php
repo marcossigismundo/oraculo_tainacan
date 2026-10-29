@@ -42,6 +42,12 @@ class SearchEngine {
 	 */
 	private array $options;
 
+	/** Recuperação guardada entre as etapas items e answer. */
+	private const TICKET_PREFIX = 'oraculo_tk_';
+
+	/** Marca de uso único do bilhete no controle de limite de uso. */
+	private const TICKET_USE_PREFIX = 'oraculo_tku_';
+
 	/**
 	 * Construtor
 	 */
@@ -94,9 +100,17 @@ class SearchEngine {
 			$threshold   = (float) ( $options['similarity_threshold'] ?? $this->options['similarity_threshold'] ?? 0.3 );
 
 			$retrieval_key = $this->get_retrieval_key( $query, $collection_ids, $max_results );
-			$similar_items = 'answer' === $phase ? get_transient( $retrieval_key ) : false;
+			$ticket        = (string) ( $options['ticket'] ?? '' );
+			$stored        = ( 'answer' === $phase && '' !== $ticket ) ? $this->read_ticket( $ticket, $retrieval_key ) : null;
+			$items_ms      = 0;
+			$similar_items = null;
 
-			if ( ! is_array( $similar_items ) ) {
+			if ( null !== $stored ) {
+				$similar_items = $this->expand_retrieval( $stored['retrieval'] );
+				$items_ms      = (int) $stored['ms'];
+			}
+
+			if ( empty( $similar_items ) ) {
 				$similar_items = $this->retrieve( $query, $collection_ids, $max_results, $threshold );
 				if ( is_wp_error( $similar_items ) ) {
 					return $similar_items;
@@ -108,21 +122,20 @@ class SearchEngine {
 			}
 
 			if ( 'items' === $phase ) {
-				// Tempo de sobra para a segunda chamada chegar.
-				set_transient( $retrieval_key, $similar_items, 5 * MINUTE_IN_SECONDS );
+				$items_ms = (int) round( ( microtime( true ) - $start_time ) * 1000 );
 
 				return array(
 					'query'            => $query,
 					'response'         => null,
 					'phase'            => 'items',
+					// Bilhete de uso único para a etapa answer: leva a recuperação
+					// e isenta a answer dos limites, já contados aqui.
+					'ticket'           => $this->issue_ticket( $retrieval_key, $similar_items, $items_ms ),
 					'items'            => $this->format_items( $similar_items, $query, $max_results, true ),
 					'total_results'    => count( $similar_items ),
-					'response_time_ms' => round( ( microtime( true ) - $start_time ) * 1000 ),
+					'response_time_ms' => $items_ms,
 					'from_cache'       => false,
 				);
-			}
-			if ( 'answer' === $phase ) {
-				delete_transient( $retrieval_key );
 			}
 
 			// 3. Preparar contexto para o LLM
@@ -152,8 +165,14 @@ class SearchEngine {
 				return $ai_response;
 			}
 
-			// 5. Formatar resposta final
-			$response_time = round( ( microtime( true ) - $start_time ) * 1000 );
+			// Recuperação usada: o bilhete sai (se o modelo falhou acima, ele fica
+			// para uma nova tentativa não refazer embedding e busca).
+			if ( '' !== $ticket ) {
+				delete_transient( self::TICKET_PREFIX . $ticket );
+			}
+
+			// 5. Formatar resposta final (em duas etapas, o tempo soma as duas).
+			$response_time = $items_ms + round( ( microtime( true ) - $start_time ) * 1000 );
 
 			$result = array(
 				'query'            => $query,
@@ -458,9 +477,9 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados.',
 			if ( ! isset( $indexed[ $item_id ] ) ) {
 				continue; // item sem vetor de metadados (despublicado/removido)
 			}
-			$score                              = (float) $list[0]['similarity'] + min( 0.03, 0.01 * ( count( $list ) - 1 ) );
-			$indexed[ $item_id ]['similarity']  = max( (float) $indexed[ $item_id ]['similarity'], $score );
-			$indexed[ $item_id ]['passages']    = array_slice( $list, 0, 2 );
+			$score                             = (float) $list[0]['similarity'] + min( 0.03, 0.01 * ( count( $list ) - 1 ) );
+			$indexed[ $item_id ]['similarity'] = max( (float) $indexed[ $item_id ]['similarity'], $score );
+			$indexed[ $item_id ]['passages']   = array_slice( $list, 0, 2 );
 		}
 
 		$merged = array_values( $indexed );
@@ -527,10 +546,10 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados.',
 		}
 
 		foreach ( $items as $item ) {
-			$metadata    = json_decode( $item['metadata_json'] ?? '{}', true );
-			$metadata    = is_array( $metadata ) ? $metadata : array();
-			$title       = (string) ( $item['item_title'] ?? '' );
-			$entry       = array(
+			$metadata = json_decode( $item['metadata_json'] ?? '{}', true );
+			$metadata = is_array( $metadata ) ? $metadata : array();
+			$title    = (string) ( $item['item_title'] ?? '' );
+			$entry    = array(
 				'id'              => $item['item_id'],
 				'title'           => $title,
 				'snippet'         => \Oraculo_Tainacan\generate_snippet( $this->strip_index_labels( (string) $item['content_text'], $title ), \Oraculo_Tainacan\retrieval_query( $query ) ),
@@ -678,15 +697,92 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados.',
 	}
 
 	/**
-	 * A etapa 'items' desta busca acabou de rodar? (a 'answer' não conta de novo no limite de uso)
+	 * Emite o bilhete da etapa items: guarda a recuperação compacta por 5 minutos
 	 *
-	 * @param string $query          Pergunta.
-	 * @param int[]  $collection_ids Coleções.
-	 * @param int    $max_results    Itens pedidos.
+	 * Só item, similaridade e trechos (não o texto e os metadados de cada
+	 * vetor): a etapa answer relê o resto pela chave primária.
+	 *
+	 * @param string $retrieval_key Chave da pergunta (amarra o bilhete a ela).
+	 * @param array  $items         Itens recuperados.
+	 * @param int    $items_ms      Tempo da etapa items.
+	 * @return string
+	 */
+	private function issue_ticket( string $retrieval_key, array $items, int $items_ms ): string {
+		$ticket    = wp_generate_password( 24, false, false );
+		$retrieval = array();
+		foreach ( $items as $item ) {
+			$retrieval[] = array(
+				'item_id'    => (int) $item['item_id'],
+				'similarity' => (float) $item['similarity'],
+				'passages'   => $item['passages'] ?? array(),
+			);
+		}
+
+		set_transient(
+			self::TICKET_PREFIX . $ticket,
+			array(
+				'key'       => $retrieval_key,
+				'retrieval' => $retrieval,
+				'ms'        => $items_ms,
+			),
+			5 * MINUTE_IN_SECONDS
+		);
+		// Marca separada, consumida uma vez pelo controle de limite de uso.
+		set_transient( self::TICKET_USE_PREFIX . $ticket, 1, 5 * MINUTE_IN_SECONDS );
+
+		return $ticket;
+	}
+
+	/**
+	 * Recuperação guardada pelo bilhete, se for desta pergunta
+	 *
+	 * @param string $ticket        Bilhete.
+	 * @param string $retrieval_key Chave da pergunta atual.
+	 * @return array|null
+	 */
+	private function read_ticket( string $ticket, string $retrieval_key ): ?array {
+		$stored = get_transient( self::TICKET_PREFIX . $ticket );
+		return ( is_array( $stored ) && hash_equals( (string) ( $stored['key'] ?? '' ), $retrieval_key ) ) ? $stored : null;
+	}
+
+	/**
+	 * Consome o bilhete no controle de limite de uso: só a primeira answer é isenta
+	 *
+	 * @param string $ticket Bilhete devolvido pela etapa items.
 	 * @return bool
 	 */
-	public function has_pending_retrieval( string $query, array $collection_ids, int $max_results ): bool {
-		return is_array( get_transient( $this->get_retrieval_key( trim( $query ), $collection_ids, $max_results ) ) );
+	public static function claim_ticket( string $ticket ): bool {
+		// delete_transient() só devolve true para quem de fato apagou a marca.
+		return '' !== $ticket && preg_match( '/^[A-Za-z0-9]{24}$/', $ticket ) && delete_transient( self::TICKET_USE_PREFIX . $ticket );
+	}
+
+	/**
+	 * Remonta os itens a partir da recuperação compacta do bilhete
+	 *
+	 * @param array $retrieval Itens: item_id, similarity, passages.
+	 * @return array
+	 */
+	private function expand_retrieval( array $retrieval ): array {
+		$by_item = array();
+		foreach ( $retrieval as $entry ) {
+			$by_item[ (int) $entry['item_id'] ] = $entry;
+		}
+
+		$items = array();
+		foreach ( $this->vector_store->get_by_item_ids( array_keys( $by_item ) ) as $row ) {
+			$entry = $by_item[ (int) $row['item_id'] ] ?? null;
+			if ( null === $entry ) {
+				continue;
+			}
+			$row['similarity'] = (float) $entry['similarity'];
+			if ( ! empty( $entry['passages'] ) ) {
+				$row['passages'] = $entry['passages'];
+			}
+			$items[] = $row;
+		}
+
+		usort( $items, fn( $a, $b ) => $b['similarity'] <=> $a['similarity'] );
+		return $items;
 	}
 
 	/**
@@ -699,7 +795,7 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados.',
 	 * @return array|WP_Error
 	 */
 	private function retrieve( string $query, array $collection_ids, int $max_results, float $threshold ) {
-		$query_embedding = $this->embed_query( $query );
+		$query_embedding = $this->embed_query( $query, true );
 		if ( is_wp_error( $query_embedding ) ) {
 			return $query_embedding;
 		}
@@ -718,19 +814,28 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados.',
 	}
 
 	/**
-	 * Embedding da pergunta, com cache
+	 * Embedding da pergunta, com cache opcional
 	 *
-	 * A mesma pergunta (sugestões, deep links, a BIA repetindo o assunto) não
-	 * paga de novo a chamada ao provedor (~0,5 s). A chave leva provedor e
-	 * modelo: trocar o modelo não reaproveita vetor de outra dimensão.
+	 * Na busca, a mesma pergunta (sugestões, deep links, buscas repetidas)
+	 * não paga de novo a chamada ao provedor (~0,5 s). A BIA não usa o cache:
+	 * mensagens de conversa quase nunca se repetem, e cada uma ocuparia ~50 KB
+	 * em wp_options sem object cache. A chave leva provedor e modelo: trocar
+	 * o modelo não reaproveita vetor de outra dimensão.
 	 *
 	 * @param string $query Pergunta.
+	 * @param bool   $cache Usar o cache.
 	 * @return float[]|WP_Error
 	 */
-	private function embed_query( string $query ) {
+	private function embed_query( string $query, bool $cache = false ) {
 		$provider = $this->ai_factory->create_for_embeddings();
 		$text     = \Oraculo_Tainacan\retrieval_query( $query );
-		$key      = 'oraculo_qemb_' . md5(
+
+		if ( ! $cache ) {
+			$result = $provider->generate_embedding( $text );
+			return is_wp_error( $result ) ? $result : $result['embedding'];
+		}
+
+		$key = 'oraculo_qemb_' . md5(
 			(string) wp_json_encode(
 				array(
 					$provider->get_id(),
@@ -750,7 +855,7 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados.',
 			return $result;
 		}
 
-		set_transient( $key, $result['embedding'], 12 * HOUR_IN_SECONDS );
+		set_transient( $key, $result['embedding'], 2 * HOUR_IN_SECONDS );
 		return $result['embedding'];
 	}
 
@@ -1111,15 +1216,29 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados.',
 	public function get_popular_searches( int $limit = 5 ): array {
 		global $wpdb;
 
+		/**
+		 * Quantos visitantes diferentes (IP) precisam ter feito a mesma busca para ela virar sugestão pública.
+		 *
+		 * Uma pessoa sozinha não publica o que digitou (dado pessoal) nem
+		 * empurra um texto para a vitrine repetindo a busca.
+		 *
+		 * @param int $min Padrão 3.
+		 */
+		$min_visitors = max( 1, (int) apply_filters( 'oraculo_tainacan_popular_min_visitors', 3 ) );
+
+		// MIN(query_text): com ONLY_FULL_GROUP_BY (padrão do MySQL 5.7+) a
+		// coluna fora do GROUP BY era erro 1055 e as sugestões vinham vazias.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom plugin table; popular searches are analytics data; not critical to cache.
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT query_text, COUNT(*) as count
+				"SELECT MIN(query_text) AS query_text, COUNT(*) as count
              FROM {$wpdb->prefix}oraculo_search_logs
              WHERE created_at > DATE_SUB(NOW(), INTERVAL 30 DAY)
              GROUP BY query_hash
+             HAVING COUNT(DISTINCT ip_address) >= %d
              ORDER BY count DESC
              LIMIT %d",
+				$min_visitors,
 				$limit
 			),
 			ARRAY_A

@@ -644,6 +644,43 @@
 
         this.panelBody.innerHTML = html;
 
+        if (pending) {
+            return; // Citações, feedback, ações e o evento público vêm com a síntese.
+        }
+        this.finishResult(data);
+    };
+
+    /**
+     * Síntese da etapa answer: troca só o bloco da resposta, sem redesenhar os
+     * cartões que a pessoa já pode estar lendo (foco e rolagem ficam).
+     * Se a recuperação mudou (bilhete vencido), redesenha tudo.
+     */
+    OraculoAiTab.prototype.fillAnswer = function (data, itemsResult, elapsedSeconds) {
+        var answer = this.panelBody.querySelector('.oraculo-ai-answer.is-pending');
+        var before = (itemsResult.items || []).map(function (i) { return i.url; }).join('|');
+        var after = (data.items || []).map(function (i) { return i.url; }).join('|');
+        if (!answer || before !== after) {
+            this.renderResult(data, elapsedSeconds);
+            return;
+        }
+
+        answer.classList.remove('is-pending');
+        answer.removeAttribute('aria-busy');
+        answer.innerHTML = formatAnswer(data.response, data.items || []);
+
+        if (elapsedSeconds != null) {
+            var time = document.createElement('p');
+            time.className = 'oraculo-ai-response-time';
+            time.textContent = sprintfS(config.strings.responseTime, elapsedSeconds);
+            this.panelBody.appendChild(time);
+        }
+        this.finishResult(data);
+    };
+
+    /** Citações ligadas aos cartões, feedback, ações e o evento público. */
+    OraculoAiTab.prototype.finishResult = function (data) {
+        var self = this;
+
         // Cartões citados no texto ganham destaque; clicar na citação leva ao cartão
         Array.prototype.forEach.call(this.panelBody.querySelectorAll('.oraculo-ai-cite'), function (cite) {
             var card = self.panelBody.querySelector('[data-source="' + cite.getAttribute('data-cite') + '"]');
@@ -663,10 +700,6 @@
                 }
             });
         });
-
-        if (pending) {
-            return; // Feedback, ações e o evento público vêm com a síntese.
-        }
 
         if (config.enableFeedback && data.search_id) {
             this.appendFeedback(String(data.search_id));
@@ -768,20 +801,23 @@
         var elapsed = function () {
             return ((Date.now() - startTime) / 1000).toFixed(1);
         };
-        var request = function (phase) {
+        var request = function (phase, ticket) {
             // OraculoRest renova o nonce e repete uma vez se a sessão mudou.
             return window.OraculoRest.post(config.restUrl + 'search', {
                 query: query,
                 collections: config.collections,
                 max_results: config.maxResults,
-                phase: phase
+                phase: phase,
+                ticket: ticket || ''
             });
         };
 
         // Duas etapas: os cartões chegam sem esperar o modelo de linguagem
         // (~85% do tempo); a síntese entra no mesmo painel quando fica pronta.
         // Resposta do cache ou "nada encontrado" já vêm completas na primeira.
-        request('items')
+        // Sem os cartões na tela, a primeira etapa não mostraria nada: uma
+        // chamada só.
+        request(config.showSources ? 'items' : '')
             .then(function (envelope) {
                 var result = self.readSearchResult(envelope);
                 if (!result) {
@@ -795,11 +831,11 @@
                 }
 
                 self.renderResult(result, null, true);
-                return request('answer').then(function (answerEnvelope) {
+                return request('answer', result.ticket).then(function (answerEnvelope) {
                     self.finishSearch();
                     var answer = self.readSearchResult(answerEnvelope, true);
                     if (answer && answer.response) {
-                        self.renderResult(answer, elapsed());
+                        self.fillAnswer(answer, result, elapsed());
                     } else {
                         // Cartões ficam; só a síntese falhou.
                         self.renderAnswerError((answer && answer.error) || config.strings.error);

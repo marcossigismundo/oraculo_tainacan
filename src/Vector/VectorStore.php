@@ -187,12 +187,11 @@ class VectorStore {
 	 * @return int|WP_Error ID do registro ou erro
 	 */
 	public function upsert( array $data ) {
-		// Vetor e tabela lateral da busca nativa mudam juntos.
-		return \Oraculo_Tainacan\in_transaction( fn() => $this->write_vector( $data ) );
+		return $this->write_vector( $data );
 	}
 
 	/**
-	 * Grava o vetor (dentro da transação de upsert())
+	 * Grava o vetor
 	 *
 	 * @param array $data Dados do vetor.
 	 * @return int|WP_Error ID do registro ou erro
@@ -212,7 +211,7 @@ class VectorStore {
         // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->table_name is $wpdb->prefix . self::TABLE_VECTORS (class constant; cannot receive user input); table identifier cannot be parameterized; result cached per-request only.
 		$existing = $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT id FROM {$this->table_name} WHERE item_id = %d AND collection_id = %d FOR UPDATE",
+				"SELECT id FROM {$this->table_name} WHERE item_id = %d AND collection_id = %d",
 				$data['item_id'],
 				$data['collection_id']
 			)
@@ -451,7 +450,9 @@ class VectorStore {
 		} while ( $fetched === $batch_size );
 
 		asort( $candidates );
-		$ids = array_merge( array_keys( array_slice( $candidates, 0, $pool, true ) ), $unsigned );
+		// Sem assinatura (backfill pendente): no máximo outro $pool, senão uma
+		// coleção inteira iria para o cosseno em PHP (~1 ms por vetor).
+		$ids = array_merge( array_keys( array_slice( $candidates, 0, $pool, true ) ), array_slice( $unsigned, 0, $pool ) );
 
 		return $this->exact_scores( $query_embedding, $ids, $limit, $threshold );
 	}
@@ -717,8 +718,7 @@ class VectorStore {
 	public function delete( int $item_id, int $collection_id ): bool {
 		global $wpdb;
 
-		// Vetor, trechos e tabelas laterais da busca nativa saem juntos.
-		$result = \Oraculo_Tainacan\in_transaction(
+		$result = \call_user_func(
 			function () use ( $wpdb, $item_id, $collection_id ) {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom plugin table (oraculo_vectors); DELETE write operation; caching N/A.
 				$result = $wpdb->delete(
@@ -756,7 +756,7 @@ class VectorStore {
 	public function delete_collection( int $collection_id ): int {
 		global $wpdb;
 
-		$result = \Oraculo_Tainacan\in_transaction(
+		$result = \call_user_func(
 			function () use ( $wpdb, $collection_id ) {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom plugin table (oraculo_vectors); DELETE write operation; caching N/A.
 				$result = $wpdb->delete(
@@ -782,8 +782,7 @@ class VectorStore {
 	public function truncate_all(): int {
 		global $wpdb;
 
-		// DELETE, não TRUNCATE: TRUNCATE encerra a transação (DDL implícito).
-		$deleted = \Oraculo_Tainacan\in_transaction(
+		$deleted = \call_user_func(
 			function () use ( $wpdb ) {
 				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- $this->table_name is $wpdb->prefix . class constant; DELETE without conditions takes no input; write path.
 				$deleted = (int) $wpdb->query( "DELETE FROM {$this->table_name}" );

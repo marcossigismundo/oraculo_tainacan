@@ -12,6 +12,7 @@
  * Domain Path: /languages
  * Requires at least: 6.0
  * Requires PHP: 8.0
+ * Requires Plugins: tainacan
  *
  * @package Oraculo_Tainacan
  */
@@ -856,21 +857,19 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 	 */
 	public function ajax_index_collection(): void {
 		try {
-			// Aumentar limites para indexação síncrona
-			if ( function_exists( 'set_time_limit' ) ) {
-                // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Long-running indexing batch; conditional and harmless if disabled.
-				@set_time_limit( 300 );
-			}
-			if ( function_exists( 'ini_set' ) ) {
-                // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Memory limit increase for large indexing jobs; conditional and harmless if disabled.
-				@ini_set( 'memory_limit', '512M' );
-			}
-
 			check_ajax_referer( 'oraculo_admin', 'nonce' );
 
 			if ( ! current_user_can( 'manage_options' ) ) {
 				wp_send_json_error( array( 'message' => __( 'Permissão negada.', 'oraculo-tainacan' ) ) );
 				return;
+			}
+
+			// Limites da indexação síncrona, só depois do nonce e da permissão.
+			// Memória pela API do WordPress (WP_MAX_MEMORY_LIMIT, 256M por padrão).
+			wp_raise_memory_limit( 'admin' );
+			if ( function_exists( 'set_time_limit' ) ) {
+				// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Synchronous admin indexing batch; WordPress has no API for the execution time limit, and the call is skipped where the host disables it.
+				@set_time_limit( 300 );
 			}
 
 			$collection_id = absint( $_POST['collection_id'] ?? 0 );

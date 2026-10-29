@@ -150,12 +150,11 @@ class ChunkStore {
 	 * @return int Gravados.
 	 */
 	public function insert_many( array $rows ): int {
-		// Trechos e tabela lateral da busca nativa mudam juntos.
-		return (int) \Oraculo_Tainacan\in_transaction( fn() => $this->insert_rows( $rows ) );
+		return $this->insert_rows( $rows );
 	}
 
 	/**
-	 * Grava os trechos (dentro da transação de insert_many())
+	 * Grava os trechos
 	 *
 	 * @param array $rows Ver insert_many().
 	 * @return int Gravados.
@@ -208,11 +207,11 @@ class ChunkStore {
 	 * @return int Apagados.
 	 */
 	public function delete_ids( array $ids ): int {
-		return (int) \Oraculo_Tainacan\in_transaction( fn() => $this->delete_rows( $ids ) );
+		return $this->delete_rows( $ids );
 	}
 
 	/**
-	 * Apaga trechos por id (dentro da transação de delete_ids())
+	 * Apaga trechos por id
 	 *
 	 * @param int[] $ids IDs.
 	 * @return int Apagados.
@@ -256,7 +255,7 @@ class ChunkStore {
 			return 0;
 		}
 
-		$deleted = (int) \Oraculo_Tainacan\in_transaction(
+		$deleted = (int) \call_user_func(
 			function () use ( $wpdb ) {
 				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table; DELETE without conditions takes no input; write path.
 				$deleted = (int) $wpdb->query( "DELETE FROM {$this->table}" );
@@ -282,7 +281,7 @@ class ChunkStore {
 			return 0;
 		}
 
-		$deleted = (int) \Oraculo_Tainacan\in_transaction(
+		$deleted = (int) \call_user_func(
 			function () use ( $wpdb, $column, $id ) {
 				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table; $column validated against the allowlist above; value via %d; write path.
 				$deleted = (int) $wpdb->query( $wpdb->prepare( "DELETE FROM {$this->table} WHERE {$column} = %d", $id ) );

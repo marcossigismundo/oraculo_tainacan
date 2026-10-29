@@ -286,6 +286,12 @@ final class NativeVector {
 
 		self::process_retry( $kind, $dim );
 
+		if ( ! empty( $cur['prune'] ) ) {
+			self::prune( $kind );
+			$cur['prune'] = false;
+			self::save( $kind, $cur ); // Já: save_progress() traria a marca de volta.
+		}
+
 		$cursor = (int) ( $cur['cursor'] ?? 0 );
 		while ( empty( $cur['ready'] ) ) {
 			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table; values via placeholders; write path in cron.
@@ -326,8 +332,10 @@ final class NativeVector {
 	 * Copia para a tabela lateral as linhas gravadas agora (upsert, insert)
 	 *
 	 * Apaga antes: um item reindexado não pode manter o vetor antigo, nem um
-	 * vetor de outra dimensão ficar com o anterior. Chamar dentro da mesma
-	 * transação da gravação na origem (in_transaction()).
+	 * vetor de outra dimensão ficar com o anterior. Fora de transação de
+	 * propósito: a lateral é um cache reconstruível, e um deadlock aqui dentro
+	 * de uma transação desfaria também a gravação na origem. Falha vai para o
+	 * reenvio; remoção que falhar deixa órfã, que a próxima passada apaga.
 	 *
 	 * @param string $kind self::VECTORS | self::CHUNKS.
 	 * @param int[]  $ids  IDs da tabela de origem.
@@ -386,8 +394,16 @@ final class NativeVector {
 		$sql    = "DELETE FROM {$native}" . ( $parts ? ' WHERE ' . implode( ' AND ', $parts ) : '' );
 
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin's own table ($wpdb->prefix . class constant); columns from the FORGET_COLUMNS allowlist, values as %d placeholders built with array_fill; the unconditioned DELETE takes no input; write path.
-		$wpdb->query( $values ? $wpdb->prepare( $sql, $values ) : $sql );
+		$deleted = $wpdb->query( $values ? $wpdb->prepare( $sql, $values ) : $sql );
 		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,PluginCheck.Security.DirectDB.UnescapedDBParameter,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+
+		if ( false === $deleted ) {
+			// Linhas sem origem ocupariam vagas do LIMIT na busca: o cron as
+			// apaga na próxima rodada.
+			$cur['prune'] = true;
+			self::save( $kind, $cur );
+			self::schedule();
+		}
 
 		if ( empty( $where ) ) {
 			self::clear_retry( $kind );
@@ -590,7 +606,7 @@ final class NativeVector {
 			return false;
 		}
 		// "retry" é só a marca (autoload); a lista fica numa opção à parte.
-		return empty( $cur['ready'] ) || ! empty( $cur['recheck'] ) || ! empty( $cur['retry'] );
+		return empty( $cur['ready'] ) || ! empty( $cur['recheck'] ) || ! empty( $cur['retry'] ) || ! empty( $cur['prune'] );
 	}
 
 	/**
@@ -800,6 +816,9 @@ final class NativeVector {
 			$cur['recheck'] = true;
 		}
 		$cur['retry'] = ! empty( $fresh['retry'] );
+		if ( ! empty( $fresh['prune'] ) && ! empty( $cur['ready'] ) ) {
+			$cur['prune'] = true; // Pedido durante a passada: fica para a próxima.
+		}
 		self::save( $kind, $cur );
 	}
 }

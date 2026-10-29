@@ -11,9 +11,14 @@ defined( 'ABSPATH' ) || exit;
 
 // phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template file; all variables are local to this included template scope.
 
-$options         = \Oraculo_Tainacan\Oraculo_Tainacan::get_options();
-$widget_id       = 'oraculo-chat-embedded-' . uniqid();
-$height          = $atts['height'] ?? '500px';
+$options   = \Oraculo_Tainacan\Oraculo_Tainacan::get_options();
+$widget_id = 'oraculo-chat-embedded-' . uniqid();
+// Só número + unidade: esc_attr() não impede declarações extras de CSS
+// ("500px;position:fixed;inset:0") vindas do shortcode.
+$height = (string) ( $atts['height'] ?? '500px' );
+if ( ! preg_match( '/^\d{1,4}(px|vh|%|em|rem)$/', $height ) ) {
+	$height = '500px';
+}
 $title           = $atts['title'] ?? __( 'BIA', 'oraculo-tainacan' );
 $assistant_role  = __( 'Bibliotecária de IA', 'oraculo-tainacan' );
 $welcome_message = $options['welcome_message'] ?? __( 'Oi! Eu sou a BIA, a bibliotecária de IA deste acervo. Posso ajudar a encontrar obras, autores e assuntos — é só perguntar. 📚', 'oraculo-tainacan' );

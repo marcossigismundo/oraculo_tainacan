@@ -113,9 +113,15 @@ Only the text content of your archived items is sent to the AI provider you conf
 == Changelog ==
 
 = 2.12.0 =
-* Performance: "Busca com IA" answers in two steps. The first request (`phase=items`) returns the item cards without calling the language model — about 85% of the search time — and keeps the retrieval for five minutes; the second (`phase=answer`) writes the synthesis on top of it, without embedding or searching again. Cards show in under a second; the synthesis arrives in the same panel. Cached answers and "nothing found" come complete in the first request. A request without `phase` works as before
-* Performance: the embedding of the question is cached for 12 hours (key: provider, model and text), in the search and in the BIA chat — repeated questions, suggestions and deep links skip ~0.5 s
-* Rate limits: a two-step search counts once per IP (on `items`) and once in the global AI ceiling (on `answer`)
+* Performance: "Busca com IA" answers in two steps. The first request (`phase=items`) returns the item cards without calling the language model (about 85% of the search time) plus a single-use ticket; the second (`phase=answer`, with the ticket) writes the synthesis on top of the stored retrieval, without embedding or searching again. Cards show in about a second; only the answer block is filled in when the synthesis arrives, so focus and scroll on the cards stay. Cached answers and "nothing found" come complete in the first request; with sources hidden the tab keeps a single request. A request without `phase` works as before
+* Performance: the embedding of a search question is cached for 2 hours (key: provider, model and text); the BIA chat does not cache (messages rarely repeat)
+* Performance: the two-phase PHP fallback caps vectors still without a binary signature at the rescore pool (a whole collection used to go to the PHP cosine)
+* Rate limits: a two-step search counts once, on `items`, in the per-IP and in the global AI limits; `answer` is exempt only with the ticket from `items`, consumed on first use
+* Security: public suggestions only show searches made by at least 3 different visitors (`oraculo_tainacan_popular_min_visitors`), so one person neither publishes what they typed nor pushes a text into the list by repeating it; the query works under ONLY_FULL_GROUP_BY (MySQL 5.7+), where it used to fail and return nothing
+* Security: the analytics CSV export neutralizes spreadsheet formulas typed by visitors (=, +, -, @); the `height` attribute of `[oraculo_chat]` only accepts a number and a unit (no extra CSS); feedback labels in the shortcode result are escaped
+* Synchronous indexing checks the nonce and capability before raising limits, and raises memory with `wp_raise_memory_limit()`
+* Native vectors: writes and deletes no longer run inside a transaction with the side tables (a deadlock while copying to the side table would also roll back the vector itself); copy failures go to the retry list and failed deletes schedule a prune
+* Header: `Requires Plugins: tainacan`
 
 = 2.11.0 =
 * Performance: on MariaDB 11.7+ the vector search runs inside the database. Two narrow side tables (`oraculo_vectors_native`, `oraculo_chunks_native`: id, item, collection and a `VECTOR(n)` column) are filled in the background and kept in sync on every write and delete; the cosine is computed by the database and only the closest ids come back to PHP — no embeddings loaded into PHP memory. Side tables, not a column in the vectors table: its ~40 KB rows outgrow the InnoDB buffer and a full scan took 5–8 s. Measured on MariaDB 11.8 with 38,000 vectors of 1,536 dimensions

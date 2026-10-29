@@ -57,14 +57,11 @@ class IndexingManager {
 	 * @return array|WP_Error
 	 */
 	public function start_indexing( int $collection_id, bool $force = false ) {
-		// Aumentar limites de execução
+		// Aumentar limites de execução. Memória pela API do WordPress.
+		wp_raise_memory_limit( 'admin' );
 		if ( function_exists( 'set_time_limit' ) ) {
-            // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Long-running indexing batch; conditional and harmless if disabled.
+			// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Long indexing batch; WordPress has no API for the execution time limit, and the call is skipped where the host disables it.
 			@set_time_limit( 300 );
-		}
-		if ( function_exists( 'ini_set' ) ) {
-            // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Memory limit increase for large indexing jobs; conditional and harmless if disabled.
-			@ini_set( 'memory_limit', '512M' );
 		}
 
 		// Verificar se coleção existe

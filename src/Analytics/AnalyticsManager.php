@@ -503,7 +503,13 @@ class AnalyticsManager {
 			fputcsv( $output, array( 'Top Buscas' ) );
 			fputcsv( $output, array( 'Query', 'Count', 'Avg Results' ) );
 			foreach ( $data['top_searches'] as $row ) {
-				fputcsv( $output, array( $row['query_text'], $row['count'], $row['avg_results'] ) );
+				// O texto foi digitado por visitante: neutraliza fórmula de planilha
+				// (=, +, -, @, tab, CR no início) antes de o admin abrir no Excel.
+				$text = (string) $row['query_text'];
+				if ( preg_match( '/^[=+\-@\t\r]/', $text ) ) {
+					$text = "'" . $text;
+				}
+				fputcsv( $output, array( $text, $row['count'], $row['avg_results'] ) );
 			}
 
 			rewind( $output );
