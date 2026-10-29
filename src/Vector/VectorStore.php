@@ -249,6 +249,9 @@ class VectorStore {
 				$formats,
 				array( '%d' )
 			);
+			if ( false !== $result ) {
+				NativeVector::sync( NativeVector::VECTORS, array( (int) $existing ) );
+			}
 			\Oraculo_Tainacan\invalidate_index_caches();
 
 			return $result !== false ? (int) $existing : new WP_Error( 'update_failed', __( 'Falha ao atualizar vetor.', 'oraculo-tainacan' ) );
@@ -261,6 +264,9 @@ class VectorStore {
 			$record,
 			$formats
 		);
+		if ( false !== $result ) {
+			NativeVector::sync( NativeVector::VECTORS, array( (int) $wpdb->insert_id ) );
+		}
 		\Oraculo_Tainacan\invalidate_index_caches();
 
 		return $result !== false ? $wpdb->insert_id : new WP_Error( 'insert_failed', __( 'Falha ao inserir vetor.', 'oraculo-tainacan' ) );
@@ -326,9 +332,15 @@ class VectorStore {
 			$collection_sql = 'collection_id IN (' . implode( ',', array_fill( 0, count( $collection_ids ), '%d' ) ) . ') AND ';
 		}
 
-		$top = self::has_bits_column()
-			? $this->scan_with_bits( $query_embedding, $collection_ids, $collection_sql, $limit, $threshold )
-			: $this->scan_exact( $query_embedding, $collection_ids, $collection_sql, $limit, $threshold );
+		// MariaDB 11.7+: o cosseno é calculado no banco e só os ids voltam
+		// (ver NativeVector). Senão, ou enquanto a coluna é preenchida, as
+		// duas fases em PHP.
+		$top = NativeVector::search( NativeVector::VECTORS, $query_embedding, $collection_ids, $limit, $threshold );
+		if ( null === $top ) {
+			$top = self::has_bits_column()
+				? $this->scan_with_bits( $query_embedding, $collection_ids, $collection_sql, $limit, $threshold )
+				: $this->scan_exact( $query_embedding, $collection_ids, $collection_sql, $limit, $threshold );
+		}
 
 		if ( empty( $top ) ) {
 			return array();

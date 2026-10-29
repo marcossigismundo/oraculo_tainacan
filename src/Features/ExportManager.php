@@ -91,9 +91,12 @@ class ExportManager {
 
 		$table = $wpdb->prefix . 'oraculo_vectors';
 
-		$fields = $include_embeddings
-			? '*'
-			: 'id, item_id, collection_id, collection_name, content_text, item_url, item_title, metadata_json, embedding_model, token_count, created_at, updated_at';
+		// Lista explícita: as colunas binárias (embedding_bits, embedding_vec)
+		// não cabem em JSON/CSV; o embedding exportado é o JSON legível.
+		$fields = 'id, item_id, collection_id, collection_name, content_text, item_url, item_title, metadata_json, embedding_model, token_count, created_at, updated_at';
+		if ( $include_embeddings ) {
+			$fields .= ', content_hash, embedding_data';
+		}
 
         // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $table is built from $wpdb->prefix + literal (oraculo_vectors); $fields is a hardcoded string or literal '*'; neither can be parameterized as identifiers.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; full collection export, no WP API equivalent.

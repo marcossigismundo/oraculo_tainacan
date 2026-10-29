@@ -4,7 +4,7 @@ Tags: tainacan, ai, search, rag, openai
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 2.10.2
+Stable tag: 2.11.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -111,6 +111,13 @@ OpenAI is the most tested option. Ollama is recommended for fully local, private
 Only the text content of your archived items is sent to the AI provider you configure. When using Ollama, everything stays local.
 
 == Changelog ==
+
+= 2.11.0 =
+* Performance: on MariaDB 11.7+ the vector search runs inside the database. A `VECTOR(n)` column (`embedding_vec`) is added to the vectors and document passages tables and filled in the background; the cosine is computed by the database and only the closest ids come back to PHP — no embeddings loaded into PHP memory. Measured on MariaDB 11.8 with 38,000 vectors of 1,536 dimensions: ~110 ms over everything, ~30 ms in an 8,000-item collection, exact results
+* No vector (HNSW) index on purpose: MariaDB filters after searching the index, and with a collection filter it returned 13–46% recall and queries of up to 30 s
+* Other databases (MySQL, MariaDB < 11.7), or while the column is being filled, keep the two-phase search. Rows with another dimension (embedding model changed) are left out of the database search; the column follows the dominant dimension on its own
+* WP-CLI: `wp oraculo native status|sync|rebuild|drop`. A dump of a database with the column only restores on MariaDB 11.7+: run `wp oraculo native drop` before moving it to MySQL or an older MariaDB
+* Fix: vector export with embeddings no longer includes the binary columns (`embedding_bits`, `embedding_vec`)
 
 = 2.10.2 =
 * Fix: an attachment already processed by Tainacan OCR Search that has no text (blank page) is no longer reported as needing OCR

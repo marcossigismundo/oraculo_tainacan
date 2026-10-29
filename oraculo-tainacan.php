@@ -3,7 +3,7 @@
  * Plugin Name: Oráculo Tainacan
  * Plugin URI: https://github.com/tainacan/oraculo-tainacan
  * Description: Sistema avançado de busca em linguagem natural com IA para acervos Tainacan. Integra RAG (Retrieval-Augmented Generation) com múltiplos provedores de IA.
- * Version: 2.10.2
+ * Version: 2.11.0
  * Author: Tainacan Community
  * Author URI: https://tainacan.org
  * License: GPL-2.0+
@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Constantes do plugin
-define( 'ORACULO_TAINACAN_VERSION', '2.10.2' );
+define( 'ORACULO_TAINACAN_VERSION', '2.11.0' );
 define( 'ORACULO_TAINACAN_FILE', __FILE__ );
 define( 'ORACULO_TAINACAN_PATH', plugin_dir_path( __FILE__ ) );
 define( 'ORACULO_TAINACAN_URL', plugin_dir_url( __FILE__ ) );
@@ -199,6 +199,9 @@ final class Oraculo_Tainacan {
 		// Preenche as assinaturas binárias dos vetores gravados antes da 2.7.0.
 		add_action( Vector\VectorStore::CRON_BACKFILL, array( Vector\VectorStore::class, 'run_backfill_cron' ) );
 
+		// MariaDB 11.7+: cria e preenche a coluna VECTOR (busca no banco).
+		add_action( Vector\NativeVector::CRON_HOOK, array( Vector\NativeVector::class, 'run_cron' ) );
+
 		// Tainacan hooks (a integração principal é feita via Tainacan Pages API)
 
 		// Shortcodes
@@ -264,6 +267,7 @@ final class Oraculo_Tainacan {
 		wp_clear_scheduled_hook( Indexing\AutoIndexer::CRON_HOOK, array( 'kick' ) );
 		wp_clear_scheduled_hook( Indexing\AutoIndexer::CRON_RECONCILE );
 		wp_clear_scheduled_hook( Vector\VectorStore::CRON_BACKFILL );
+		wp_clear_scheduled_hook( Vector\NativeVector::CRON_HOOK );
 
 		// Sem isto, um lock deixado por um worker interrompido bloquearia a fila
 		// por LOCK_TIMEOUT depois da reativação.
@@ -623,6 +627,7 @@ Responda de forma natural e conversacional, sempre baseando-se nas informações
 		// tabela existente.
 		Vector\VectorStore::maybe_upgrade_schema();
 		Vector\ChunkStore::maybe_create_table();
+		Vector\NativeVector::maybe_schedule();
 
 		// Inicializar serviços (admin page é inicializada via Tainacan Pages API)
 		$this->services['api']       = new API\RestController();

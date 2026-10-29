@@ -12,6 +12,7 @@ namespace Oraculo_Tainacan\CLI;
 use Oraculo_Tainacan\Indexing\IndexingManager;
 use Oraculo_Tainacan\Vector\VectorStore;
 use Oraculo_Tainacan\Vector\ChunkStore;
+use Oraculo_Tainacan\Vector\NativeVector;
 use Oraculo_Tainacan\Indexing\DocumentIndexer;
 use Oraculo_Tainacan\Search\SearchEngine;
 use Oraculo_Tainacan\AI\AIProviderFactory;
@@ -450,6 +451,65 @@ class Commands extends WP_CLI_Command {
 		WP_CLI::log( sprintf( 'Itens publicados: %d', count( $item_ids ) ) );
 		WP_CLI::log( sprintf( 'Arquivos com texto: %d | sem texto (precisam de OCR): %d', $with_text, $needs_ocr ) );
 		WP_CLI::log( sprintf( 'Trechos indexados: %d (itens: %d, anexos: %d)', $stats['chunks'], $stats['items'], $stats['attachments'] ) );
+	}
+
+	/**
+	 * Busca vetorial nativa do MariaDB 11.7+ (coluna VECTOR).
+	 *
+	 * ## OPTIONS
+	 *
+	 * <action>
+	 * : status (situação), sync (cria e preenche agora, sem limite de tempo), rebuild (reavalia a dimensão e preenche de novo) ou drop (remove a coluna, para levar o banco a MySQL ou MariaDB < 11.7).
+	 * ---
+	 * options:
+	 *   - status
+	 *   - sync
+	 *   - rebuild
+	 *   - drop
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp oraculo native status
+	 *     wp oraculo native sync
+	 *
+	 * @param array $args       Posicionais.
+	 * @param array $assoc_args Nomeados.
+	 */
+	public function native( $args, $assoc_args ) {
+		if ( ! NativeVector::supported() ) {
+			WP_CLI::log( 'O banco não tem o tipo VECTOR (requer MariaDB 11.7+): a busca usa as duas fases em PHP.' );
+			return;
+		}
+
+		$action = $args[0] ?? 'status';
+		if ( 'drop' === $action ) {
+			WP_CLI::log( sprintf( 'Coluna removida de %d tabela(s); busca nativa desligada até `wp oraculo native sync`.', NativeVector::drop() ) );
+		}
+
+		$off = in_array( true, array_column( NativeVector::status(), 'off' ), true );
+		if ( 'rebuild' === $action || ( 'sync' === $action && $off ) ) {
+			NativeVector::reset();
+		}
+		if ( 'sync' === $action || 'rebuild' === $action ) {
+			$start = microtime( true );
+			if ( NativeVector::run( 0 ) ) {
+				WP_CLI::log( sprintf( 'Concluído em %.1f s.', microtime( true ) - $start ) );
+			} else {
+				WP_CLI::warning( 'Outro processo está preenchendo a coluna (ou o ALTER foi recusado); o cron continua o trabalho. Confira com `wp oraculo native status`.' );
+			}
+		}
+
+		foreach ( NativeVector::status() as $kind => $info ) {
+			if ( $info['off'] ) {
+				$label = 'desligada';
+			} elseif ( ! $info['ready'] ) {
+				$label = sprintf( 'preenchendo (até o id %d)', $info['cursor'] );
+			} else {
+				$label = $info['dim'] ? 'pronta (busca no banco)' : 'sem dados ainda';
+			}
+			WP_CLI::log( sprintf( '%-8s dimensão %s | %s', $kind, $info['dim'] ? (string) $info['dim'] : '-', $label ) );
+		}
 	}
 
 	/**
