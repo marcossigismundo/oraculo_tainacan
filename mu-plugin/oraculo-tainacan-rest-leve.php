@@ -30,10 +30,30 @@ if ( is_multisite() || ! isset( $_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_UR
  * Só as duas rotas que consomem IA, /wp-json/oraculo/v1/search e /chat, mais
  * o teste ao vivo da tela Diagnóstico (diagnostics/probe, só administrador),
  * com ou sem subpasta, e a forma ?rest_route= dos sites sem links permanentes.
+ *
+ * Duas travas, porque tirar plugins de outro endereço desligaria segurança
+ * (2FA, captcha, limite de login em wp-login.php ou xmlrpc.php):
+ * 1. o script em execução tem de ser o index.php do WordPress — nunca
+ *    wp-login.php, xmlrpc.php ou wp-admin/index.php com PATH_INFO;
+ * 2. a rota é conferida no CAMINHO (até o "?"), ancorada no fim; a forma
+ *    ?rest_route= só vale com o valor exato do parâmetro.
  * Comparação de texto, sem sanitizar: o valor só decide se o filtro entra.
  */
-$oraculo_leve_uri = (string) wp_unslash( $_SERVER['REQUEST_URI'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Only matched against a fixed pattern below, never stored or printed; sanitizing would change the path being matched.
-if ( ! preg_match( '#(?:/wp-json|[?&]rest_route=)/oraculo/v1/(?:search|chat|diagnostics/probe)(?:[/?&]|$)#', rawurldecode( $oraculo_leve_uri ) ) ) {
+$oraculo_leve_script = isset( $_SERVER['SCRIPT_FILENAME'] ) ? realpath( (string) wp_unslash( $_SERVER['SCRIPT_FILENAME'] ) ) : false; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Compared with realpath() of ABSPATH/index.php only; never stored or printed.
+if ( false === $oraculo_leve_script || realpath( ABSPATH . 'index.php' ) !== $oraculo_leve_script ) {
+	return;
+}
+
+$oraculo_leve_route = '#^/oraculo/v1/(?:search|chat|diagnostics/probe)/?$#';
+$oraculo_leve_path  = rawurldecode( (string) strtok( (string) wp_unslash( $_SERVER['REQUEST_URI'] ), '?' ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Only matched against a fixed, anchored pattern; sanitizing would change the path being matched.
+$oraculo_leve_match = (bool) preg_match( '#/wp-json(/oraculo/v1/(?:search|chat|diagnostics/probe)/?)$#', $oraculo_leve_path );
+
+// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Routing decision only; the REST route itself checks the nonce.
+if ( ! $oraculo_leve_match && isset( $_GET['rest_route'] ) && is_string( $_GET['rest_route'] ) ) {
+	$oraculo_leve_match = (bool) preg_match( $oraculo_leve_route, (string) wp_unslash( $_GET['rest_route'] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.NonceVerification.Recommended -- Same as above: anchored match against a fixed pattern, never stored or printed.
+}
+
+if ( ! $oraculo_leve_match ) {
 	return;
 }
 

@@ -121,9 +121,19 @@ class ChatEngine {
 
 			// Primeira mensagem de uma conversa: sem histórico, a mesma pergunta
 			// nas mesmas coleções tem a mesma resposta. Numa aula ou num evento
-			// muita gente abre a BIA com a mesma pergunta.
+			// muita gente abre a BIA com a mesma pergunta — e ao mesmo tempo:
+			// quem chega enquanto outro pedido gera a resposta espera por ela
+			// em vez de chamar a IA de novo.
 			$first_key = empty( $history ) ? $this->first_message_cache_key( $message, $collection_ids ) : '';
 			$cached    = '' !== $first_key ? get_transient( $first_key ) : false;
+			$lock      = '';
+
+			if ( '' !== $first_key && ! is_array( $cached ) ) {
+				$lock = $this->claim_first_message( $first_key );
+				if ( '' === $lock ) {
+					$cached = $this->wait_first_message( $first_key );
+				}
+			}
 
 			if ( is_array( $cached ) && isset( $cached['ai']['response'], $cached['sources'] ) ) {
 				// Do cache não se gastou nada: zera uso e custo nas estatísticas.
@@ -136,11 +146,12 @@ class ChatEngine {
 				$ai_response['cost']  = 0;
 				$sources              = (array) $cached['sources'];
 			} else {
-				$ai_response = $this->answer( $message, $history, $collection_ids, $options, $sources );
-				if ( is_wp_error( $ai_response ) ) {
-					return $ai_response;
-				}
-				if ( '' !== $first_key ) {
+				$cacheable   = true;
+				$ai_response = $this->answer( $message, $history, $collection_ids, $options, $sources, $cacheable );
+
+				// Resposta dada sem o acervo (busca falhou no pico) não vai para
+				// o cache: outra pessoa receberia "não encontrei" por uma hora.
+				if ( '' !== $first_key && $cacheable && ! is_wp_error( $ai_response ) ) {
 					set_transient(
 						$first_key,
 						array(
@@ -149,6 +160,12 @@ class ChatEngine {
 						),
 						(int) ( $this->options['cache_duration'] ?? 3600 )
 					);
+				}
+				if ( '' !== $lock ) {
+					delete_option( $lock );
+				}
+				if ( is_wp_error( $ai_response ) ) {
+					return $ai_response;
 				}
 			}
 
@@ -185,10 +202,71 @@ class ChatEngine {
 	}
 
 	/**
+	 * Reserva a geração de uma primeira mensagem
+	 *
+	 * add_option() é um INSERT numa chave única: só um pedido consegue. Uma
+	 * reserva de mais de 60 s é de um pedido que morreu e é retomada.
+	 *
+	 * @param string $first_key Chave do cache.
+	 * @return string Nome da reserva, ou '' se outro pedido já está gerando.
+	 */
+	private function claim_first_message( string $first_key ): string {
+		$lock = $first_key . '_lock';
+
+		if ( add_option( $lock, time(), '', false ) ) {
+			return $lock;
+		}
+
+		if ( time() - (int) get_option( $lock, 0 ) > MINUTE_IN_SECONDS ) {
+			delete_option( $lock );
+			return add_option( $lock, time(), '', false ) ? $lock : '';
+		}
+
+		return '';
+	}
+
+	/**
+	 * Espera a resposta que outro pedido está gerando (até ~15 s)
+	 *
+	 * @param string $first_key Chave do cache.
+	 * @return array|false A resposta em cache, ou false (aí este pedido gera a sua).
+	 */
+	private function wait_first_message( string $first_key ) {
+		$lock     = $first_key . '_lock';
+		$deadline = microtime( true ) + 15;
+
+		while ( microtime( true ) < $deadline ) {
+			usleep( 300000 );
+
+			// Sem cache de objetos, get_option guarda "não existe" na memória
+			// do pedido; sem limpar, o laço nunca veria a resposta chegar.
+			if ( ! wp_using_ext_object_cache() ) {
+				wp_cache_delete( 'notoptions', 'options' );
+				wp_cache_delete( '_transient_' . $first_key, 'options' );
+				wp_cache_delete( '_transient_timeout_' . $first_key, 'options' );
+				wp_cache_delete( $lock, 'options' );
+			}
+
+			$cached = get_transient( $first_key );
+			if ( is_array( $cached ) ) {
+				return $cached;
+			}
+
+			// O outro pedido terminou sem resposta para o cache (erro): desiste.
+			if ( false === get_option( $lock ) ) {
+				return false;
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * Chave do cache da primeira mensagem ('' com o cache desligado)
 	 *
-	 * Leva provedor, modelo e prompts: trocar qualquer um não reaproveita
-	 * resposta antiga.
+	 * Leva provedor, modelo, prompt de sistema, idioma e a versão do índice
+	 * (como a chave da busca): trocar qualquer um, ou reindexar, não
+	 * reaproveita resposta antiga.
 	 *
 	 * @param string $message        Mensagem.
 	 * @param int[]  $collection_ids Coleções.
@@ -210,9 +288,10 @@ class ChatEngine {
 					$collection_ids,
 					$provider,
 					$this->options[ $provider . '_model' ] ?? '',
-					$this->options['chat_prompt'] ?? '',
-					$this->options['system_prompt'] ?? '',
+					$this->get_chat_system_prompt(),
 					$this->options['max_results'] ?? 10,
+					determine_locale(),
+					\Oraculo_Tainacan\get_index_version(),
 				)
 			)
 		);
@@ -226,9 +305,10 @@ class ChatEngine {
 	 * @param int[]  $collection_ids Coleções.
 	 * @param array  $options        Opções da chamada.
 	 * @param array  $sources        Saída: itens usados como contexto.
+	 * @param bool   $cacheable      Saída: false quando a busca no acervo falhou.
 	 * @return array|WP_Error Resposta do provedor.
 	 */
-	private function answer( string $message, array $history, array $collection_ids, array $options, array &$sources ) {
+	private function answer( string $message, array $history, array $collection_ids, array $options, array &$sources, bool &$cacheable ) {
 		$context = '';
 
 		if ( $this->should_search_context( $message, $history ) ) {
@@ -244,7 +324,9 @@ class ChatEngine {
 			$chat_limit     = max( 1, min( 10, (int) ( $this->options['max_results'] ?? 10 ) ) );
 			$search_results = $this->search_engine->semantic_search( $search_query, $collection_ids, $chat_limit );
 
-			if ( ! is_wp_error( $search_results ) && ! empty( $search_results ) ) {
+			if ( is_wp_error( $search_results ) ) {
+				$cacheable = false;
+			} elseif ( ! empty( $search_results ) ) {
 				$context = $this->format_context( $search_results );
 				$sources = $search_results;
 			}

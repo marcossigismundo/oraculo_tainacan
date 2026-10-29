@@ -590,9 +590,10 @@ class RestController extends WP_REST_Controller {
 			/**
 			 * Filtra o máximo global de chamadas de IA por minuto (search + chat, site inteiro).
 			 *
-			 * @param int $global_max_per_minute Padrão: opção rate_limit_global (300). Zero desativa o teto.
+			 * @param int $global_max_per_minute Padrão: opção rate_limit_global (300 nas instalações novas;
+			 *                                   60 em quem atualizou sem salvar a opção). Zero desativa o teto.
 			 */
-			$global_max = (int) apply_filters( 'oraculo_tainacan_rest_global_rate_limit', (int) ( $options['rate_limit_global'] ?? 300 ) );
+			$global_max = (int) apply_filters( 'oraculo_tainacan_rest_global_rate_limit', (int) ( $options['rate_limit_global'] ?? 60 ) );
 
 			if ( $global_max > 0 ) {
 				$global_key   = 'oraculo_rl_global_ai';
@@ -653,12 +654,27 @@ class RestController extends WP_REST_Controller {
 		$net    = @inet_pton( $parts[0] ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- inet_pton warns on malformed input typed by the admin; false is handled below.
 		$packed = @inet_pton( $ip ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Same as above; $ip is already validated.
 
-		if ( false === $net || false === $packed || strlen( $net ) !== strlen( $packed ) ) {
+		if ( false === $net || false === $packed ) {
+			return false;
+		}
+
+		// Servidor dual-stack entrega IPv4 como ::ffff:a.b.c.d; compara como IPv4.
+		$mapped = str_repeat( "\0", 10 ) . "\xff\xff";
+		$prefix = isset( $parts[1] ) && ctype_digit( $parts[1] ) ? (int) $parts[1] : null;
+		if ( 16 === strlen( $packed ) && 0 === strncmp( $packed, $mapped, 12 ) ) {
+			$packed = substr( $packed, 12 );
+		}
+		if ( 16 === strlen( $net ) && 0 === strncmp( $net, $mapped, 12 ) ) {
+			$net    = substr( $net, 12 );
+			$prefix = null === $prefix ? null : max( 0, $prefix - 96 );
+		}
+
+		if ( strlen( $net ) !== strlen( $packed ) ) {
 			return false;
 		}
 
 		$bits = strlen( $net ) * 8;
-		$mask = isset( $parts[1] ) && ctype_digit( $parts[1] ) ? min( $bits, (int) $parts[1] ) : $bits;
+		$mask = null === $prefix ? $bits : min( $bits, $prefix );
 
 		$bytes = intdiv( $mask, 8 );
 		if ( 0 !== strncmp( $net, $packed, $bytes ) ) {

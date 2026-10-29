@@ -122,14 +122,14 @@ if ( 'fast_error' === $msg ) {
 						<?php wp_nonce_field( Diagnostics::ACTION ); ?>
 						<label>
 							<span><?php esc_html_e( 'Teto do site (chamadas de IA por minuto, todos somados; 0 = sem teto)', 'oraculo-tainacan' ); ?></span>
-							<input type="number" min="0" max="10000" name="rate_limit_global" value="<?php echo esc_attr( (string) ( $options['rate_limit_global'] ?? 300 ) ); ?>">
+							<input type="number" min="0" max="10000" name="rate_limit_global" value="<?php echo esc_attr( (string) ( $options['rate_limit_global'] ?? 60 ) ); ?>">
 						</label>
 						<label>
-							<span><?php esc_html_e( 'Buscas por minuto, por visitante', 'oraculo-tainacan' ); ?></span>
+							<span><?php esc_html_e( 'Buscas por minuto, por visitante (0 = sem limite)', 'oraculo-tainacan' ); ?></span>
 							<input type="number" min="0" max="1000" name="rate_limit_search" value="<?php echo esc_attr( (string) ( $options['rate_limit_search'] ?? 10 ) ); ?>">
 						</label>
 						<label>
-							<span><?php esc_html_e( 'Mensagens da BIA por minuto, por visitante', 'oraculo-tainacan' ); ?></span>
+							<span><?php esc_html_e( 'Mensagens da BIA por minuto, por visitante (0 = sem limite)', 'oraculo-tainacan' ); ?></span>
 							<input type="number" min="0" max="1000" name="rate_limit_chat" value="<?php echo esc_attr( (string) ( $options['rate_limit_chat'] ?? 20 ) ); ?>">
 						</label>
 						<label class="is-wide">

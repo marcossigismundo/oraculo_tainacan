@@ -204,6 +204,25 @@ class Diagnostics {
 			);
 		}
 
+		if ( $st['enabled'] && $st['installed'] && ! $st['current'] ) {
+			return $base + array(
+				'status' => 'warn',
+				'value'  => sprintf(
+					/* translators: %s: version of the installed fast-mode file */
+					__( 'arquivo da %s', 'oraculo-tainacan' ),
+					$st['version']
+				),
+				'text'   => __( 'O modo rápido está ligado, mas o arquivo em mu-plugins é de outra versão do Oráculo e não foi possível trocá-lo (a pasta não aceita gravação). Ele continua funcionando com as regras da versão antiga.', 'oraculo-tainacan' ),
+				'how'    => sprintf(
+					/* translators: 1: source file path inside the plugin, 2: destination folder */
+					__( 'Copie %1$s para %2$s, ou libere a gravação na pasta e clique em Atualizar.', 'oraculo-tainacan' ),
+					'wp-content/plugins/' . dirname( ORACULO_TAINACAN_BASENAME ) . '/mu-plugin/' . FastRest::FILE,
+					'wp-content/mu-plugins/'
+				),
+				'action' => self::post_action( 'fast_on', __( 'Atualizar', 'oraculo-tainacan' ) ),
+			);
+		}
+
 		if ( $st['enabled'] && ! $st['installed'] ) {
 			return $base + array(
 				'status' => 'bad',
@@ -261,8 +280,9 @@ class Diagnostics {
 	 * @return array<string, mixed>
 	 */
 	private static function check_limits(): array {
-		$o      = \Oraculo_Tainacan\Oraculo_Tainacan::get_options();
-		$global = (int) ( $o['rate_limit_global'] ?? 300 );
+		$o = \Oraculo_Tainacan\Oraculo_Tainacan::get_options();
+		// Sem valor salvo (atualizado da 2.12 sem passar por aqui) vale o teto antigo, 60.
+		$global = (int) ( $o['rate_limit_global'] ?? 60 );
 		$search = (int) ( $o['rate_limit_search'] ?? 10 );
 		$chat   = (int) ( $o['rate_limit_chat'] ?? 20 );
 		$allow  = trim( (string) ( $o['rate_limit_allowlist'] ?? '' ) );
@@ -273,13 +293,13 @@ class Diagnostics {
 			/* translators: 1: global limit per minute, 2: searches per minute per visitor, 3: chat messages per minute per visitor */
 			__( 'Hoje: %1$s chamadas de IA por minuto no site inteiro; %2$s buscas e %3$s mensagens da BIA por minuto para cada visitante.', 'oraculo-tainacan' ),
 			0 === $global ? __( 'sem teto', 'oraculo-tainacan' ) : number_format_i18n( $global ),
-			number_format_i18n( $search ),
-			number_format_i18n( $chat )
+			0 === $search ? __( 'sem limite de', 'oraculo-tainacan' ) : number_format_i18n( $search ),
+			0 === $chat ? __( 'sem limite de', 'oraculo-tainacan' ) : number_format_i18n( $chat )
 		);
 		$text .= ' ' . __( 'O limite por visitante conta pelo endereço IP: numa sala de aula ou num museu, todos saem pelo mesmo IP e seriam barrados juntos. Para isso servem as redes liberadas.', 'oraculo-tainacan' );
 
 		if ( $low ) {
-			$text .= ' ' . __( 'Com menos de 120 por minuto, um pico de 70 pessoas (busca + resposta) já esbarra no teto e parte delas recebe "alta demanda".', 'oraculo-tainacan' );
+			$text .= ' ' . __( 'Com menos de 120 por minuto, um pico de 70 pessoas (busca + resposta) já esbarra no teto e parte delas recebe "alta demanda". Desde a 2.13.0 o padrão das instalações novas é 300.', 'oraculo-tainacan' );
 		}
 
 		return array(
@@ -403,7 +423,9 @@ class Diagnostics {
 		global $wpdb;
 		$table = $wpdb->prefix . 'oraculo_search_logs';
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table name built from $wpdb->prefix + literal; one aggregate per admin page view.
+		// Sem prepare(): não há valor variável, só o nome da tabela, e o marcador %i
+		// de identificador exige WP 6.2 (o plugin suporta 6.0).
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Only interpolation is $wpdb->prefix + literal table name; the %i placeholder needs WP 6.2 and the plugin supports 6.0; one aggregate per admin page view.
 		$avg = $wpdb->get_var( "SELECT AVG(response_time_ms) FROM (SELECT response_time_ms FROM {$table} WHERE tokens_used > 0 AND response_time_ms > 0 AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) ORDER BY id DESC LIMIT 200) t" );
 
 		return null === $avg ? null : round( (float) $avg / 1000, 1 );
@@ -512,7 +534,7 @@ class Diagnostics {
 
 			case 'limits':
 				$input = array(
-					'rate_limit_global'    => isset( $_POST['rate_limit_global'] ) ? absint( wp_unslash( $_POST['rate_limit_global'] ) ) : 300,
+					'rate_limit_global'    => isset( $_POST['rate_limit_global'] ) ? absint( wp_unslash( $_POST['rate_limit_global'] ) ) : 60,
 					'rate_limit_search'    => isset( $_POST['rate_limit_search'] ) ? absint( wp_unslash( $_POST['rate_limit_search'] ) ) : 10,
 					'rate_limit_chat'      => isset( $_POST['rate_limit_chat'] ) ? absint( wp_unslash( $_POST['rate_limit_chat'] ) ) : 20,
 					'rate_limit_allowlist' => isset( $_POST['rate_limit_allowlist'] ) ? sanitize_textarea_field( wp_unslash( $_POST['rate_limit_allowlist'] ) ) : '',

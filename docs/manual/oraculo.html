@@ -301,7 +301,7 @@
     <tr><td>Item novo não aparece</td><td>A fila ainda não rodou (o cron roda a cada 5 min)</td><td><code>wp oraculo queue</code>; conferir se o WP-Cron roda no servidor</td></tr>
     <tr><td>Busca lenta (vários segundos antes dos cartões)</td><td>Busca no banco desligada ou ainda preenchendo</td><td><code>wp oraculo native status</code>; se preciso, <code>native sync</code></td></tr>
     <tr><td>Cartões rápidos, síntese demorada</td><td>Normal: é o modelo de linguagem (~2 s com gpt-4.1-mini, ~6 s com gpt-5-nano)</td><td>Modelo recomendado em Provedores; menos itens em Geral (contexto menor)</td></tr>
-    <tr><td>“Muitas requisições”</td><td>Limite por visitante (10 buscas/min) ou teto do site (300 chamadas de IA/min)</td><td>Esperar um minuto; ajustar em <b>Diagnóstico → Limites de uso</b>, ou liberar a rede da escola/museu</td></tr>
+    <tr><td>“Muitas requisições”</td><td>Limite por visitante (10 buscas/min) ou teto do site (300 chamadas de IA/min; 60 em quem atualizou)</td><td>Esperar um minuto; ajustar em <b>Diagnóstico → Limites de uso</b>, ou liberar a rede da escola/museu</td></tr>
     <tr><td>Site inteiro lento quando muita gente usa a IA</td><td>Busca e páginas disputam os mesmos processos PHP</td><td>Seção 11: modo rápido e processos PHP próprios</td></tr>
     <tr><td>PDF não é encontrado pelo conteúdo</td><td>PDF digitalizado sem OCR, ou campo “document” desligado</td><td><code>wp oraculo documents status --collection=ID</code>; rodar o OCR</td></tr>
     <tr><td>Resposta “estranha”</td><td>A IA só fala do que achou: o problema costuma estar nos dados</td><td>Ver os cartões: se não são pertinentes, rever metadados e campos indexados</td></tr>
@@ -309,7 +309,7 @@
 
   <h2>10. Limites, custos e privacidade</h2>
   <ul>
-    <li><b>Limites de uso:</b> 10 buscas e 20 mensagens da BIA por minuto por visitante, e 300 chamadas de IA por minuto no site todo, ajustáveis na aba Diagnóstico. A busca em duas etapas conta uma vez só. Redes liberadas (escola, museu atrás de um único IP) ficam sem o limite por visitante.</li>
+    <li><b>Limites de uso:</b> 10 buscas e 20 mensagens da BIA por minuto por visitante, e 300 chamadas de IA por minuto no site todo (60 em quem atualizou de versão anterior), ajustáveis na aba Diagnóstico. A busca em duas etapas conta uma vez só. Redes liberadas (escola, museu atrás de um único IP) ficam sem o limite por visitante.</li>
     <li><b>Custo por busca</b> (OpenAI): um embedding da pergunta e cerca de 2 mil tokens no modelo de linguagem. Pela tabela da OpenAI, cerca de US$ 1 a cada mil perguntas com gpt-4.1-mini e US$ 0,30 com gpt-5-nano (confira na sua conta). O cache de 1 hora evita pagar de novo pela mesma pergunta, inclusive na primeira mensagem da BIA.</li>
     <li><b>O que sai do servidor:</b> com provedor externo, a pergunta e o texto dos itens recuperados vão ao provedor. Com <b>Ollama</b>, nada sai do servidor, mas a resposta fica bem mais lenta numa máquina sem GPU.</li>
     <li><b>Sugestões públicas</b> só mostram buscas feitas por pelo menos 3 visitantes diferentes. O que uma pessoa digitou sozinha nunca vira sugestão.</li>
@@ -348,7 +348,7 @@
         <li><b>Modelo de linguagem.</b> gpt-4.1-mini respondeu em ~1,9 s, com texto curto e correto; gpt-5-nano em ~6 s (ele “raciocina” antes); gpt-4o-mini inventou links. É o padrão nas instalações novas.</li>
         <li><b>Modo rápido</b> (plugin, um clique). Nas rotas da busca e da BIA, carrega só o Oráculo: 0,05 s de CPU por pedido, contra 0,13 s com todos os plugins. Resultados idênticos.</li>
         <li><b>Processos PHP próprios</b> (servidor). Não aceleram o Oráculo; impedem que ele derrube o site durante o pico.</li>
-        <li><b>Limites de uso.</b> O teto antigo (60/min) recusaria parte desse pico; o padrão agora é 300.</li>
+        <li><b>Limites de uso.</b> O teto antigo (60/min) recusaria parte desse pico; nas instalações novas o padrão é 300. Quem atualiza mantém 60 até mudar na aba Diagnóstico.</li>
         <li><b>Mais processos não ajudam</b> num núcleo só: com 16, a CPU saturou e os cartões pioraram. Acima disso, o que rende é CPU (2 a 4 núcleos).</li>
       </ul>
     </div>

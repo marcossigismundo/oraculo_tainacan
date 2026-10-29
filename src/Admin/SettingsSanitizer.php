@@ -112,7 +112,9 @@ class SettingsSanitizer {
 
 		// Limites de uso (tela Diagnóstico). Zero no global desliga o teto;
 		// por visitante, zero também desliga, como no filtro de sempre.
-		$sanitized['rate_limit_global'] = min( 10000, absint( $input['rate_limit_global'] ?? $current['rate_limit_global'] ?? 300 ) );
+		// Padrão 60 só para quem atualizou sem salvar: um save qualquer não pode
+		// quintuplicar o teto em silêncio. Instalação nova grava 300 na ativação.
+		$sanitized['rate_limit_global'] = min( 10000, absint( $input['rate_limit_global'] ?? $current['rate_limit_global'] ?? 60 ) );
 		$sanitized['rate_limit_search'] = min( 1000, absint( $input['rate_limit_search'] ?? $current['rate_limit_search'] ?? 10 ) );
 		$sanitized['rate_limit_chat']   = min( 1000, absint( $input['rate_limit_chat'] ?? $current['rate_limit_chat'] ?? 20 ) );
 

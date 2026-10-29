@@ -898,18 +898,28 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados.',
 	 * @return bool
 	 */
 	private function use_clip_backend(): bool {
-		// O CLIP agora é selecionado como provedor de IA (card, igual aos
-		// demais). O search_backend antigo é aceito por compatibilidade com
-		// configurações salvas pela 2.3.x/2.4.0, onde era um select próprio
-		// na aba Geral.
-		$is_clip = 'clip' === ( $this->options['ai_provider'] ?? '' )
-			|| 'clip' === ( $this->options['search_backend'] ?? '' );
-
-		if ( ! $is_clip ) {
+		if ( ! self::clip_selected( $this->options ) ) {
 			return false;
 		}
 
 		return ( new \Oraculo_Tainacan\Vector\ClipApiClient( $this->options ) )->is_configured();
+	}
+
+	/**
+	 * As opções escolhem a busca visual (CLIP)?
+	 *
+	 * O CLIP agora é selecionado como provedor de IA (card, igual aos
+	 * demais). O search_backend antigo é aceito por compatibilidade com
+	 * configurações salvas pela 2.3.x/2.4.0, onde era um select próprio na
+	 * aba Geral. Também usado pelo modo rápido (Performance\FastRest), que
+	 * mantém o Tainacan carregado nesse modo.
+	 *
+	 * @param array $options Opções do plugin.
+	 * @return bool
+	 */
+	public static function clip_selected( array $options ): bool {
+		return 'clip' === ( $options['ai_provider'] ?? '' )
+			|| 'clip' === ( $options['search_backend'] ?? '' );
 	}
 
 	/**
