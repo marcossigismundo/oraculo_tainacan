@@ -60,6 +60,16 @@
         }
     }
 
+    // Placar do topo: itens em ordem / itens avaliados (o teste muda o do pool).
+    function updateScore() {
+        var scored = root.querySelectorAll('.oraculo-diag-item.is-ok, .oraculo-diag-item.is-warn, .oraculo-diag-item.is-bad');
+        var ok = root.querySelectorAll('.oraculo-diag-item.is-ok');
+        var num = root.querySelector('.oraculo-diag-score-num');
+        if (num) {
+            num.textContent = ok.length + '/' + scored.length;
+        }
+    }
+
     function render(data) {
         box.textContent = '';
         var title = document.createElement('h3');
@@ -107,6 +117,7 @@
             setCheck('fast_rest', 'warn', t('diagStatusWarn'), t('diagFastNoEffect'),
                 t('diagFastNoEffectText'));
         }
+        updateScore();
     }
 
     button.addEventListener('click', function () {

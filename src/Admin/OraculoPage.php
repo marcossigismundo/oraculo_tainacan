@@ -377,7 +377,7 @@ class OraculoPage extends \Tainacan\Pages {
 			// Aba Diagnóstico (assets/js/admin/diagnostics.js).
 			'diagResult'             => __( 'Resultado do teste', 'oraculo-tainacan' ),
 			'diagBootstrap'          => __( 'Carga do WordPress nesta rota', 'oraculo-tainacan' ),
-			'diagPluginsLoaded'      => __( 'plugins carregados', 'oraculo-tainacan' ),
+			'diagPluginsLoaded'      => __( 'plugin(s) carregado(s)', 'oraculo-tainacan' ),
 			'diagFast'               => __( 'Modo rápido em ação', 'oraculo-tainacan' ),
 			'diagPool'               => __( 'Processos PHP próprios', 'oraculo-tainacan' ),
 			'diagYes'                => __( 'sim', 'oraculo-tainacan' ),
