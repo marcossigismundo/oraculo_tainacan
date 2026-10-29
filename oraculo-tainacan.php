@@ -3,7 +3,7 @@
  * Plugin Name: Oráculo Tainacan
  * Plugin URI: https://github.com/tainacan/oraculo-tainacan
  * Description: Sistema avançado de busca em linguagem natural com IA para acervos Tainacan. Integra RAG (Retrieval-Augmented Generation) com múltiplos provedores de IA.
- * Version: 2.12.0
+ * Version: 2.13.0
  * Author: Tainacan Community
  * Author URI: https://tainacan.org
  * License: GPL-2.0+
@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Constantes do plugin
-define( 'ORACULO_TAINACAN_VERSION', '2.12.0' );
+define( 'ORACULO_TAINACAN_VERSION', '2.13.0' );
 define( 'ORACULO_TAINACAN_FILE', __FILE__ );
 define( 'ORACULO_TAINACAN_PATH', plugin_dir_path( __FILE__ ) );
 define( 'ORACULO_TAINACAN_URL', plugin_dir_url( __FILE__ ) );
@@ -167,6 +167,11 @@ final class Oraculo_Tainacan {
 		// Admin (os assets da página vivem em Admin\OraculoPage, via Tainacan Pages API)
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
 
+		// Diagnóstico (uso intenso) e modo rápido: arquivo do mu-plugin em dia
+		// depois de atualizar o plugin ou trocar o modo de busca.
+		Admin\Diagnostics::register();
+		add_action( 'admin_init', array( Performance\FastRest::class, 'maintain' ) );
+
 		// Frontend
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
 
@@ -269,6 +274,10 @@ final class Oraculo_Tainacan {
 		wp_clear_scheduled_hook( Indexing\AutoIndexer::CRON_RECONCILE );
 		wp_clear_scheduled_hook( Vector\VectorStore::CRON_BACKFILL );
 		wp_clear_scheduled_hook( Vector\NativeVector::CRON_HOOK );
+
+		// Sem o Oráculo, o mu-plugin do modo rápido não tem o que enxugar. A
+		// escolha fica guardada: reativar recoloca o arquivo (FastRest::maintain).
+		Performance\FastRest::disable( true );
 
 		// Sem isto, um lock deixado por um worker interrompido bloquearia a fila
 		// por LOCK_TIMEOUT depois da reativação.
@@ -486,7 +495,7 @@ final class Oraculo_Tainacan {
 		$defaults = array(
 			'ai_provider'            => 'openai',
 			'openai_api_key'         => '',
-			'openai_model'           => 'gpt-5-mini',
+			'openai_model'           => 'gpt-4.1-mini',
 			'openai_embedding_model' => 'text-embedding-3-small',
 			'gemini_api_key'         => '',
 			'gemini_model'           => 'gemini-2.5-flash',
@@ -506,6 +515,10 @@ final class Oraculo_Tainacan {
 			'batch_size'             => 25,
 			'request_timeout'        => 120,
 			'cache_duration'         => 3600,
+			'rate_limit_global'      => 300,
+			'rate_limit_search'      => 10,
+			'rate_limit_chat'        => 20,
+			'rate_limit_allowlist'   => '',
 			'enable_chat'            => true,
 			'enable_search'          => true,
 			'enable_analytics'       => true,

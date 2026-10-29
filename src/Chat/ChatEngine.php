@@ -116,47 +116,40 @@ class ChatEngine {
 			// Salvar mensagem do usuário
 			$this->save_message( $conversation['id'], 'user', $message );
 
-			// Buscar contexto relevante no acervo
-			$context = '';
+			// Itens do acervo usados como contexto (vêm de answer() ou do cache).
 			$sources = array();
 
-			if ( $this->should_search_context( $message, $history ) ) {
-				// Follow-ups não têm âncora semântica sozinhos ("e quem
-				// escreveu?"): o embedding só da mensagem atual não recupera
-				// nada. A query de busca leva junto as últimas perguntas do
-				// usuário, para a continuação herdar o assunto da conversa.
-				$search_query = $this->build_search_query( $message, $history );
+			// Primeira mensagem de uma conversa: sem histórico, a mesma pergunta
+			// nas mesmas coleções tem a mesma resposta. Numa aula ou num evento
+			// muita gente abre a BIA com a mesma pergunta.
+			$first_key = empty( $history ) ? $this->first_message_cache_key( $message, $collection_ids ) : '';
+			$cached    = '' !== $first_key ? get_transient( $first_key ) : false;
 
-				// Mesmo número de itens da aba "Busca com IA" (com 5, a BIA via só
-				// metade do que a busca mostra), com teto de 10: cada item vira
-				// ~300 caracteres de contexto em todo turno da conversa.
-				$chat_limit     = max( 1, min( 10, (int) ( $this->options['max_results'] ?? 10 ) ) );
-				$search_results = $this->search_engine->semantic_search( $search_query, $collection_ids, $chat_limit );
-
-				if ( ! is_wp_error( $search_results ) && ! empty( $search_results ) ) {
-					$context = $this->format_context( $search_results );
-					$sources = $search_results;
+			if ( is_array( $cached ) && isset( $cached['ai']['response'], $cached['sources'] ) ) {
+				// Do cache não se gastou nada: zera uso e custo nas estatísticas.
+				$ai_response          = $cached['ai'];
+				$ai_response['usage'] = array(
+					'prompt_tokens'     => 0,
+					'completion_tokens' => 0,
+					'total_tokens'      => 0,
+				);
+				$ai_response['cost']  = 0;
+				$sources              = (array) $cached['sources'];
+			} else {
+				$ai_response = $this->answer( $message, $history, $collection_ids, $options, $sources );
+				if ( is_wp_error( $ai_response ) ) {
+					return $ai_response;
 				}
-			}
-
-			// Construir prompt
-			$system_prompt = $this->get_chat_system_prompt();
-			$chat_prompt   = $this->build_chat_prompt( $message, $context, $history );
-
-			// Gerar resposta
-			$chat_provider = $this->ai_factory->create_from_options();
-
-			$ai_response = $chat_provider->generate_response(
-				$chat_prompt,
-				$system_prompt,
-				array(
-					'max_tokens'  => $options['max_tokens'] ?? $this->options['max_tokens'] ?? 2000,
-					'temperature' => $options['temperature'] ?? $this->options['temperature'] ?? 0.7,
-				)
-			);
-
-			if ( is_wp_error( $ai_response ) ) {
-				return $ai_response;
+				if ( '' !== $first_key ) {
+					set_transient(
+						$first_key,
+						array(
+							'ai'      => $ai_response,
+							'sources' => $sources,
+						),
+						(int) ( $this->options['cache_duration'] ?? 3600 )
+					);
+				}
 			}
 
 			// Salvar resposta
@@ -189,6 +182,89 @@ class ChatEngine {
 			\Oraculo_Tainacan\debug_log( 'Chat error: ' . $e->getMessage(), null, 'error' );
 			return new WP_Error( 'chat_error', $e->getMessage() );
 		}
+	}
+
+	/**
+	 * Chave do cache da primeira mensagem ('' com o cache desligado)
+	 *
+	 * Leva provedor, modelo e prompts: trocar qualquer um não reaproveita
+	 * resposta antiga.
+	 *
+	 * @param string $message        Mensagem.
+	 * @param int[]  $collection_ids Coleções.
+	 * @return string
+	 */
+	private function first_message_cache_key( string $message, array $collection_ids ): string {
+		if ( (int) ( $this->options['cache_duration'] ?? 3600 ) <= 0 ) {
+			return '';
+		}
+
+		$collection_ids = array_map( 'intval', $collection_ids );
+		sort( $collection_ids );
+		$provider = (string) ( $this->options['ai_provider'] ?? '' );
+
+		return 'oraculo_chat1_' . md5(
+			(string) wp_json_encode(
+				array(
+					mb_strtolower( preg_replace( '/\s+/u', ' ', $message ) ),
+					$collection_ids,
+					$provider,
+					$this->options[ $provider . '_model' ] ?? '',
+					$this->options['chat_prompt'] ?? '',
+					$this->options['system_prompt'] ?? '',
+					$this->options['max_results'] ?? 10,
+				)
+			)
+		);
+	}
+
+	/**
+	 * Busca o contexto e gera a resposta da BIA
+	 *
+	 * @param string $message        Mensagem.
+	 * @param array  $history        Turnos anteriores.
+	 * @param int[]  $collection_ids Coleções.
+	 * @param array  $options        Opções da chamada.
+	 * @param array  $sources        Saída: itens usados como contexto.
+	 * @return array|WP_Error Resposta do provedor.
+	 */
+	private function answer( string $message, array $history, array $collection_ids, array $options, array &$sources ) {
+		$context = '';
+
+		if ( $this->should_search_context( $message, $history ) ) {
+			// Follow-ups não têm âncora semântica sozinhos ("e quem
+			// escreveu?"): o embedding só da mensagem atual não recupera
+			// nada. A query de busca leva junto as últimas perguntas do
+			// usuário, para a continuação herdar o assunto da conversa.
+			$search_query = $this->build_search_query( $message, $history );
+
+			// Mesmo número de itens da aba "Busca com IA" (com 5, a BIA via só
+			// metade do que a busca mostra), com teto de 10: cada item vira
+			// ~300 caracteres de contexto em todo turno da conversa.
+			$chat_limit     = max( 1, min( 10, (int) ( $this->options['max_results'] ?? 10 ) ) );
+			$search_results = $this->search_engine->semantic_search( $search_query, $collection_ids, $chat_limit );
+
+			if ( ! is_wp_error( $search_results ) && ! empty( $search_results ) ) {
+				$context = $this->format_context( $search_results );
+				$sources = $search_results;
+			}
+		}
+
+		// Construir prompt
+		$system_prompt = $this->get_chat_system_prompt();
+		$chat_prompt   = $this->build_chat_prompt( $message, $context, $history );
+
+		// Gerar resposta
+		$chat_provider = $this->ai_factory->create_from_options();
+
+		return $chat_provider->generate_response(
+			$chat_prompt,
+			$system_prompt,
+			array(
+				'max_tokens'  => $options['max_tokens'] ?? $this->options['max_tokens'] ?? 2000,
+				'temperature' => $options['temperature'] ?? $this->options['temperature'] ?? 0.7,
+			)
+		);
 	}
 
 	/**

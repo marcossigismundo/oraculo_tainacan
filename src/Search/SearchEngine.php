@@ -814,6 +814,39 @@ Forneça uma resposta clara, mencionando os itens mais relevantes encontrados.',
 	}
 
 	/**
+	 * Mede as etapas da busca, para o teste ao vivo do Diagnóstico
+	 *
+	 * Sem cache: o embedding sempre vai ao provedor, como numa pergunta nova.
+	 *
+	 * @param string $query Pergunta de teste.
+	 * @return array{embedding_ms: int, vectors_ms: int, items: int}|WP_Error
+	 */
+	public function benchmark_retrieval( string $query ) {
+		$t0        = microtime( true );
+		$embedding = $this->embed_query( $query, false );
+		if ( is_wp_error( $embedding ) ) {
+			return $embedding;
+		}
+		$t1 = microtime( true );
+
+		$items = $this->vector_store->search(
+			$embedding,
+			array(),
+			(int) ( $this->options['max_results'] ?? 10 ),
+			(float) ( $this->options['similarity_threshold'] ?? 0.3 )
+		);
+		if ( is_wp_error( $items ) ) {
+			return $items;
+		}
+
+		return array(
+			'embedding_ms' => (int) round( ( $t1 - $t0 ) * 1000 ),
+			'vectors_ms'   => (int) round( ( microtime( true ) - $t1 ) * 1000 ),
+			'items'        => count( $items ),
+		);
+	}
+
+	/**
 	 * Embedding da pergunta, com cache opcional
 	 *
 	 * Na busca, a mesma pergunta (sugestões, deep links, buscas repetidas)

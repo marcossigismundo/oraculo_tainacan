@@ -4,7 +4,7 @@ Tags: tainacan, ai, search, rag, openai
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 2.12.0
+Stable tag: 2.13.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -111,6 +111,14 @@ OpenAI is the most tested option. Ollama is recommended for fully local, private
 Only the text content of your archived items is sent to the AI provider you configure. When using Ollama, everything stays local.
 
 == Changelog ==
+
+= 2.13.0 =
+* New "Diagnóstico" tab: checks what matters when many people use the search and the BIA at the same time (provider, model, fast mode, own PHP processes, rate limits, native vector search, answer cache, server), says in plain words what each item means and what to do, and has a live test that times each step (WordPress load on the Oráculo route, embedding, vector search, a short AI answer). Numbers in the texts come from a load test with 40 searches and 30 BIA conversations at the same time on a 1-core server (see the "Uso intenso" guide in the manual)
+* Fast mode (optional, one click in Diagnóstico): a small mu-plugin, copied by the plugin to `wp-content/mu-plugins` and removed when you turn it off or deactivate the Oráculo, loads only the Oráculo on the public search and chat routes. Each request spends less than half the CPU (0.05 s against 0.13 s); in the 70-person peak the total time went from 38 s to 26.5 s with identical results. The Tainacan plugin stays loaded in visual search (CLIP) mode. Filter `oraculo_tainacan_fast_rest_plugins` keeps other plugins. Not available on multisite
+* Rate limits are now options in Diagnóstico: site-wide AI calls per minute (default raised from 60 to 300; 60 refused part of a 70-person peak), searches and BIA messages per minute per visitor, and allowed networks (IP or CIDR, IPv4/IPv6) without the per-visitor limit, for classrooms and museums behind a single IP. The existing filters still win
+* The first message of a BIA conversation is cached like a search (same question, collections, provider, model and prompts) for the cache duration; a cached answer is recorded with zero tokens and cost
+* OpenAI: `gpt-4.1-mini` is the default model for new installs and is marked as recommended (about 1.9 s per answer in the test, against about 6 s for `gpt-5-nano`, with shorter and correct answers). Existing sites keep their chosen model
+* REST: `POST oraculo/v1/diagnostics/probe` (administrators only), used by the live test
 
 = 2.12.0 =
 * Performance: "Busca com IA" answers in two steps. The first request (`phase=items`) returns the item cards without calling the language model (about 85% of the search time) plus a single-use ticket; the second (`phase=answer`, with the ticket) writes the synthesis on top of the stored retrieval, without embedding or searching again. Cards show in about a second; only the answer block is filled in when the synthesis arrives, so focus and scroll on the cards stay. Cached answers and "nothing found" come complete in the first request; with sources hidden the tab keeps a single request. A request without `phase` works as before

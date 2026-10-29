@@ -152,7 +152,7 @@ class AIProviderFactory {
 					$common,
 					array(
 						'api_key'         => $api_key,
-						'model'           => $options['openai_model'] ?? 'gpt-5-mini',
+						'model'           => $options['openai_model'] ?? 'gpt-4.1-mini',
 						'embedding_model' => $options['openai_embedding_model'] ?? 'text-embedding-ada-002',
 					)
 				);

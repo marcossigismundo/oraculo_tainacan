@@ -1868,3 +1868,211 @@
     transform: translateY(-2px);
     box-shadow: var(--oraculo-shadow-md), var(--oraculo-shadow-glow);
 }
+
+/* ==========================================================================
+   Aba Diagnóstico (uso intenso)
+   ========================================================================== */
+
+.oraculo-diagnostics {
+    --oraculo-diag-ok: #1e7e34;
+    --oraculo-diag-ok-bg: #e8f5ec;
+    --oraculo-diag-warn: #8a5a00;
+    --oraculo-diag-warn-bg: #fff6e0;
+    --oraculo-diag-bad: #b32d2e;
+    --oraculo-diag-bad-bg: #fcecec;
+    --oraculo-diag-info: var(--oraculo-primary-dark);
+    --oraculo-diag-info-bg: var(--oraculo-accent-light);
+    max-width: 1100px;
+}
+
+.oraculo-diag-summary .oraculo-card-body {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+}
+
+.oraculo-diag-score {
+    flex: 0 0 140px;
+    text-align: center;
+    padding: 16px 8px;
+    border-radius: 12px;
+    background: var(--oraculo-gradient-light);
+}
+
+.oraculo-diag-score-num {
+    display: block;
+    font-size: 40px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--oraculo-primary-dark);
+}
+
+.oraculo-diag-score-label {
+    font-size: 13px;
+    color: var(--oraculo-primary-dark);
+}
+
+.oraculo-diag-intro h2 {
+    margin: 0 0 8px;
+    font-size: 18px;
+}
+
+.oraculo-diag-intro .button .dashicons {
+    vertical-align: text-bottom;
+}
+
+.oraculo-diag-probe-note {
+    margin-left: 8px;
+    color: #50575e;
+    font-size: 12px;
+}
+
+.oraculo-diag-probe-result {
+    margin-top: 12px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    background: #f6f7f7;
+}
+
+.oraculo-diag-probe-result h3 {
+    margin: 0 0 8px;
+    font-size: 14px;
+}
+
+.oraculo-diag-probe-result ul {
+    margin: 0 0 8px;
+}
+
+.oraculo-diag-probe-result li {
+    padding-left: 20px;
+    position: relative;
+}
+
+.oraculo-diag-probe-result li::before {
+    content: "";
+    position: absolute;
+    left: 4px;
+    top: 7px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--oraculo-diag-info);
+}
+
+.oraculo-diag-probe-result li.is-ok::before { background: var(--oraculo-diag-ok); }
+.oraculo-diag-probe-result li.is-warn::before { background: #dba617; }
+.oraculo-diag-probe-result li.is-bad::before { background: var(--oraculo-diag-bad); }
+
+.oraculo-diag-list {
+    display: grid;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.oraculo-diag-item {
+    background: var(--oraculo-bg-card);
+    border: 1px solid #dcdcde;
+    border-left: 5px solid var(--oraculo-diag-info);
+    border-radius: 8px;
+    padding: 14px 18px;
+}
+
+.oraculo-diag-item.is-ok { border-left-color: var(--oraculo-diag-ok); }
+.oraculo-diag-item.is-warn { border-left-color: #dba617; }
+.oraculo-diag-item.is-bad { border-left-color: var(--oraculo-diag-bad); }
+.oraculo-diag-item.is-pending { border-left-color: #8c8f94; }
+
+.oraculo-diag-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.oraculo-diag-head h3 {
+    margin: 0;
+    font-size: 15px;
+}
+
+.oraculo-diag-item.is-ok .oraculo-diag-head .dashicons { color: var(--oraculo-diag-ok); }
+.oraculo-diag-item.is-warn .oraculo-diag-head .dashicons { color: #dba617; }
+.oraculo-diag-item.is-bad .oraculo-diag-head .dashicons { color: var(--oraculo-diag-bad); }
+.oraculo-diag-item.is-info .oraculo-diag-head .dashicons { color: var(--oraculo-diag-info); }
+.oraculo-diag-item.is-pending .oraculo-diag-head .dashicons { color: #8c8f94; }
+
+.oraculo-diag-badge {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: var(--oraculo-diag-info-bg);
+    color: var(--oraculo-diag-info);
+}
+
+.oraculo-diag-item.is-ok .oraculo-diag-badge { background: var(--oraculo-diag-ok-bg); color: var(--oraculo-diag-ok); }
+.oraculo-diag-item.is-warn .oraculo-diag-badge { background: var(--oraculo-diag-warn-bg); color: var(--oraculo-diag-warn); }
+.oraculo-diag-item.is-bad .oraculo-diag-badge { background: var(--oraculo-diag-bad-bg); color: var(--oraculo-diag-bad); }
+.oraculo-diag-item.is-pending .oraculo-diag-badge { background: #f0f0f1; color: #50575e; }
+
+.oraculo-diag-value {
+    margin-left: auto;
+    font-family: Consolas, Monaco, monospace;
+    font-size: 12px;
+    color: #50575e;
+}
+
+.oraculo-diag-text,
+.oraculo-diag-how,
+.oraculo-diag-live {
+    margin: 8px 0 0;
+    max-width: 80ch;
+}
+
+.oraculo-diag-live {
+    font-weight: 600;
+}
+
+.oraculo-diag-actions {
+    margin: 10px 0 0;
+}
+
+.oraculo-diag-limits {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.oraculo-diag-limits label span {
+    display: block;
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.oraculo-diag-limits input[type="number"] {
+    width: 120px;
+}
+
+.oraculo-diag-limits textarea {
+    width: 100%;
+    font-family: Consolas, Monaco, monospace;
+}
+
+.oraculo-diag-limits .is-wide {
+    grid-column: 1 / -1;
+    margin: 0;
+}
+
+.oraculo-diag-footer {
+    margin-top: 16px;
+    color: #50575e;
+}
+
+@media (max-width: 782px) {
+    .oraculo-diag-summary .oraculo-card-body { flex-direction: column; }
+    .oraculo-diag-score { flex-basis: auto; width: 100%; }
+    .oraculo-diag-limits { grid-template-columns: 1fr; }
+    .oraculo-diag-value { margin-left: 0; }
+}

@@ -399,6 +399,26 @@ class RestController extends WP_REST_Controller {
 			)
 		);
 
+		// Teste ao vivo do Diagnóstico. Fica em /oraculo/ para seguir o mesmo
+		// caminho da busca: modo rápido (mu-plugin) e processos PHP próprios.
+		register_rest_route(
+			$this->namespace,
+			'/diagnostics/probe',
+			array(
+				array(
+					'methods'             => 'POST',
+					'callback'            => array( $this, 'diagnostics_probe' ),
+					'permission_callback' => array( $this, 'check_admin' ),
+					'args'                => array(
+						'deep' => array(
+							'type'    => 'boolean',
+							'default' => false,
+						),
+					),
+				),
+			)
+		);
+
 		// Health check (expõe versões/config — restrito a admin)
 		register_rest_route(
 			$this->namespace,
@@ -411,6 +431,17 @@ class RestController extends WP_REST_Controller {
 				),
 			)
 		);
+	}
+
+	/**
+	 * Teste ao vivo para a tela Diagnóstico
+	 *
+	 * @param WP_REST_Request $request Requisição.
+	 * @return WP_REST_Response
+	 */
+	public function diagnostics_probe( WP_REST_Request $request ): WP_REST_Response {
+		$data = \Oraculo_Tainacan\Admin\Diagnostics::probe( (bool) $request->get_param( 'deep' ) );
+		return new WP_REST_Response( $data );
 	}
 
 	/**
@@ -518,19 +549,26 @@ class RestController extends WP_REST_Controller {
 		}
 
 		// Defaults por feature: chat conversacional tolera mais requisições/min.
+		// Busca e chat vêm da tela Diagnóstico (opções rate_limit_*).
 		$defaults = array(
-			'search'   => 10,
-			'chat'     => 20,
+			'search'   => (int) ( $options['rate_limit_search'] ?? 10 ),
+			'chat'     => (int) ( $options['rate_limit_chat'] ?? 20 ),
 			'feedback' => 30,
 		);
 
 		/**
 		 * Filtra o máximo de requisições por minuto e por IP nos endpoints públicos.
 		 *
-		 * @param int    $max_per_minute Padrão: search 10, chat 20, feedback 30.
+		 * @param int    $max_per_minute Padrão: opções rate_limit_search (10) e rate_limit_chat (20); feedback 30.
 		 * @param string $feature        search|chat|feedback.
 		 */
 		$max_per_minute = (int) apply_filters( 'oraculo_tainacan_rest_rate_limit', $defaults[ $feature ] ?? 10, $feature );
+
+		// Redes liberadas (escola, museu atrás de um único IP): sem limite por
+		// IP. O teto global continua valendo para elas.
+		if ( self::ip_allowlisted( (string) ( $options['rate_limit_allowlist'] ?? '' ) ) ) {
+			$max_per_minute = 0;
+		}
 
 		// Busca em duas etapas: a pergunta conta nos limites uma vez, na etapa
 		// items. A answer só é isenta com o bilhete que a items devolveu, de uso
@@ -552,9 +590,9 @@ class RestController extends WP_REST_Controller {
 			/**
 			 * Filtra o máximo global de chamadas de IA por minuto (search + chat, site inteiro).
 			 *
-			 * @param int $global_max_per_minute Padrão 60. Zero desativa o teto.
+			 * @param int $global_max_per_minute Padrão: opção rate_limit_global (300). Zero desativa o teto.
 			 */
-			$global_max = (int) apply_filters( 'oraculo_tainacan_rest_global_rate_limit', 60 );
+			$global_max = (int) apply_filters( 'oraculo_tainacan_rest_global_rate_limit', (int) ( $options['rate_limit_global'] ?? 300 ) );
 
 			if ( $global_max > 0 ) {
 				$global_key   = 'oraculo_rl_global_ai';
@@ -573,6 +611,67 @@ class RestController extends WP_REST_Controller {
 		}
 
 		return true;
+	}
+
+	/**
+	 * O IP do visitante está numa das redes liberadas?
+	 *
+	 * Usa REMOTE_ADDR, como o limite por IP: cabeçalhos X-Forwarded-For vêm do
+	 * cliente e não servem para liberar nada.
+	 *
+	 * @param string $allowlist Um IP ou rede CIDR por linha (IPv4 ou IPv6).
+	 * @return bool
+	 */
+	public static function ip_allowlisted( string $allowlist ): bool {
+		if ( '' === trim( $allowlist ) || empty( $_SERVER['REMOTE_ADDR'] ) ) {
+			return false;
+		}
+
+		$ip = filter_var( wp_unslash( $_SERVER['REMOTE_ADDR'] ), FILTER_VALIDATE_IP ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Validated as an IP address by filter_var; anything else becomes false.
+		if ( false === $ip ) {
+			return false;
+		}
+
+		foreach ( preg_split( '/[\s,]+/', $allowlist ) as $entry ) {
+			if ( '' !== $entry && self::ip_in_range( $ip, $entry ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * IP dentro de um IP ou rede CIDR
+	 *
+	 * @param string $ip    IP validado.
+	 * @param string $range "203.0.113.7", "203.0.113.0/24" ou "2001:db8::/32".
+	 * @return bool
+	 */
+	public static function ip_in_range( string $ip, string $range ): bool {
+		$parts  = explode( '/', $range, 2 );
+		$net    = @inet_pton( $parts[0] ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- inet_pton warns on malformed input typed by the admin; false is handled below.
+		$packed = @inet_pton( $ip ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Same as above; $ip is already validated.
+
+		if ( false === $net || false === $packed || strlen( $net ) !== strlen( $packed ) ) {
+			return false;
+		}
+
+		$bits = strlen( $net ) * 8;
+		$mask = isset( $parts[1] ) && ctype_digit( $parts[1] ) ? min( $bits, (int) $parts[1] ) : $bits;
+
+		$bytes = intdiv( $mask, 8 );
+		if ( 0 !== strncmp( $net, $packed, $bytes ) ) {
+			return false;
+		}
+
+		$rest = $mask % 8;
+		if ( 0 === $rest ) {
+			return true;
+		}
+
+		$byte_mask = ( 0xFF << ( 8 - $rest ) ) & 0xFF;
+		return ( ord( $net[ $bytes ] ) & $byte_mask ) === ( ord( $packed[ $bytes ] ) & $byte_mask );
 	}
 
 	/**
