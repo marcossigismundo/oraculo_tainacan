@@ -4,7 +4,7 @@ Tags: tainacan, ai, search, rag, openai
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 2.13.0
+Stable tag: 2.13.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -111,6 +111,9 @@ OpenAI is the most tested option. Ollama is recommended for fully local, private
 Only the text content of your archived items is sent to the AI provider you configure. When using Ollama, everything stays local.
 
 == Changelog ==
+
+= 2.13.1 =
+* Manual: new page "Servidor para um acervo de 100 mil itens" with the recommended VM (4 vCPU, 8 GB, NVMe, MariaDB 11.7+, 16 Oráculo PHP processes) and projected times. Documentation only; no code changes
 
 = 2.13.0 =
 * New "Diagnóstico" tab: checks what matters when many people use the search and the BIA at the same time (provider, model, fast mode, own PHP processes, rate limits, native vector search, answer cache, server), says in plain words what each item means and what to do, and has a live test that times each step (WordPress load on the Oráculo route, embedding, vector search, a short AI answer). Numbers in the texts come from a load test with 40 searches and 30 BIA conversations at the same time on a 1-core server (see the "Uso intenso" guide in the manual)
