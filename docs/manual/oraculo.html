@@ -389,5 +389,32 @@ env[ORACULO_PHP_POOL] = oraculo   ; é por ela que o Diagnóstico reconhece o gr
   <div class="box warn"><b>Painéis como o CloudPanel</b> regravam o vhost quando ele é editado pela interface, e a linha do <code>fastcgi_pass</code> volta ao original. Depois de mexer no site pelo painel, rode o teste de novo.</div>
 </section>
 
+<section class="page" style="break-before: page;">
+  <h2>Servidor para um acervo de 100 mil itens</h2>
+  <p>O Oráculo compara cada pergunta com <b>todos</b> os vetores do acervo, um a um: o tempo cresce na proporção do acervo. Medido no site de testes: <b>38 mil vetores em 0,11 s</b>. Item com PDF ou texto longo vira vários trechos, e cada trecho é um vetor; um acervo de 100 mil itens fica, em geral, entre <b>120 e 200 mil vetores</b> (~0,4–0,6 s por comparação e ~0,7–1,2 GB só de vetores, com 1.536 dimensões).</p>
+
+  <h3>Configuração recomendada</h3>
+  <table>
+    <tr><th>Recurso</th><th>Mínimo</th><th><b>Recomendado</b></th><th>Por quê</th></tr>
+    <tr><td>Processador</td><td class="num">2 vCPU</td><td class="num"><b>4 vCPU</b></td><td>A comparação de vetores é CPU pura; 4 núcleos atendem 4 perguntas em paralelo e mantêm o pico de 70 pessoas na faixa de segundos.</td></tr>
+    <tr><td>Memória</td><td class="num">4 GB</td><td class="num"><b>8 GB</b></td><td>Vetores inteiros na memória do banco (~1,2 GB), mais Tainacan, PHP e Elasticsearch, se usado.</td></tr>
+    <tr><td>Disco</td><td class="num">50 GB SSD</td><td class="num"><b>80–100 GB NVMe</b></td><td>Banco com vetores (~3 GB com índices), backups e mídia; mídia grande pode ir para armazenamento à parte.</td></tr>
+    <tr><td>Banco</td><td colspan="2" class="num">MariaDB 11.7 ou mais novo</td><td>Tipo <code>VECTOR</code> nativo; <code>innodb_buffer_pool_size</code> = 3–4 GB.</td></tr>
+    <tr><td>PHP-FPM do Oráculo</td><td class="num">8 processos</td><td class="num"><b>16 processos</b></td><td>Grupo próprio (receita acima); cerca de 4 por núcleo, porque a maior parte do tempo é espera da IA.</td></tr>
+    <tr><td>Plugin</td><td colspan="2" class="num">gpt-4.1-mini, modo rápido ligado</td><td>Teto global de 300–600 chamadas/min; redes liberadas para escolas e museus.</td></tr>
+  </table>
+
+  <h3>O que esperar (projeção, 170 mil vetores)</h3>
+  <table>
+    <tr><th>Situação</th><th>2 vCPU / 4 GB</th><th>4 vCPU / 8 GB</th></tr>
+    <tr><td>Uma pessoa: busca completa</td><td class="num">~3 s</td><td class="num">~2,5 s</td></tr>
+    <tr><td>70 pessoas em 20 s: busca completa</td><td class="num">~8–10 s</td><td class="num">~3–4 s</td></tr>
+    <tr><td>70 pessoas no mesmo segundo: tudo atendido</td><td class="num">~50 s</td><td class="num">~20–25 s</td></tr>
+  </table>
+  <p style="font-size:9pt;color:var(--muted)">Projeção a partir das medições em 1 núcleo com 38 mil vetores, não teste com 100 mil itens. Confirme no servidor real com o botão <b>Testar agora</b>: “Comparar com o acervo” deve ficar abaixo de 0,6 s.</p>
+
+  <div class="box"><b>Acima de ~300 mil vetores</b>, mais núcleos deixam de ser o caminho barato: o próximo passo é um índice vetorial aproximado (HNSW, do próprio MariaDB) ou vetores menores (512 dimensões, com reindexação). Uma VPS de 1 núcleo, como a de testes, atende bem até ~100 mil vetores em uso normal, mas sofre nos picos.</div>
+</section>
+
 </body>
 </html>
